@@ -194,3 +194,110 @@ class BiometricData(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     farmer: Mapped["Farmer"] = relationship("Farmer", back_populates="biometrics")
+
+
+class KYCApplication(Base):
+    """KYC application tracking model for step-by-step registration."""
+
+    __tablename__ = "kyc_applications"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    farmer_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("farmers.id", ondelete="CASCADE"), unique=True
+    )
+
+    # Current step in the workflow
+    current_step: Mapped[str] = mapped_column(String(50), default="personal_info")
+    # Steps: personal_info -> documents -> biometrics -> bank_info -> review -> complete
+
+    # Step completion tracking
+    personal_info_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+    documents_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+    biometrics_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+    bank_info_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Required documents checklist (stored as JSON)
+    required_documents: Mapped[dict | None] = mapped_column(JSONB, default=dict)
+    submitted_documents: Mapped[dict | None] = mapped_column(JSONB, default=dict)
+
+    # Required biometrics checklist
+    required_biometrics: Mapped[list | None] = mapped_column(JSONB, default=list)
+    captured_biometrics: Mapped[list | None] = mapped_column(JSONB, default=list)
+
+    # External verification results
+    id_verification_result: Mapped[dict | None] = mapped_column(JSONB)
+    credit_check_result: Mapped[dict | None] = mapped_column(JSONB)
+    sanctions_check_result: Mapped[dict | None] = mapped_column(JSONB)
+
+    # Review tracking
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reviewer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    review_notes: Mapped[str | None] = mapped_column(Text)
+    rejection_reason: Mapped[str | None] = mapped_column(String(500))
+
+    # Metadata
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    farmer: Mapped["Farmer"] = relationship("Farmer", backref="kyc_application")
+
+
+class ExternalVerification(Base):
+    """External verification results (ID verification, credit bureau, sanctions)."""
+
+    __tablename__ = "external_verifications"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    farmer_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("farmers.id", ondelete="CASCADE")
+    )
+
+    verification_type: Mapped[str] = mapped_column(String(50))  # id_iprs, id_nin, credit_bureau, sanctions
+    provider: Mapped[str] = mapped_column(String(100))
+    reference_number: Mapped[str | None] = mapped_column(String(100))
+
+    # Request/Response
+    request_data: Mapped[dict | None] = mapped_column(JSONB)
+    response_data: Mapped[dict | None] = mapped_column(JSONB)
+
+    # Result
+    status: Mapped[str] = mapped_column(String(20))  # pending, success, failed, error
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    match_score: Mapped[float | None] = mapped_column(Float)
+    error_message: Mapped[str | None] = mapped_column(Text)
+
+    # Timestamps
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    farmer: Mapped["Farmer"] = relationship("Farmer", backref="external_verifications")
+
+
+class KYCReviewQueue(Base):
+    """Queue for KYC applications pending manual review."""
+
+    __tablename__ = "kyc_review_queue"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    farmer_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("farmers.id", ondelete="CASCADE")
+    )
+
+    priority: Mapped[int] = mapped_column(default=5)  # 1=highest, 10=lowest
+    reason: Mapped[str] = mapped_column(String(200))  # Why manual review is needed
+    assigned_to: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+
+    # Status
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, in_progress, completed
+    decision: Mapped[str | None] = mapped_column(String(20))  # approved, rejected, escalated
+
+    # Timestamps
+    queued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    assigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    farmer: Mapped["Farmer"] = relationship("Farmer", backref="review_queue_entries")

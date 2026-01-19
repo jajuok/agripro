@@ -29,12 +29,27 @@ class Settings(BaseSettings):
     # S3/Storage
     s3_bucket: str = "agrischeme-documents"
     s3_region: str = "us-east-1"
+    s3_endpoint_url: str | None = None  # For MinIO or local S3-compatible storage
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
 
     # Biometric service
     biometric_service_url: str = ""
 
-    # Identity verification
-    identity_service_url: str = ""
+    # Identity verification (IPRS, NIN, etc.)
+    iprs_api_url: str = ""
+    iprs_api_key: str = ""
+
+    # Credit Bureau
+    credit_bureau_url: str = ""
+    credit_bureau_api_key: str = ""
+
+    # Sanctions Screening
+    worldcheck_url: str = ""
+    worldcheck_api_key: str = ""
+
+    # OCR Service
+    ocr_provider: str = "tesseract"  # tesseract, aws_textract, google_vision, azure_form
 
 
 @lru_cache
