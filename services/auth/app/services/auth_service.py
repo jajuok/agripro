@@ -54,8 +54,16 @@ class AuthService:
         # Generate tokens
         return await self._create_tokens_response(user)
 
-    async def login(self, email: str, password: str) -> LoginResponse | None:
-        """Authenticate user and return tokens."""
+    async def login(
+        self, email: str, password: str, totp_code: str | None = None
+    ) -> LoginResponse | dict | None:
+        """Authenticate user and return tokens.
+
+        Returns:
+            LoginResponse: On successful authentication
+            dict with {"requires_2fa": True}: When 2FA is required but code not provided
+            None: On invalid credentials
+        """
         result = await self.db.execute(
             select(User)
             .options(selectinload(User.roles).selectinload(UserRole.role))
@@ -68,6 +76,18 @@ class AuthService:
 
         if not user.is_active:
             return None
+
+        # Check if 2FA is required
+        if user.totp_enabled:
+            if not totp_code:
+                # 2FA is enabled but no code provided
+                return {"requires_2fa": True}
+
+            # Verify TOTP code
+            from app.services.totp_service import TOTPService
+            totp_service = TOTPService(self.db)
+            if not await totp_service.verify_totp(user.id, totp_code):
+                return None  # Invalid TOTP code
 
         # Update last login
         user.last_login = datetime.now(timezone.utc)

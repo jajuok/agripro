@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import router as api_router
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.middleware.tenant import TenantMiddleware
 
 
 @asynccontextmanager
@@ -39,6 +40,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Add multi-tenancy middleware
+    app.add_middleware(TenantMiddleware)
 
     # Include routers
     app.include_router(api_router, prefix="/api/v1")
