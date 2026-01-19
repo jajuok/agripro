@@ -15,7 +15,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.models.user import RefreshToken, User
+from app.models.user import RefreshToken, User, UserRole
 from app.schemas.auth import LoginResponse, RegisterRequest, TokenResponse
 
 
@@ -57,7 +57,9 @@ class AuthService:
     async def login(self, email: str, password: str) -> LoginResponse | None:
         """Authenticate user and return tokens."""
         result = await self.db.execute(
-            select(User).options(selectinload(User.roles)).where(User.email == email)
+            select(User)
+            .options(selectinload(User.roles).selectinload(UserRole.role))
+            .where(User.email == email)
         )
         user = result.scalar_one_or_none()
 
@@ -70,7 +72,10 @@ class AuthService:
         # Update last login
         user.last_login = datetime.now(timezone.utc)
 
-        return await self._create_tokens_response(user)
+        # Extract role names from loaded relationships
+        roles = [ur.role.name for ur in user.roles] if user.roles else []
+
+        return await self._create_tokens_response(user, roles)
 
     async def refresh_tokens(self, refresh_token: str) -> TokenResponse | None:
         """Refresh access token using refresh token."""
@@ -120,14 +125,15 @@ class AuthService:
         if stored_token:
             stored_token.revoked_at = datetime.now(timezone.utc)
 
-    async def _create_tokens_response(self, user: User) -> LoginResponse:
+    async def _create_tokens_response(self, user: User, roles: list[str] | None = None) -> LoginResponse:
         """Create token response for user."""
         access_token = create_access_token({"sub": str(user.id), "email": user.email})
         refresh_token = create_refresh_token({"sub": str(user.id)})
 
         await self._store_refresh_token(user.id, refresh_token)
 
-        roles = [ur.role.name for ur in user.roles] if user.roles else []
+        # Use provided roles or empty list for new users
+        user_roles = roles if roles is not None else []
 
         return LoginResponse(
             access_token=access_token,
@@ -136,7 +142,7 @@ class AuthService:
             expires_in=settings.access_token_expire_minutes * 60,
             user_id=str(user.id),
             email=user.email,
-            roles=roles,
+            roles=user_roles,
         )
 
     async def _store_refresh_token(self, user_id, token: str) -> None:
