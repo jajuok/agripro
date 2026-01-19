@@ -1,7 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/auth';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:9000/api/v1';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

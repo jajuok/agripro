@@ -13,8 +13,8 @@ authors = [
     { name = "AgriScheme Team" }
 ]
 
-[tool.uv.workspace]
-members = ["services/*"]
+# Note: Each service has its own virtual environment
+# Use `cd services/<name> && uv pip install -e ".[dev]"` to install
 
 [tool.uv.sources]
 

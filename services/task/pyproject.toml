@@ -1,0 +1,10 @@
+[project]
+name = "task-service"
+version = "0.1.0"
+description = "task Service for AgriScheme Pro"
+requires-python = ">=3.11"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
