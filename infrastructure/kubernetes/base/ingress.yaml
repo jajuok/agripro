@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agrischeme-ingress
+  namespace: agrischeme
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - api.agrischeme.io
+      secretName: agrischeme-tls
+  rules:
+    - host: api.agrischeme.io
+      http:
+        paths:
+          - path: /api/v1/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 80
+          - path: /api/v1/farmers
+            pathType: Prefix
+            backend:
+              service:
+                name: farmer-service
+                port:
+                  number: 80
+          - path: /api/v1/farms
+            pathType: Prefix
+            backend:
+              service:
+                name: farmer-service
+                port:
+                  number: 80
+          - path: /api/v1/kyc
+            pathType: Prefix
+            backend:
+              service:
+                name: farmer-service
+                port:
+                  number: 80

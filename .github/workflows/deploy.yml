@@ -1,0 +1,82 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/**'
+      - 'infrastructure/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment: staging
+    if: github.event_name == 'push' || github.event.inputs.environment == 'staging'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_STAGING }}" | base64 -d > kubeconfig
+          echo "KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
+
+      - name: Update image tags
+        run: |
+          cd infrastructure/kubernetes/overlays/staging
+          kustomize edit set image \
+            auth-service=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/auth-service:${{ github.sha }} \
+            farmer-service=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/farmer-service:${{ github.sha }}
+
+      - name: Deploy to staging
+        run: |
+          kubectl apply -k infrastructure/kubernetes/overlays/staging
+          kubectl -n agrischeme-staging rollout status deployment/auth-service
+          kubectl -n agrischeme-staging rollout status deployment/farmer-service
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: production
+    needs: deploy-staging
+    if: github.event.inputs.environment == 'production'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_PROD }}" | base64 -d > kubeconfig
+          echo "KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
+
+      - name: Update image tags
+        run: |
+          cd infrastructure/kubernetes/overlays/prod
+          kustomize edit set image \
+            auth-service=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/auth-service:${{ github.sha }} \
+            farmer-service=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/farmer-service:${{ github.sha }}
+
+      - name: Deploy to production
+        run: |
+          kubectl apply -k infrastructure/kubernetes/overlays/prod
+          kubectl -n agrischeme-prod rollout status deployment/prod-auth-service
+          kubectl -n agrischeme-prod rollout status deployment/prod-farmer-service

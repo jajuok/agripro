@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agrischeme
+  labels:
+    app.kubernetes.io/name: agrischeme
+    app.kubernetes.io/part-of: agrischeme-pro
