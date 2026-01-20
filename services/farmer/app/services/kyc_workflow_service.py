@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.models.farmer import (
     BiometricData,
@@ -97,15 +98,17 @@ class KYCWorkflowService:
         if existing:
             return existing
 
+        # Use provided requirements or fall back to defaults (None means use defaults, [] means no requirements)
+        docs_required = required_documents if required_documents is not None else self.DEFAULT_REQUIRED_DOCUMENTS
+        bio_required = required_biometrics if required_biometrics is not None else self.DEFAULT_REQUIRED_BIOMETRICS
+
         # Create new application
         application = KYCApplication(
             farmer_id=farmer_id,
             current_step=KYCStep.PERSONAL_INFO.value,
-            required_documents={
-                doc: False for doc in (required_documents or self.DEFAULT_REQUIRED_DOCUMENTS)
-            },
+            required_documents={doc: False for doc in docs_required},
             submitted_documents={},
-            required_biometrics=required_biometrics or self.DEFAULT_REQUIRED_BIOMETRICS,
+            required_biometrics=bio_required,
             captured_biometrics=[],
         )
         self.db.add(application)
@@ -211,12 +214,15 @@ class KYCWorkflowService:
         if not farmer:
             raise ValueError("Farmer not found")
 
-        # Mark step complete
+        # Mark step complete (with order validation)
         if step == KYCStep.PERSONAL_INFO:
             application.personal_info_complete = True
             application.current_step = KYCStep.DOCUMENTS.value
 
         elif step == KYCStep.DOCUMENTS:
+            # Verify previous step is complete
+            if not application.personal_info_complete:
+                raise ValueError("Cannot complete step: personal_info must be completed first")
             # Verify all required documents are submitted
             missing = self._get_missing_documents(application, farmer)
             if missing:
@@ -225,6 +231,9 @@ class KYCWorkflowService:
             application.current_step = KYCStep.BIOMETRICS.value
 
         elif step == KYCStep.BIOMETRICS:
+            # Verify previous step is complete
+            if not application.documents_complete:
+                raise ValueError("Cannot complete step: documents must be completed first")
             # Verify all required biometrics are captured
             missing = self._get_missing_biometrics(application, farmer)
             if missing:
@@ -233,6 +242,9 @@ class KYCWorkflowService:
             application.current_step = KYCStep.BANK_INFO.value
 
         elif step == KYCStep.BANK_INFO:
+            # Verify previous step is complete
+            if not application.biometrics_complete:
+                raise ValueError("Cannot complete step: biometrics must be completed first")
             application.bank_info_complete = True
             application.current_step = KYCStep.EXTERNAL_VERIFICATION.value
             # Trigger external verifications
@@ -333,6 +345,7 @@ class KYCWorkflowService:
             application.submitted_documents = {}
 
         application.submitted_documents[document_type] = str(document_id)
+        flag_modified(application, "submitted_documents")
 
         # Check if all required documents are now submitted
         if application.required_documents:
@@ -358,6 +371,7 @@ class KYCWorkflowService:
 
         if biometric_type not in application.captured_biometrics:
             application.captured_biometrics.append(biometric_type)
+            flag_modified(application, "captured_biometrics")
 
         # Check if all required biometrics are now captured
         if application.required_biometrics:

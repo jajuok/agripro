@@ -298,18 +298,28 @@ class TestKYCWorkflowService:
         status = await workflow.get_workflow_status(uuid.uuid4())
         assert status is None
 
-    async def test_cannot_complete_step_out_of_order(
+    async def test_cannot_complete_step_without_requirements(
         self, db_session: AsyncSession, test_farmer: Farmer
     ) -> None:
-        """Test that steps cannot be completed out of order."""
+        """Test that steps cannot be completed without meeting requirements."""
         workflow = KYCWorkflowService(db_session)
 
-        # Start KYC
-        await workflow.start_kyc_application(farmer_id=test_farmer.id)
+        # Start KYC with required documents
+        await workflow.start_kyc_application(
+            farmer_id=test_farmer.id,
+            required_documents=["national_id"],
+        )
         await db_session.commit()
 
-        # Try to complete documents step before personal_info
-        with pytest.raises(ValueError, match="Cannot complete step"):
+        # Complete personal info first
+        await workflow.complete_step(
+            farmer_id=test_farmer.id,
+            step=KYCStep.PERSONAL_INFO,
+        )
+        await db_session.commit()
+
+        # Try to complete documents step without submitting required documents
+        with pytest.raises(ValueError, match="Missing required documents"):
             await workflow.complete_step(
                 farmer_id=test_farmer.id,
                 step=KYCStep.DOCUMENTS,

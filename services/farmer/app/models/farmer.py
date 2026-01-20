@@ -6,8 +6,10 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+from app.core.db_types import JSONBCompatible
 
 if TYPE_CHECKING:
     pass
@@ -105,7 +107,7 @@ class FarmProfile(Base):
     name: Mapped[str] = mapped_column(String(100))
     latitude: Mapped[float | None] = mapped_column(Float)
     longitude: Mapped[float | None] = mapped_column(Float)
-    boundary_geojson: Mapped[dict | None] = mapped_column(JSONB)
+    boundary_geojson: Mapped[dict | None] = mapped_column(JSONBCompatible)
 
     # Land details
     total_acreage: Mapped[float | None] = mapped_column(Float)
@@ -115,17 +117,17 @@ class FarmProfile(Base):
     # Soil profile
     soil_type: Mapped[str | None] = mapped_column(String(100))
     soil_ph: Mapped[float | None] = mapped_column(Float)
-    soil_nutrients: Mapped[dict | None] = mapped_column(JSONB)
+    soil_nutrients: Mapped[dict | None] = mapped_column(JSONBCompatible)
 
     # Water
     water_source: Mapped[str | None] = mapped_column(String(100))
     irrigation_type: Mapped[str | None] = mapped_column(String(100))
 
     # Crop history
-    crop_history: Mapped[dict | None] = mapped_column(JSONB)
+    crop_history: Mapped[dict | None] = mapped_column(JSONBCompatible)
 
     # Assets
-    assets: Mapped[dict | None] = mapped_column(JSONB)
+    assets: Mapped[dict | None] = mapped_column(JSONBCompatible)
 
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -162,7 +164,7 @@ class Document(Base):
     verification_notes: Mapped[str | None] = mapped_column(Text)
 
     # OCR/extracted data
-    extracted_data: Mapped[dict | None] = mapped_column(JSONB)
+    extracted_data: Mapped[dict | None] = mapped_column(JSONBCompatible)
 
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -186,7 +188,7 @@ class BiometricData(Base):
 
     # Capture metadata
     capture_device: Mapped[str | None] = mapped_column(String(100))
-    capture_location: Mapped[dict | None] = mapped_column(JSONB)
+    capture_location: Mapped[dict | None] = mapped_column(JSONBCompatible)
 
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -217,17 +219,17 @@ class KYCApplication(Base):
     bank_info_complete: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Required documents checklist (stored as JSON)
-    required_documents: Mapped[dict | None] = mapped_column(JSONB, default=dict)
-    submitted_documents: Mapped[dict | None] = mapped_column(JSONB, default=dict)
+    required_documents: Mapped[dict | None] = mapped_column(JSONBCompatible, default=dict)
+    submitted_documents: Mapped[dict | None] = mapped_column(JSONBCompatible, default=dict)
 
     # Required biometrics checklist
-    required_biometrics: Mapped[list | None] = mapped_column(JSONB, default=list)
-    captured_biometrics: Mapped[list | None] = mapped_column(JSONB, default=list)
+    required_biometrics: Mapped[list | None] = mapped_column(JSONBCompatible, default=list)
+    captured_biometrics: Mapped[list | None] = mapped_column(JSONBCompatible, default=list)
 
     # External verification results
-    id_verification_result: Mapped[dict | None] = mapped_column(JSONB)
-    credit_check_result: Mapped[dict | None] = mapped_column(JSONB)
-    sanctions_check_result: Mapped[dict | None] = mapped_column(JSONB)
+    id_verification_result: Mapped[dict | None] = mapped_column(JSONBCompatible)
+    credit_check_result: Mapped[dict | None] = mapped_column(JSONBCompatible)
+    sanctions_check_result: Mapped[dict | None] = mapped_column(JSONBCompatible)
 
     # Review tracking
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -261,8 +263,8 @@ class ExternalVerification(Base):
     reference_number: Mapped[str | None] = mapped_column(String(100))
 
     # Request/Response
-    request_data: Mapped[dict | None] = mapped_column(JSONB)
-    response_data: Mapped[dict | None] = mapped_column(JSONB)
+    request_data: Mapped[dict | None] = mapped_column(JSONBCompatible)
+    response_data: Mapped[dict | None] = mapped_column(JSONBCompatible)
 
     # Result
     status: Mapped[str] = mapped_column(String(20))  # pending, success, failed, error

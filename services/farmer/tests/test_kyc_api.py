@@ -21,7 +21,7 @@ class TestKYCAPIEndpoints:
     ) -> None:
         """Test starting a KYC application via API."""
         response = await client.post(
-            f"/kyc/{test_farmer.id}/start",
+            f"/api/v1/kyc/{test_farmer.id}/start",
             json={
                 "required_documents": ["national_id"],
                 "required_biometrics": ["fingerprint_right_index"],
@@ -38,7 +38,7 @@ class TestKYCAPIEndpoints:
         self, client: AsyncClient, test_farmer: Farmer
     ) -> None:
         """Test starting a KYC application with default requirements."""
-        response = await client.post(f"/kyc/{test_farmer.id}/start")
+        response = await client.post(f"/api/v1/kyc/{test_farmer.id}/start")
 
         assert response.status_code == 200
         data = response.json()
@@ -64,7 +64,7 @@ class TestKYCAPIEndpoints:
         db_session.add(kyc_app)
         await db_session.commit()
 
-        response = await client.get(f"/kyc/{test_farmer.id}/status")
+        response = await client.get(f"/api/v1/kyc/{test_farmer.id}/status")
 
         assert response.status_code == 200
         data = response.json()
@@ -74,7 +74,7 @@ class TestKYCAPIEndpoints:
     async def test_get_kyc_status_not_found(self, client: AsyncClient) -> None:
         """Test getting KYC status for non-existent farmer."""
         fake_id = uuid.uuid4()
-        response = await client.get(f"/kyc/{fake_id}/status")
+        response = await client.get(f"/api/v1/kyc/{fake_id}/status")
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
@@ -96,7 +96,7 @@ class TestKYCAPIEndpoints:
         await db_session.commit()
 
         response = await client.post(
-            f"/kyc/{test_farmer.id}/step/complete",
+            f"/api/v1/kyc/{test_farmer.id}/step/complete",
             json={
                 "step": "personal_info",
                 "data": {"verified": True},
@@ -126,7 +126,7 @@ class TestKYCAPIEndpoints:
 
         # Try to complete documents step before personal_info
         response = await client.post(
-            f"/kyc/{test_farmer.id}/step/complete",
+            f"/api/v1/kyc/{test_farmer.id}/step/complete",
             json={"step": "documents"},
         )
 
@@ -152,7 +152,7 @@ class TestKYCAPIEndpoints:
         db_session.add(kyc_app)
         await db_session.commit()
 
-        response = await client.post(f"/kyc/{test_farmer.id}/submit")
+        response = await client.post(f"/api/v1/kyc/{test_farmer.id}/submit")
 
         assert response.status_code == 200
         data = response.json()
@@ -176,7 +176,7 @@ class TestKYCAPIEndpoints:
 
         reviewer_id = uuid.uuid4()
         response = await client.post(
-            f"/kyc/{test_farmer.id}/review",
+            f"/api/v1/kyc/{test_farmer.id}/review",
             json={
                 "action": "approve",
                 "reviewer_id": str(reviewer_id),
@@ -206,7 +206,7 @@ class TestKYCAPIEndpoints:
 
         reviewer_id = uuid.uuid4()
         response = await client.post(
-            f"/kyc/{test_farmer.id}/review",
+            f"/api/v1/kyc/{test_farmer.id}/review",
             json={
                 "action": "reject",
                 "reviewer_id": str(reviewer_id),
@@ -239,7 +239,7 @@ class TestKYCAPIEndpoints:
         fake_image = BytesIO(b"fake image data")
 
         response = await client.post(
-            f"/kyc/{test_farmer.id}/documents",
+            f"/api/v1/kyc/{test_farmer.id}/documents",
             files={"file": ("test_id.jpg", fake_image, "image/jpeg")},
             data={
                 "document_type": "national_id",
@@ -268,7 +268,7 @@ class TestKYCAPIEndpoints:
         db_session.add(queue_entry)
         await db_session.commit()
 
-        response = await client.get("/kyc/review-queue")
+        response = await client.get("/api/v1/kyc/review-queue")
 
         assert response.status_code == 200
         data = response.json()
@@ -293,7 +293,7 @@ class TestKYCAPIEndpoints:
 
         reviewer_id = uuid.uuid4()
         response = await client.post(
-            f"/kyc/{test_farmer.id}/review/assign",
+            f"/api/v1/kyc/{test_farmer.id}/review/assign",
             json={"reviewer_id": str(reviewer_id)},
         )
 
@@ -306,7 +306,7 @@ class TestKYCAPIEndpoints:
         self, client: AsyncClient, test_farmer: Farmer
     ) -> None:
         """Test running external verifications via API."""
-        response = await client.post(f"/kyc/{test_farmer.id}/verify/external")
+        response = await client.post(f"/api/v1/kyc/{test_farmer.id}/verify/external")
 
         assert response.status_code == 200
         data = response.json()
@@ -331,7 +331,7 @@ class TestKYCAPIEndpoints:
         db_session.add(verification)
         await db_session.commit()
 
-        response = await client.get(f"/kyc/{test_farmer.id}/verify/status")
+        response = await client.get(f"/api/v1/kyc/{test_farmer.id}/verify/status")
 
         assert response.status_code == 200
         data = response.json()

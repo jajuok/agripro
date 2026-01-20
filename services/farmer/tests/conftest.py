@@ -5,6 +5,7 @@ import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime
 from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import pytest_asyncio
@@ -15,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.database import get_db
 from app.main import app
 from app.models.farmer import Base, Farmer
+import app.services.storage_service as storage_module
 
 
 # Use SQLite for testing (no server required)
@@ -123,3 +125,55 @@ async def test_farmer_with_bank(db_session: AsyncSession) -> Farmer:
     await db_session.commit()
     await db_session.refresh(farmer)
     return farmer
+
+
+class MockStorageService:
+    """Mock storage service for testing without S3."""
+
+    async def upload_file(self, file: Any, folder: str, farmer_id: Any, encrypt: bool = True) -> dict:
+        """Mock file upload."""
+        content = await file.read()
+        await file.seek(0)
+        return {
+            "file_path": f"{folder}/{farmer_id}/test_file.jpg",
+            "file_hash": "mockhash123456",
+            "file_size": len(content),
+            "mime_type": file.content_type or "application/octet-stream",
+            "original_name": file.filename,
+        }
+
+    async def upload_bytes(
+        self, content: bytes, file_path: str, content_type: str = "application/octet-stream", encrypt: bool = True
+    ) -> dict:
+        """Mock bytes upload."""
+        return {
+            "file_path": file_path,
+            "file_hash": "mockhash123456",
+            "file_size": len(content),
+        }
+
+    async def download_file(self, file_path: str) -> bytes:
+        """Mock file download."""
+        return b"mock file content"
+
+    async def get_presigned_url(self, file_path: str, expiration_minutes: int = 60, for_upload: bool = False) -> str:
+        """Mock presigned URL generation."""
+        return f"https://mock-s3.example.com/{file_path}?signed=true"
+
+    async def delete_file(self, file_path: str) -> bool:
+        """Mock file deletion."""
+        return True
+
+    async def file_exists(self, file_path: str) -> bool:
+        """Mock file existence check."""
+        return True
+
+
+@pytest.fixture(autouse=True)
+def mock_storage_service():
+    """Mock the storage service singleton for all tests."""
+    mock_service = MockStorageService()
+    original_service = storage_module._storage_service
+    storage_module._storage_service = mock_service
+    yield mock_service
+    storage_module._storage_service = original_service
