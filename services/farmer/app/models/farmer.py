@@ -41,6 +41,61 @@ class DocumentType(str, Enum):
     OTHER = "other"
 
 
+class FarmDocumentType(str, Enum):
+    """Farm-specific document types."""
+    LAND_TITLE = "land_title"
+    LEASE_AGREEMENT = "lease_agreement"
+    SURVEY_MAP = "survey_map"
+    OWNERSHIP_LETTER = "ownership_letter"
+    FARM_PHOTO = "farm_photo"
+    BOUNDARY_PHOTO = "boundary_photo"
+    GPS_TAGGED_PHOTO = "gps_tagged_photo"
+    SOIL_TEST_REPORT = "soil_test_report"
+    OTHER = "other"
+
+
+class AssetCategory(str, Enum):
+    """Farm asset categories."""
+    EQUIPMENT = "equipment"
+    VEHICLE = "vehicle"
+    INFRASTRUCTURE = "infrastructure"
+    STORAGE = "storage"
+    IRRIGATION = "irrigation"
+    LIVESTOCK_EQUIPMENT = "livestock_equipment"
+    OTHER = "other"
+
+
+class CropStatus(str, Enum):
+    """Crop record status."""
+    PLANNED = "planned"
+    PLANTED = "planted"
+    GROWING = "growing"
+    HARVESTED = "harvested"
+    FAILED = "failed"
+
+
+class FieldVisitStatus(str, Enum):
+    """Field visit status."""
+    SCHEDULED = "scheduled"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    RESCHEDULED = "rescheduled"
+
+
+class FarmRegistrationStep(str, Enum):
+    """Farm registration workflow steps."""
+    LOCATION = "location"
+    BOUNDARY = "boundary"
+    LAND_DETAILS = "land_details"
+    DOCUMENTS = "documents"
+    SOIL_WATER = "soil_water"
+    ASSETS = "assets"
+    CROP_HISTORY = "crop_history"
+    REVIEW = "review"
+    COMPLETE = "complete"
+
+
 class Farmer(Base):
     """Farmer profile model."""
 
@@ -109,10 +164,29 @@ class FarmProfile(Base):
     longitude: Mapped[float | None] = mapped_column(Float)
     boundary_geojson: Mapped[dict | None] = mapped_column(JSONBCompatible)
 
+    # Administrative boundaries
+    county: Mapped[str | None] = mapped_column(String(100))
+    sub_county: Mapped[str | None] = mapped_column(String(100))
+    ward: Mapped[str | None] = mapped_column(String(100))
+    village: Mapped[str | None] = mapped_column(String(100))
+
+    # Enhanced location data
+    altitude: Mapped[float | None] = mapped_column(Float)  # meters above sea level
+    address_description: Mapped[str | None] = mapped_column(Text)  # Written directions
+
     # Land details
     total_acreage: Mapped[float | None] = mapped_column(Float)
     cultivable_acreage: Mapped[float | None] = mapped_column(Float)
-    ownership_type: Mapped[str | None] = mapped_column(String(50))  # owned, leased, communal
+    ownership_type: Mapped[str | None] = mapped_column(String(50))  # owned, leased, communal, family
+
+    # Boundary validation
+    boundary_area_calculated: Mapped[float | None] = mapped_column(Float)  # Area from GeoJSON in acres
+    boundary_validated: Mapped[bool] = mapped_column(Boolean, default=False)
+    boundary_validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Plot ID metadata
+    plot_id_source: Mapped[str | None] = mapped_column(String(50))  # manual, land_registry, auto_generated
+    land_reference_number: Mapped[str | None] = mapped_column(String(100))  # Official LR number
 
     # Soil profile
     soil_type: Mapped[str | None] = mapped_column(String(100))
@@ -122,22 +196,44 @@ class FarmProfile(Base):
     # Water
     water_source: Mapped[str | None] = mapped_column(String(100))
     irrigation_type: Mapped[str | None] = mapped_column(String(100))
+    has_year_round_water: Mapped[bool | None] = mapped_column(Boolean)
+    water_reliability: Mapped[str | None] = mapped_column(String(50))  # reliable, seasonal, unreliable
 
-    # Crop history
+    # Legacy JSON fields (kept for backward compatibility)
     crop_history: Mapped[dict | None] = mapped_column(JSONBCompatible)
 
-    # Assets
-    assets: Mapped[dict | None] = mapped_column(JSONBCompatible)
-
+    # Verification
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    verification_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    verified_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+
+    # Registration workflow tracking
+    registration_step: Mapped[str] = mapped_column(String(50), default=FarmRegistrationStep.LOCATION.value)
+    registration_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+    registration_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
+    # Relationships
     farmer: Mapped["Farmer"] = relationship("Farmer", back_populates="farms")
+    documents: Mapped[list["FarmDocument"]] = relationship(
+        "FarmDocument", back_populates="farm", cascade="all, delete-orphan"
+    )
+    assets: Mapped[list["FarmAsset"]] = relationship(
+        "FarmAsset", back_populates="farm", cascade="all, delete-orphan"
+    )
+    crop_records: Mapped[list["CropRecord"]] = relationship(
+        "CropRecord", back_populates="farm", cascade="all, delete-orphan"
+    )
+    soil_tests: Mapped[list["SoilTestReport"]] = relationship(
+        "SoilTestReport", back_populates="farm", cascade="all, delete-orphan"
+    )
+    field_visits: Mapped[list["FieldVisit"]] = relationship(
+        "FieldVisit", back_populates="farm", cascade="all, delete-orphan"
+    )
 
 
 class Document(Base):
@@ -303,3 +399,224 @@ class KYCReviewQueue(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     farmer: Mapped["Farmer"] = relationship("Farmer", backref="review_queue_entries")
+
+
+# =============================================================================
+# Farm Registration Models (Phase 2.2)
+# =============================================================================
+
+
+class FarmDocument(Base):
+    """Farm-specific document model for land titles, photos, etc."""
+
+    __tablename__ = "farm_documents"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    farm_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("farm_profiles.id", ondelete="CASCADE")
+    )
+
+    document_type: Mapped[str] = mapped_column(String(50))
+    document_number: Mapped[str | None] = mapped_column(String(100))
+    file_url: Mapped[str] = mapped_column(String(500))
+    file_name: Mapped[str] = mapped_column(String(255))
+    mime_type: Mapped[str | None] = mapped_column(String(100))
+    file_size: Mapped[int | None] = mapped_column()
+
+    # GPS metadata for tagged photos
+    gps_latitude: Mapped[float | None] = mapped_column(Float)
+    gps_longitude: Mapped[float | None] = mapped_column(Float)
+    captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Description/notes
+    description: Mapped[str | None] = mapped_column(Text)
+
+    # Verification
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    verification_status: Mapped[str] = mapped_column(String(50), default="pending")
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    verified_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    verification_notes: Mapped[str | None] = mapped_column(Text)
+
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    farm: Mapped["FarmProfile"] = relationship("FarmProfile", back_populates="documents")
+
+
+class FarmAsset(Base):
+    """Farm asset/equipment model."""
+
+    __tablename__ = "farm_assets"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    farm_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("farm_profiles.id", ondelete="CASCADE")
+    )
+
+    asset_type: Mapped[str] = mapped_column(String(50))
+    name: Mapped[str] = mapped_column(String(100))
+    description: Mapped[str | None] = mapped_column(Text)
+
+    # Ownership
+    ownership_type: Mapped[str] = mapped_column(String(50), default="owned")  # owned, leased, rented, shared
+    acquisition_date: Mapped[datetime | None] = mapped_column(DateTime)
+    estimated_value: Mapped[float | None] = mapped_column(Float)
+
+    # For equipment
+    make: Mapped[str | None] = mapped_column(String(100))
+    model: Mapped[str | None] = mapped_column(String(100))
+    serial_number: Mapped[str | None] = mapped_column(String(100))
+    condition: Mapped[str | None] = mapped_column(String(50))  # excellent, good, fair, poor
+
+    # Quantity for countable items
+    quantity: Mapped[int] = mapped_column(default=1)
+
+    # Verification
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    verification_photo_path: Mapped[str | None] = mapped_column(String(500))
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    farm: Mapped["FarmProfile"] = relationship("FarmProfile", back_populates="assets")
+
+
+class CropRecord(Base):
+    """Crop cultivation record model."""
+
+    __tablename__ = "crop_records"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    farm_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("farm_profiles.id", ondelete="CASCADE")
+    )
+
+    # Crop details
+    crop_name: Mapped[str] = mapped_column(String(100))
+    variety: Mapped[str | None] = mapped_column(String(100))
+
+    # Season and year
+    season: Mapped[str] = mapped_column(String(50))  # long_rains, short_rains, irrigated
+    year: Mapped[int] = mapped_column()
+    planting_date: Mapped[datetime | None] = mapped_column(DateTime)
+    harvest_date: Mapped[datetime | None] = mapped_column(DateTime)
+
+    # Area
+    planted_acreage: Mapped[float | None] = mapped_column(Float)
+
+    # Yield
+    expected_yield_kg: Mapped[float | None] = mapped_column(Float)
+    actual_yield_kg: Mapped[float | None] = mapped_column(Float)
+
+    # Is this the current crop?
+    is_current: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Inputs used
+    inputs_used: Mapped[dict | None] = mapped_column(JSONBCompatible)  # seeds, fertilizer, pesticides
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    # Verification by extension officer
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    verified_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    verification_notes: Mapped[str | None] = mapped_column(Text)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    farm: Mapped["FarmProfile"] = relationship("FarmProfile", back_populates="crop_records")
+
+
+class SoilTestReport(Base):
+    """Soil test report model."""
+
+    __tablename__ = "soil_test_reports"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    farm_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("farm_profiles.id", ondelete="CASCADE")
+    )
+
+    # Test metadata
+    test_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    tested_by: Mapped[str | None] = mapped_column(String(200))
+    lab_name: Mapped[str | None] = mapped_column(String(200))
+    sample_id: Mapped[str | None] = mapped_column(String(100))
+
+    # Sample location
+    sample_latitude: Mapped[float | None] = mapped_column(Float)
+    sample_longitude: Mapped[float | None] = mapped_column(Float)
+    sample_depth_cm: Mapped[float | None] = mapped_column(Float)
+
+    # Core results
+    texture: Mapped[str | None] = mapped_column(String(100))
+    ph_level: Mapped[float | None] = mapped_column(Float)
+    organic_matter_percent: Mapped[float | None] = mapped_column(Float)
+
+    # Macronutrients (in ppm)
+    nitrogen_ppm: Mapped[float | None] = mapped_column(Float)
+    phosphorus_ppm: Mapped[float | None] = mapped_column(Float)
+    potassium_ppm: Mapped[float | None] = mapped_column(Float)
+
+    # Secondary nutrients
+    calcium: Mapped[float | None] = mapped_column(Float)
+    magnesium: Mapped[float | None] = mapped_column(Float)
+    sulfur: Mapped[float | None] = mapped_column(Float)
+
+    # Micronutrients and other data
+    micronutrients: Mapped[dict | None] = mapped_column(JSONBCompatible)
+
+    # Full parsed report data
+    full_report_data: Mapped[dict | None] = mapped_column(JSONBCompatible)
+
+    # Document reference
+    report_file_url: Mapped[str | None] = mapped_column(String(500))
+
+    # Recommendations
+    recommendations: Mapped[str | None] = mapped_column(Text)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    farm: Mapped["FarmProfile"] = relationship("FarmProfile", back_populates="soil_tests")
+
+
+class FieldVisit(Base):
+    """Field visit verification model."""
+
+    __tablename__ = "field_visits"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    farm_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("farm_profiles.id", ondelete="CASCADE")
+    )
+
+    # Visit details
+    visit_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    purpose: Mapped[str] = mapped_column(String(50))  # verification, inspection, extension, follow_up
+
+    # Visitor info
+    visitor_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))  # Extension officer/verifier user ID
+    visitor_name: Mapped[str] = mapped_column(String(200))
+
+    # Visit location verification
+    gps_latitude: Mapped[float | None] = mapped_column(Float)
+    gps_longitude: Mapped[float | None] = mapped_column(Float)
+
+    # Status
+    verification_status: Mapped[str] = mapped_column(String(50), default="pending")  # pending, verified, rejected
+
+    # Findings
+    findings: Mapped[str | None] = mapped_column(Text)
+    recommendations: Mapped[str | None] = mapped_column(Text)
+    photos: Mapped[list | None] = mapped_column(JSONBCompatible)  # List of photo paths
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    farm: Mapped["FarmProfile"] = relationship("FarmProfile", back_populates="field_visits")

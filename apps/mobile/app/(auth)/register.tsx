@@ -27,6 +27,19 @@ export default function RegisterScreen() {
   const { register } = useAuthStore();
 
   const handleRegister = async () => {
+    // Validate required fields
+    if (!formData.firstName.trim() || !formData.lastName.trim() ||
+        !formData.email.trim() || !formData.phone.trim() || !formData.password) {
+      setError('All fields are required');
+      return;
+    }
+
+    // Validate password length (backend requires at least 8 characters)
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -38,8 +51,26 @@ export default function RegisterScreen() {
     try {
       await register(formData);
       router.replace('/(tabs)/home');
-    } catch (err) {
-      setError('Registration failed. Please try again.');
+    } catch (err: any) {
+      console.error('Registration error:', err);
+      console.error('Error response:', err?.response?.data);
+
+      // Parse validation errors from backend
+      const detail = err?.response?.data?.detail;
+      let errorMessage = 'Registration failed. Please try again.';
+
+      if (Array.isArray(detail) && detail.length > 0) {
+        // Handle Pydantic validation errors
+        const firstError = detail[0];
+        const field = firstError.loc?.slice(-1)[0] || 'field';
+        errorMessage = `${field}: ${firstError.msg}`;
+      } else if (typeof detail === 'string') {
+        errorMessage = detail;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
