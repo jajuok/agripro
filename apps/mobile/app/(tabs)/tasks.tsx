@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, SectionList, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// Using Text-based icons instead of Ionicons to avoid font loading issues
 
 type Task = {
   id: string;
@@ -38,9 +38,9 @@ export default function TasksScreen() {
     <TouchableOpacity style={styles.taskCard}>
       <TouchableOpacity style={styles.checkbox}>
         {item.completed ? (
-          <Ionicons name="checkbox" size={24} color="#4CAF50" />
+          <Text style={{ fontSize: 24 }}>✅</Text>
         ) : (
-          <Ionicons name="square-outline" size={24} color="#ccc" />
+          <Text style={{ fontSize: 24, color: '#ccc' }}>☐</Text>
         )}
       </TouchableOpacity>
       <View style={styles.taskContent}>
@@ -72,7 +72,7 @@ export default function TasksScreen() {
         stickySectionHeadersEnabled={false}
       />
       <TouchableOpacity style={styles.fab}>
-        <Ionicons name="add" size={28} color="#fff" />
+        <Text style={{ fontSize: 28, color: '#fff' }}>+</Text>
       </TouchableOpacity>
     </View>
   );

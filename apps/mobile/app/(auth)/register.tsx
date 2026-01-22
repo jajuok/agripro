@@ -88,6 +88,7 @@ export default function RegisterScreen() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <TextInput
+          testID="firstname-input"
           style={styles.input}
           placeholder="First Name"
           value={formData.firstName}
@@ -95,6 +96,7 @@ export default function RegisterScreen() {
         />
 
         <TextInput
+          testID="lastname-input"
           style={styles.input}
           placeholder="Last Name"
           value={formData.lastName}
@@ -102,15 +104,19 @@ export default function RegisterScreen() {
         />
 
         <TextInput
+          testID="email-input"
           style={styles.input}
           placeholder="Email"
           value={formData.email}
           onChangeText={(text) => setFormData({ ...formData, email: text })}
           autoCapitalize="none"
           keyboardType="email-address"
+          textContentType="none"
+          autoComplete="off"
         />
 
         <TextInput
+          testID="phone-input"
           style={styles.input}
           placeholder="Phone Number"
           value={formData.phone}
@@ -119,22 +125,27 @@ export default function RegisterScreen() {
         />
 
         <TextInput
+          testID="password-input"
           style={styles.input}
           placeholder="Password"
           value={formData.password}
           onChangeText={(text) => setFormData({ ...formData, password: text })}
-          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
         />
 
         <TextInput
+          testID="confirm-password-input"
           style={styles.input}
           placeholder="Confirm Password"
           value={formData.confirmPassword}
           onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
-          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
         />
 
         <TouchableOpacity
+          testID="register-button"
           style={styles.button}
           onPress={handleRegister}
           disabled={loading}

@@ -1,0 +1,203 @@
+# Complete E2E Test Flow
+# 1. Register new account
+# 2. Login with new account
+# 3. Test all authenticated features
+# 4. Logout
+
+appId: com.agrischeme.pro
+name: Complete E2E Flow
+tags:
+  - e2e
+  - smoke
+  - critical
+
+---
+
+# ===== PHASE 1: SETUP - ENSURE LOGGED OUT STATE =====
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# Handle already logged in state - if home screen shows, go to profile and logout
+- runFlow:
+    when:
+      visible: "Here's your farm overview"
+    commands:
+      # Scroll down to see all tabs
+      - swipe:
+          start: "50%,90%"
+          end: "50%,80%"
+      - waitForAnimationToEnd
+      # Tap far right bottom for Profile
+      - tapOn:
+          point: "85%,94%"
+      - waitForAnimationToEnd
+      - swipe:
+          start: "50%,80%"
+          end: "50%,20%"
+      - waitForAnimationToEnd
+      - tapOn:
+          id: "logout-button"
+      - waitForAnimationToEnd
+
+# ===== PHASE 2: REGISTRATION =====
+- extendedWaitUntil:
+    visible: "Farm Management System"
+    timeout: 15000
+
+- assertVisible: "AgriScheme Pro"
+
+# Navigate to registration
+- tapOn: "Register"
+- waitForAnimationToEnd
+
+- assertVisible: "Create Account"
+- assertVisible: "Join AgriScheme Pro"
+
+# Generate unique test credentials
+- runScript:
+    file: scripts/generate-test-data.js
+
+# Fill registration form
+- tapOn:
+    id: "firstname-input"
+- inputText: "Test"
+
+- tapOn:
+    id: "lastname-input"
+- inputText: "User"
+
+- tapOn:
+    id: "email-input"
+- inputText: "${output.email}"
+
+- tapOn:
+    id: "phone-input"
+- inputText: "${output.phone}"
+
+# Scroll to password fields
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "password-input"
+- waitForAnimationToEnd
+- inputText: "TestPass123"
+
+- tapOn:
+    id: "confirm-password-input"
+- waitForAnimationToEnd
+- inputText: "TestPass123"
+
+# Dismiss keyboard
+- tapOn:
+    point: "50%,15%"
+- waitForAnimationToEnd
+
+# Scroll to Register button
+- swipe:
+    start: "50%,70%"
+    end: "50%,40%"
+- waitForAnimationToEnd
+
+# Submit registration
+- tapOn:
+    id: "register-button"
+
+# Wait for successful registration
+- extendedWaitUntil:
+    visible: "Welcome back!"
+    timeout: 25000
+
+- assertVisible: "Here's your farm overview"
+
+# ===== PHASE 3: LOGOUT AFTER REGISTRATION =====
+- tapOn:
+    point: "85%,94%"
+- waitForAnimationToEnd
+
+- swipe:
+    start: "50%,80%"
+    end: "50%,20%"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "logout-button"
+
+- extendedWaitUntil:
+    visible: "Farm Management System"
+    timeout: 15000
+
+# ===== PHASE 4: LOGIN WITH NEW ACCOUNT =====
+- assertVisible: "AgriScheme Pro"
+
+- tapOn:
+    id: "email-input"
+- inputText: "${output.email}"
+
+- tapOn:
+    id: "password-input"
+- inputText: "TestPass123"
+
+- tapOn: "Login"
+
+- extendedWaitUntil:
+    visible: "Welcome back!"
+    timeout: 15000
+
+# ===== PHASE 5: HOME SCREEN TESTS =====
+- assertVisible: "Here's your farm overview"
+- assertVisible: "Quick Actions"
+- assertVisible: "KYC Status"
+
+# ===== PHASE 6: FARMS TAB TESTS =====
+- tapOn:
+    point: "30%,95%"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "No Farms Yet"
+    timeout: 10000
+
+# ===== PHASE 7: TASKS TAB TESTS =====
+- tapOn:
+    point: "50%,95%"
+- waitForAnimationToEnd
+
+- assertVisible: "Today"
+
+# ===== PHASE 8: MARKET TAB TESTS =====
+- tapOn:
+    point: "70%,95%"
+- waitForAnimationToEnd
+
+- assertVisible: "Market Prices"
+
+# ===== PHASE 9: PROFILE TAB TESTS =====
+- tapOn:
+    point: "85%,94%"
+- waitForAnimationToEnd
+
+- assertVisible: "KYC Verified"
+- assertVisible: "Farms"
+- assertVisible: "Hectares"
+
+# ===== PHASE 10: FINAL LOGOUT =====
+# Scroll to see logout button
+- swipe:
+    start: "50%,70%"
+    end: "50%,20%"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "logout-button"
+
+- extendedWaitUntil:
+    visible: "Farm Management System"
+    timeout: 10000
+
+- assertVisible: "AgriScheme Pro"
+- assertVisible: "Login"

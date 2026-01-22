@@ -1,0 +1,153 @@
+# Registration Flow E2E Test
+# Tests complete registration and login with new account
+
+appId: com.agrischeme.pro
+name: Registration Flow
+tags:
+  - auth
+  - registration
+  - critical
+
+---
+
+# Complete Registration and Login Flow
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# Handle already logged in state - logout first
+- runFlow:
+    when:
+      visible: "Welcome back!"
+    commands:
+      - tapOn:
+          point: "90%,95%"
+      - waitForAnimationToEnd
+      - swipe:
+          start: "50%,80%"
+          end: "50%,20%"
+      - waitForAnimationToEnd
+      - tapOn:
+          id: "logout-button"
+      - waitForAnimationToEnd
+
+# Wait for login screen
+- extendedWaitUntil:
+    visible: "Farm Management System"
+    timeout: 15000
+
+# Verify we're on login screen
+- assertVisible: "AgriScheme Pro"
+
+# Navigate to registration
+- tapOn: "Register"
+- waitForAnimationToEnd
+
+# Verify registration screen
+- assertVisible: "Create Account"
+
+# Generate unique email using JavaScript
+- runScript:
+    file: ../scripts/generate-test-data.js
+
+# Fill in First Name
+- tapOn:
+    id: "firstname-input"
+- inputText: "Test"
+
+# Fill in Last Name
+- tapOn:
+    id: "lastname-input"
+- inputText: "Farmer"
+
+# Fill in Email - use generated unique value
+- tapOn:
+    id: "email-input"
+- inputText: "${output.email}"
+
+# Fill in Phone Number
+- tapOn:
+    id: "phone-input"
+- inputText: "${output.phone}"
+
+# Scroll down to see password fields
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- waitForAnimationToEnd
+
+# Fill in Password
+- tapOn:
+    id: "password-input"
+- waitForAnimationToEnd
+- inputText: "TestPass123"
+
+# Fill in Confirm Password
+- tapOn:
+    id: "confirm-password-input"
+- waitForAnimationToEnd
+- inputText: "TestPass123"
+
+# Dismiss keyboard by tapping outside
+- tapOn:
+    point: "50%,15%"
+- waitForAnimationToEnd
+
+# Scroll to see Register button
+- swipe:
+    start: "50%,70%"
+    end: "50%,40%"
+- waitForAnimationToEnd
+
+# Submit registration
+- tapOn:
+    id: "register-button"
+
+# Wait for successful registration
+- extendedWaitUntil:
+    visible: "Welcome back!"
+    timeout: 25000
+
+- assertVisible: "Here's your farm overview"
+
+# ===== TEST LOGIN WITH NEW ACCOUNT =====
+
+# Navigate to profile to logout
+- tapOn:
+    point: "90%,95%"
+- waitForAnimationToEnd
+
+# Scroll to see logout button
+- swipe:
+    start: "50%,80%"
+    end: "50%,20%"
+- waitForAnimationToEnd
+
+# Tap logout
+- tapOn:
+    id: "logout-button"
+
+# Wait for login screen
+- extendedWaitUntil:
+    visible: "Farm Management System"
+    timeout: 15000
+
+# Login with the newly created account
+- tapOn:
+    id: "email-input"
+- inputText: "${output.email}"
+
+- tapOn:
+    id: "password-input"
+- inputText: "TestPass123"
+
+# Submit login
+- tapOn: "Login"
+
+# Wait for home screen - confirms login works
+- extendedWaitUntil:
+    visible: "Welcome back!"
+    timeout: 15000
+
+- assertVisible: "Here's your farm overview"

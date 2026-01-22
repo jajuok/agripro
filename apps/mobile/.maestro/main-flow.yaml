@@ -1,0 +1,120 @@
+# Main E2E Test Flow
+# Single login session that tests all authenticated functionality
+
+appId: com.agrischeme.pro
+name: Main App Flow
+tags:
+  - smoke
+  - critical
+
+---
+
+# ===== PHASE 1: LOGIN =====
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# Handle already logged in state - logout first if needed
+- runFlow:
+    when:
+      visible: "Welcome back!"
+    commands:
+      - tapOn:
+          point: "90%,95%"
+      - waitForAnimationToEnd
+      - swipe:
+          start: "50%,80%"
+          end: "50%,20%"
+      - waitForAnimationToEnd
+      - tapOn:
+          id: "logout-button"
+      - waitForAnimationToEnd
+
+# Wait for login screen
+- extendedWaitUntil:
+    visible: "Farm Management System"
+    timeout: 15000
+
+# Verify login screen elements
+- assertVisible: "AgriScheme Pro"
+- assertVisible: "Farm Management System"
+
+# Enter credentials
+- tapOn:
+    id: "email-input"
+- inputText: "demo@agripro.com"
+
+- tapOn:
+    id: "password-input"
+- inputText: "Demo1234X"
+
+# Submit login
+- tapOn: "Login"
+
+# Wait for home screen
+- extendedWaitUntil:
+    visible: "Welcome back!"
+    timeout: 15000
+
+# ===== PHASE 2: HOME SCREEN TESTS =====
+- assertVisible: "Here's your farm overview"
+- assertVisible: "Quick Actions"
+
+# ===== PHASE 3: FARMS TAB TESTS =====
+# Navigate to My Farms tab (2nd tab)
+- tapOn:
+    point: "30%,95%"
+- waitForAnimationToEnd
+
+# Verify farms screen - shows empty state
+- extendedWaitUntil:
+    visible: "No Farms Yet"
+    timeout: 10000
+
+# ===== PHASE 4: TASKS TAB TESTS =====
+# Navigate to Tasks tab (3rd tab)
+- tapOn:
+    point: "50%,95%"
+- waitForAnimationToEnd
+
+# Verify tasks screen content
+- assertVisible: "Today"
+
+# ===== PHASE 5: MARKET TAB TESTS =====
+# Navigate to Market tab (4th tab)
+- tapOn:
+    point: "70%,95%"
+- waitForAnimationToEnd
+
+# Verify market screen content
+- assertVisible: "Market Prices"
+
+# ===== PHASE 6: PROFILE TAB TESTS =====
+# Navigate to Profile tab (5th tab)
+- tapOn:
+    point: "90%,95%"
+- waitForAnimationToEnd
+
+# Verify profile screen elements
+- assertVisible: "John Doe"
+- assertVisible: "KYC Verified"
+
+# Scroll to see Logout button
+- swipe:
+    start: "50%,80%"
+    end: "50%,20%"
+- waitForAnimationToEnd
+
+# ===== PHASE 7: LOGOUT =====
+# Use testID to tap logout (more reliable than text matching)
+- tapOn:
+    id: "logout-button"
+
+# Verify we're back on login screen
+- extendedWaitUntil:
+    visible: "Farm Management System"
+    timeout: 10000
+
+- assertVisible: "AgriScheme Pro"
+- assertVisible: "Login"

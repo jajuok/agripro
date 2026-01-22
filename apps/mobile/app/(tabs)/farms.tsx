@@ -8,7 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// Using Text-based icons instead of Ionicons to avoid font loading issues
 import { router, useFocusEffect } from 'expo-router';
 import { COLORS, SPACING, FONT_SIZES } from '@/utils/constants';
 import { useFarmStore, Farm } from '@/store/farm';
@@ -23,16 +23,17 @@ export default function FarmsScreen() {
   useFocusEffect(
     useCallback(() => {
       if (user?.id) {
-        fetchFarms();
+        fetchFarms(user.id);
       }
-    }, [user?.id])
+    }, [user?.id, fetchFarms])
   );
 
   const onRefresh = useCallback(async () => {
+    if (!user?.id) return;
     setRefreshing(true);
-    await fetchFarms();
+    await fetchFarms(user.id);
     setRefreshing(false);
-  }, [fetchFarms]);
+  }, [fetchFarms, user?.id]);
 
   const getLocation = (farm: Farm): string => {
     if (farm.county) {
@@ -76,7 +77,7 @@ export default function FarmsScreen() {
       >
         <View style={styles.farmHeader}>
           <View style={styles.farmIcon}>
-            <Ionicons name="leaf" size={24} color={COLORS.primary} />
+            <Text style={{ fontSize: 24 }}>🌿</Text>
           </View>
           <View style={styles.farmInfo}>
             <View style={styles.farmNameRow}>
@@ -90,11 +91,11 @@ export default function FarmsScreen() {
               )}
             </View>
             <Text style={styles.farmLocation}>
-              <Ionicons name="location-outline" size={12} color={COLORS.gray[500]} />{' '}
+              📍{' '}
               {location}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={24} color={COLORS.gray[300]} />
+          <Text style={{ fontSize: 20, color: COLORS.gray[300] }}>›</Text>
         </View>
         <View style={styles.farmDetails}>
           <View style={styles.detailItem}>
@@ -126,7 +127,7 @@ export default function FarmsScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <View style={styles.emptyIcon}>
-        <Ionicons name="leaf-outline" size={64} color={COLORS.gray[300]} />
+        <Text style={{ fontSize: 64 }}>🌿</Text>
       </View>
       <Text style={styles.emptyTitle}>No Farms Yet</Text>
       <Text style={styles.emptyText}>
@@ -136,7 +137,7 @@ export default function FarmsScreen() {
         style={styles.emptyButton}
         onPress={() => router.push('/farms/add')}
       >
-        <Ionicons name="add" size={20} color={COLORS.white} />
+        <Text style={{ fontSize: 20, color: COLORS.white }}>+</Text>
         <Text style={styles.emptyButtonText}>Add Your First Farm</Text>
       </TouchableOpacity>
     </View>
@@ -172,7 +173,7 @@ export default function FarmsScreen() {
     <View style={styles.container}>
       {error && (
         <View style={styles.errorBanner}>
-          <Ionicons name="warning" size={16} color={COLORS.error} />
+          <Text style={{ fontSize: 16 }}>⚠️</Text>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity onPress={onRefresh}>
             <Text style={styles.retryText}>Retry</Text>
@@ -205,7 +206,7 @@ export default function FarmsScreen() {
           style={styles.fab}
           onPress={() => router.push('/farms/add')}
         >
-          <Ionicons name="add" size={28} color={COLORS.white} />
+          <Text style={{ fontSize: 28, color: COLORS.white }}>+</Text>
         </TouchableOpacity>
       )}
     </View>

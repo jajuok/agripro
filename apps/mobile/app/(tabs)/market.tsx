@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// Using Text-based icons instead of Ionicons to avoid font loading issues
 
 type PriceItem = {
   commodity: string;
@@ -33,11 +33,9 @@ export default function MarketScreen() {
             <View style={styles.priceInfo}>
               <Text style={styles.price}>KES {item.price.toFixed(2)}</Text>
               <View style={[styles.changeContainer, item.change >= 0 ? styles.positive : styles.negative]}>
-                <Ionicons
-                  name={item.change >= 0 ? 'arrow-up' : 'arrow-down'}
-                  size={12}
-                  color={item.change >= 0 ? '#4CAF50' : '#D32F2F'}
-                />
+                <Text style={{ fontSize: 12, color: item.change >= 0 ? '#4CAF50' : '#D32F2F' }}>
+                  {item.change >= 0 ? '↑' : '↓'}
+                </Text>
                 <Text style={[styles.change, item.change >= 0 ? styles.positiveText : styles.negativeText]}>
                   {Math.abs(item.change)}%
                 </Text>
@@ -50,22 +48,22 @@ export default function MarketScreen() {
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.actionsContainer}>
         <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="pricetag" size={24} color="#1B5E20" />
+          <Text style={{ fontSize: 24 }}>🏷️</Text>
           <Text style={styles.actionText}>List Produce</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="people" size={24} color="#1B5E20" />
+          <Text style={{ fontSize: 24 }}>👥</Text>
           <Text style={styles.actionText}>Find Buyers</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="document-text" size={24} color="#1B5E20" />
+          <Text style={{ fontSize: 24 }}>📄</Text>
           <Text style={styles.actionText}>Contracts</Text>
         </TouchableOpacity>
       </View>
 
       <Text style={styles.sectionTitle}>My Listings</Text>
       <View style={styles.emptyState}>
-        <Ionicons name="basket-outline" size={48} color="#ccc" />
+        <Text style={{ fontSize: 48 }}>🧺</Text>
         <Text style={styles.emptyText}>No active listings</Text>
         <TouchableOpacity style={styles.listButton}>
           <Text style={styles.listButtonText}>List Your Produce</Text>

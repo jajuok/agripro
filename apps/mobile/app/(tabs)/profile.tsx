@@ -1,10 +1,9 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
 
 type MenuItem = {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: string;
   label: string;
   route?: string;
   action?: () => void;
@@ -14,13 +13,13 @@ export default function ProfileScreen() {
   const { logout } = useAuthStore();
 
   const menuItems: MenuItem[] = [
-    { icon: 'person-outline', label: 'Edit Profile', route: '/profile/edit' },
-    { icon: 'shield-checkmark-outline', label: 'KYC Documents', route: '/kyc' },
-    { icon: 'card-outline', label: 'Payment Methods', route: '/profile/payments' },
-    { icon: 'notifications-outline', label: 'Notifications', route: '/profile/notifications' },
-    { icon: 'help-circle-outline', label: 'Help & Support', route: '/support' },
-    { icon: 'document-text-outline', label: 'Terms & Privacy', route: '/legal' },
-    { icon: 'log-out-outline', label: 'Logout', action: () => {
+    { icon: '👤', label: 'Edit Profile', route: '/profile/edit' },
+    { icon: '🛡️', label: 'KYC Documents', route: '/kyc' },
+    { icon: '💳', label: 'Payment Methods', route: '/profile/payments' },
+    { icon: '🔔', label: 'Notifications', route: '/profile/notifications' },
+    { icon: '❓', label: 'Help & Support', route: '/support' },
+    { icon: '📄', label: 'Terms & Privacy', route: '/legal' },
+    { icon: '🚪', label: 'Logout', action: () => {
       logout();
       router.replace('/(auth)/login');
     }},
@@ -31,16 +30,16 @@ export default function ProfileScreen() {
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
-            <Ionicons name="person" size={40} color="#1B5E20" />
+            <Text style={{ fontSize: 40 }}>👤</Text>
           </View>
           <TouchableOpacity style={styles.editAvatar}>
-            <Ionicons name="camera" size={16} color="#fff" />
+            <Text style={{ fontSize: 16 }}>📷</Text>
           </TouchableOpacity>
         </View>
         <Text style={styles.name}>John Doe</Text>
         <Text style={styles.email}>john.doe@example.com</Text>
         <View style={styles.verifiedBadge}>
-          <Ionicons name="shield-checkmark" size={16} color="#4CAF50" />
+          <Text style={{ fontSize: 16 }}>✅</Text>
           <Text style={styles.verifiedText}>KYC Verified</Text>
         </View>
       </View>
@@ -67,6 +66,7 @@ export default function ProfileScreen() {
           <TouchableOpacity
             key={index}
             style={styles.menuItem}
+            testID={item.label === 'Logout' ? 'logout-button' : undefined}
             onPress={() => {
               if (item.action) {
                 item.action();
@@ -76,10 +76,10 @@ export default function ProfileScreen() {
             }}
           >
             <View style={styles.menuItemLeft}>
-              <Ionicons name={item.icon} size={24} color="#666" />
+              <Text style={{ fontSize: 24 }}>{item.icon}</Text>
               <Text style={styles.menuItemLabel}>{item.label}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            <Text style={{ fontSize: 20, color: '#ccc' }}>›</Text>
           </TouchableOpacity>
         ))}
       </View>

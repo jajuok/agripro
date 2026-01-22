@@ -1,0 +1,23 @@
+# Maestro Configuration
+# https://maestro.mobile.dev/
+
+# App configuration - native iOS app
+appId: com.agrischeme.pro
+
+# Default settings
+flows:
+  - main-flow.yaml
+  - auth/register-flow.yaml
+
+# Environment variables for testing
+env:
+  # Demo account credentials
+  TEST_EMAIL: "demo@agripro.com"
+  TEST_PASSWORD: "Demo1234X"
+
+  # Test data
+  TEST_FARMER_NAME: "Demo Farmer"
+  TEST_FARM_NAME: "Demo Test Farm"
+
+  # API Configuration
+  API_BASE_URL: "http://localhost:9002"
