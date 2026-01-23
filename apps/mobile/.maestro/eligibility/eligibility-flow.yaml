@@ -1,0 +1,147 @@
+# Eligibility E2E Test Flow
+# Tests the eligibility assessment feature
+
+appId: com.agrischeme.pro
+name: Eligibility Flow
+tags:
+  - eligibility
+  - e2e
+
+---
+
+# ===== PHASE 1: LOGIN =====
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# Handle already logged in state - logout first if needed
+- runFlow:
+    when:
+      visible: "Welcome back!"
+    commands:
+      - tapOn:
+          point: "85%,94%"
+      - waitForAnimationToEnd
+      - swipe:
+          start: "50%,80%"
+          end: "50%,20%"
+      - waitForAnimationToEnd
+      - tapOn:
+          id: "logout-button"
+      - waitForAnimationToEnd
+
+# Login with demo account
+- extendedWaitUntil:
+    visible: "Farm Management System"
+    timeout: 15000
+
+- tapOn:
+    id: "email-input"
+- inputText: "demo@agripro.com"
+
+- tapOn:
+    id: "password-input"
+- inputText: "Demo1234X"
+
+- tapOn: "Login"
+
+- extendedWaitUntil:
+    visible: "Welcome back!"
+    timeout: 15000
+
+# ===== PHASE 2: NAVIGATE TO ELIGIBILITY =====
+- assertVisible: "Scheme Eligibility"
+- assertVisible: "3 Schemes Available"
+
+# Tap on eligibility card
+- tapOn:
+    id: "eligibility-card"
+
+- waitForAnimationToEnd
+
+# ===== PHASE 3: VERIFY ELIGIBILITY LIST SCREEN =====
+- assertVisible: "Eligibility & Schemes"
+- assertVisible: "Available Programs"
+
+# Verify stats are visible
+- assertVisible: "Available Schemes"
+- assertVisible: "Enrolled"
+- assertVisible: "Pending"
+
+# Verify scheme cards are visible
+- assertVisible: "Agricultural Input Subsidy"
+- assertVisible: "Crop Insurance Program"
+- assertVisible: "Farm Mechanization Loan"
+
+# ===== PHASE 4: VIEW SCHEME DETAILS =====
+# Tap on first scheme
+- tapOn:
+    id: "scheme-card-1"
+
+- waitForAnimationToEnd
+
+# Verify scheme detail screen
+- assertVisible: "Agricultural Input Subsidy"
+- assertVisible: "SUBSIDY"
+- assertVisible: "Benefit Type"
+- assertVisible: "Benefit Amount"
+- assertVisible: "Application Deadline"
+
+# ===== PHASE 5: CHECK ELIGIBILITY =====
+# Tap Check Eligibility button
+- tapOn:
+    id: "check-eligibility-button"
+
+# Wait for assessment to complete
+- extendedWaitUntil:
+    visible: "Eligibility Assessment"
+    timeout: 10000
+
+# Verify assessment results
+- assertVisible: "Eligibility Score"
+- assertVisible: "Risk Level"
+
+# ===== PHASE 6: VERIFY RULE RESULTS =====
+- assertVisible: "Eligibility Criteria"
+- assertVisible: "Passed"
+
+# Scroll to see all rules
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- waitForAnimationToEnd
+
+# Verify rule items are visible
+- assertVisible: "KYC Verification"
+- assertVisible: "Minimum Land Size"
+
+# ===== PHASE 7: RETURN TO LIST =====
+- tapOn: "Back"
+- waitForAnimationToEnd
+
+- assertVisible: "Eligibility & Schemes"
+
+# ===== PHASE 8: LOGOUT =====
+# Navigate back to home
+- tapOn:
+    point: "10%,94%"
+- waitForAnimationToEnd
+
+# Go to profile
+- tapOn:
+    point: "85%,94%"
+- waitForAnimationToEnd
+
+# Scroll to logout
+- swipe:
+    start: "50%,80%"
+    end: "50%,20%"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "logout-button"
+
+- extendedWaitUntil:
+    visible: "Farm Management System"
+    timeout: 10000

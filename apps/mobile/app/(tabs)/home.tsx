@@ -1,19 +1,18 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 type QuickAction = {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: string;
   label: string;
   route: string;
   color: string;
 };
 
 const quickActions: QuickAction[] = [
-  { icon: 'add-circle', label: 'Add Farm', route: '/farms/add', color: '#4CAF50' },
-  { icon: 'camera', label: 'Scan Document', route: '/kyc/scan', color: '#2196F3' },
-  { icon: 'location', label: 'Record Location', route: '/farms/location', color: '#FF9800' },
-  { icon: 'analytics', label: 'View Reports', route: '/reports', color: '#9C27B0' },
+  { icon: '➕', label: 'Add Farm', route: '/farms/add', color: '#4CAF50' },
+  { icon: '📋', label: 'Check Eligibility', route: '/eligibility', color: '#2196F3' },
+  { icon: '📍', label: 'Record Location', route: '/farms/location', color: '#FF9800' },
+  { icon: '📊', label: 'View Reports', route: '/reports', color: '#9C27B0' },
 ];
 
 export default function HomeScreen() {
@@ -48,7 +47,7 @@ export default function HomeScreen() {
             onPress={() => router.push(action.route as any)}
           >
             <View style={[styles.actionIcon, { backgroundColor: action.color }]}>
-              <Ionicons name={action.icon} size={24} color="#fff" />
+              <Text style={{ fontSize: 24 }}>{action.icon}</Text>
             </View>
             <Text style={styles.actionLabel}>{action.label}</Text>
           </TouchableOpacity>
@@ -58,7 +57,7 @@ export default function HomeScreen() {
       <Text style={styles.sectionTitle}>KYC Status</Text>
       <View style={styles.kycCard}>
         <View style={styles.kycHeader}>
-          <Ionicons name="shield-checkmark" size={24} color="#4CAF50" />
+          <Text style={{ fontSize: 24 }}>✅</Text>
           <Text style={styles.kycStatus}>Verified</Text>
         </View>
         <Text style={styles.kycText}>
@@ -66,17 +65,42 @@ export default function HomeScreen() {
         </Text>
       </View>
 
+      <Text style={styles.sectionTitle}>Scheme Eligibility</Text>
+      <TouchableOpacity
+        style={styles.eligibilityCard}
+        onPress={() => router.push('/eligibility')}
+        testID="eligibility-card"
+      >
+        <View style={styles.eligibilityHeader}>
+          <Text style={{ fontSize: 24 }}>📋</Text>
+          <View style={styles.eligibilityInfo}>
+            <Text style={styles.eligibilityTitle}>3 Schemes Available</Text>
+            <Text style={styles.eligibilitySubtitle}>Check your eligibility for government programs</Text>
+          </View>
+        </View>
+        <View style={styles.eligibilityStats}>
+          <View style={styles.eligibilityStat}>
+            <Text style={styles.eligibilityStatValue}>1</Text>
+            <Text style={styles.eligibilityStatLabel}>Enrolled</Text>
+          </View>
+          <View style={styles.eligibilityStat}>
+            <Text style={styles.eligibilityStatValue}>2</Text>
+            <Text style={styles.eligibilityStatLabel}>Available</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
       <Text style={styles.sectionTitle}>Upcoming Tasks</Text>
       <View style={styles.taskCard}>
         <View style={styles.taskItem}>
-          <Ionicons name="water" size={20} color="#2196F3" />
+          <Text style={{ fontSize: 20 }}>💧</Text>
           <View style={styles.taskContent}>
             <Text style={styles.taskTitle}>Irrigation - Plot A</Text>
             <Text style={styles.taskDue}>Due today</Text>
           </View>
         </View>
         <View style={styles.taskItem}>
-          <Ionicons name="flask" size={20} color="#FF9800" />
+          <Text style={{ fontSize: 20 }}>🧪</Text>
           <View style={styles.taskContent}>
             <Text style={styles.taskTitle}>Fertilizer Application</Text>
             <Text style={styles.taskDue}>Due tomorrow</Text>
@@ -214,5 +238,51 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     marginTop: 2,
+  },
+  eligibilityCard: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3',
+  },
+  eligibilityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  eligibilityInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  eligibilityTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  eligibilitySubtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  eligibilityStats: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    paddingTop: 12,
+    gap: 24,
+  },
+  eligibilityStat: {
+    alignItems: 'center',
+  },
+  eligibilityStatValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1B5E20',
+  },
+  eligibilityStatLabel: {
+    fontSize: 12,
+    color: '#666',
   },
 });

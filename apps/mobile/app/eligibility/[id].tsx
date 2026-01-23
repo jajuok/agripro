@@ -1,0 +1,692 @@
+import { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { useAuthStore } from '@/store/auth';
+
+type Scheme = {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  scheme_type: string;
+  status: string;
+  benefit_type: string;
+  benefit_amount: number;
+  benefit_description: string;
+  application_deadline: string;
+  max_beneficiaries: number;
+  current_beneficiaries: number;
+  auto_approve_enabled: boolean;
+};
+
+type RuleResult = {
+  rule_id: string;
+  rule_name: string;
+  passed: boolean;
+  actual_value: string;
+  expected_value: string;
+  message: string;
+  is_mandatory: boolean;
+};
+
+type Assessment = {
+  id: string;
+  status: string;
+  eligibility_score: number;
+  risk_score: number;
+  risk_level: string;
+  credit_score: number;
+  rules_passed: number;
+  rules_failed: number;
+  rule_results: RuleResult[];
+  workflow_decision: string;
+  final_decision: string;
+  decision_reason: string;
+  waitlist_position: number;
+};
+
+export default function SchemeDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuthStore();
+  const [scheme, setScheme] = useState<Scheme | null>(null);
+  const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [assessing, setAssessing] = useState(false);
+
+  useEffect(() => {
+    loadSchemeData();
+  }, [id]);
+
+  const loadSchemeData = async () => {
+    try {
+      // Mock data - in real app, fetch from API
+      setScheme({
+        id: id || '1',
+        name: 'Agricultural Input Subsidy',
+        code: 'AIS-2024',
+        description:
+          'Government subsidy program for certified seeds and fertilizers. This program aims to increase agricultural productivity by providing farmers with access to quality inputs at subsidized rates.',
+        scheme_type: 'subsidy',
+        status: 'active',
+        benefit_type: 'voucher',
+        benefit_amount: 15000,
+        benefit_description:
+          'E-voucher redeemable at certified agro-dealers for seeds and fertilizers',
+        application_deadline: '2024-03-31',
+        max_beneficiaries: 10000,
+        current_beneficiaries: 7500,
+        auto_approve_enabled: true,
+      });
+    } catch (error) {
+      console.error('Error loading scheme:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkEligibility = async () => {
+    setAssessing(true);
+    try {
+      // Simulate API call with delay
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Mock assessment result
+      const mockAssessment: Assessment = {
+        id: 'assess-1',
+        status: 'eligible',
+        eligibility_score: 78,
+        risk_score: 25,
+        risk_level: 'low',
+        credit_score: 720,
+        rules_passed: 7,
+        rules_failed: 1,
+        rule_results: [
+          {
+            rule_id: '1',
+            rule_name: 'KYC Verification',
+            passed: true,
+            actual_value: 'approved',
+            expected_value: 'approved',
+            message: 'KYC verification completed',
+            is_mandatory: true,
+          },
+          {
+            rule_id: '2',
+            rule_name: 'Minimum Land Size',
+            passed: true,
+            actual_value: '2.5',
+            expected_value: '1.0',
+            message: 'Farm size meets minimum requirement',
+            is_mandatory: true,
+          },
+          {
+            rule_id: '3',
+            rule_name: 'Farm Location',
+            passed: true,
+            actual_value: 'Kiambu',
+            expected_value: 'Eligible Counties',
+            message: 'Farm is in an eligible county',
+            is_mandatory: true,
+          },
+          {
+            rule_id: '4',
+            rule_name: 'Active Farm Registration',
+            passed: true,
+            actual_value: 'true',
+            expected_value: 'true',
+            message: 'Farm registration is complete',
+            is_mandatory: true,
+          },
+          {
+            rule_id: '5',
+            rule_name: 'Credit Score',
+            passed: true,
+            actual_value: '720',
+            expected_value: '600',
+            message: 'Credit score meets requirement',
+            is_mandatory: false,
+          },
+          {
+            rule_id: '6',
+            rule_name: 'No Active Defaults',
+            passed: true,
+            actual_value: '0',
+            expected_value: '0',
+            message: 'No active loan defaults',
+            is_mandatory: true,
+          },
+          {
+            rule_id: '7',
+            rule_name: 'Crop History',
+            passed: true,
+            actual_value: '3 seasons',
+            expected_value: '2 seasons',
+            message: 'Sufficient crop cultivation history',
+            is_mandatory: false,
+          },
+          {
+            rule_id: '8',
+            rule_name: 'Maximum Debt Ratio',
+            passed: false,
+            actual_value: '42%',
+            expected_value: '40%',
+            message: 'Debt-to-income ratio slightly exceeds limit',
+            is_mandatory: false,
+          },
+        ],
+        workflow_decision: 'manual_review',
+        final_decision: '',
+        decision_reason: '',
+        waitlist_position: 0,
+      };
+
+      setAssessment(mockAssessment);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to check eligibility. Please try again.');
+    } finally {
+      setAssessing(false);
+    }
+  };
+
+  const submitApplication = async () => {
+    Alert.alert(
+      'Submit Application',
+      'Are you sure you want to apply for this scheme?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Apply',
+          onPress: async () => {
+            // Submit application logic
+            Alert.alert(
+              'Application Submitted',
+              'Your application has been submitted and is pending review.'
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  const getRiskLevelColor = (level: string) => {
+    const colors: Record<string, string> = {
+      low: '#4CAF50',
+      medium: '#FF9800',
+      high: '#f44336',
+      very_high: '#B71C1C',
+    };
+    return colors[level] || '#666';
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 70) return '#4CAF50';
+    if (score >= 50) return '#FF9800';
+    return '#f44336';
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1B5E20" />
+      </View>
+    );
+  }
+
+  if (!scheme) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Scheme not found</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+        <View style={styles.schemeTypeTag}>
+          <Text style={styles.schemeTypeText}>
+            {scheme.scheme_type.toUpperCase()}
+          </Text>
+        </View>
+      </View>
+
+      {/* Scheme Info */}
+      <View style={styles.schemeInfo}>
+        <Text style={styles.schemeName}>{scheme.name}</Text>
+        <Text style={styles.schemeCode}>{scheme.code}</Text>
+        <Text style={styles.schemeDescription}>{scheme.description}</Text>
+
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Benefit Type</Text>
+            <Text style={styles.infoValue}>{scheme.benefit_type}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Benefit Amount</Text>
+            <Text style={styles.infoValueHighlight}>
+              KES {scheme.benefit_amount.toLocaleString()}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Application Deadline</Text>
+            <Text style={styles.infoValue}>
+              {new Date(scheme.application_deadline).toLocaleDateString()}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Remaining Slots</Text>
+            <Text style={styles.infoValue}>
+              {(scheme.max_beneficiaries - scheme.current_beneficiaries).toLocaleString()}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.benefitDescription}>{scheme.benefit_description}</Text>
+      </View>
+
+      {/* Check Eligibility Button */}
+      {!assessment && (
+        <TouchableOpacity
+          style={styles.checkButton}
+          onPress={checkEligibility}
+          disabled={assessing}
+          testID="check-eligibility-button"
+        >
+          {assessing ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.checkButtonText}>Check My Eligibility</Text>
+          )}
+        </TouchableOpacity>
+      )}
+
+      {/* Assessment Results */}
+      {assessment && (
+        <View style={styles.assessmentSection}>
+          <Text style={styles.sectionTitle}>Eligibility Assessment</Text>
+
+          {/* Score Cards */}
+          <View style={styles.scoreRow}>
+            <View style={styles.scoreCard}>
+              <Text style={styles.scoreLabel}>Eligibility Score</Text>
+              <Text
+                style={[
+                  styles.scoreValue,
+                  { color: getScoreColor(assessment.eligibility_score) },
+                ]}
+              >
+                {assessment.eligibility_score}%
+              </Text>
+            </View>
+            <View style={styles.scoreCard}>
+              <Text style={styles.scoreLabel}>Risk Level</Text>
+              <Text
+                style={[
+                  styles.scoreValue,
+                  { color: getRiskLevelColor(assessment.risk_level) },
+                ]}
+              >
+                {assessment.risk_level.toUpperCase()}
+              </Text>
+            </View>
+          </View>
+
+          {/* Status Badge */}
+          <View
+            style={[
+              styles.statusBadge,
+              assessment.status === 'eligible' && styles.statusEligible,
+              assessment.status === 'not_eligible' && styles.statusNotEligible,
+            ]}
+          >
+            <Text style={styles.statusText}>
+              {assessment.status === 'eligible'
+                ? 'You are eligible for this scheme'
+                : 'You are not eligible for this scheme'}
+            </Text>
+          </View>
+
+          {/* Rules Summary */}
+          <View style={styles.rulesSummary}>
+            <Text style={styles.rulesTitle}>Eligibility Criteria</Text>
+            <View style={styles.rulesCount}>
+              <Text style={styles.passedCount}>
+                {assessment.rules_passed} Passed
+              </Text>
+              <Text style={styles.failedCount}>
+                {assessment.rules_failed} Failed
+              </Text>
+            </View>
+          </View>
+
+          {/* Rule Results */}
+          {assessment.rule_results.map((rule) => (
+            <View
+              key={rule.rule_id}
+              style={[
+                styles.ruleItem,
+                rule.passed ? styles.rulePassed : styles.ruleFailed,
+              ]}
+            >
+              <View style={styles.ruleHeader}>
+                <Text style={styles.ruleIcon}>{rule.passed ? '✓' : '✗'}</Text>
+                <Text style={styles.ruleName}>{rule.rule_name}</Text>
+                {rule.is_mandatory && (
+                  <Text style={styles.mandatoryTag}>Required</Text>
+                )}
+              </View>
+              <Text style={styles.ruleMessage}>{rule.message}</Text>
+              {rule.actual_value && (
+                <Text style={styles.ruleValues}>
+                  Your value: {rule.actual_value}
+                </Text>
+              )}
+            </View>
+          ))}
+
+          {/* Apply Button */}
+          {assessment.status === 'eligible' && (
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={submitApplication}
+              testID="submit-application-button"
+            >
+              <Text style={styles.applyButtonText}>Submit Application</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Not Eligible Message */}
+          {assessment.status === 'not_eligible' && (
+            <View style={styles.notEligibleMessage}>
+              <Text style={styles.notEligibleTitle}>What you can do:</Text>
+              <Text style={styles.notEligibleText}>
+                - Complete your KYC verification{'\n'}
+                - Register your farm with accurate details{'\n'}
+                - Ensure your credit record is up to date{'\n'}
+                - Check other available schemes
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    paddingTop: 60,
+    backgroundColor: '#1B5E20',
+  },
+  backButton: {
+    padding: 8,
+  },
+  backButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  schemeTypeTag: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  schemeTypeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  schemeInfo: {
+    backgroundColor: '#fff',
+    padding: 20,
+  },
+  schemeName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  schemeCode: {
+    fontSize: 14,
+    color: '#999',
+    marginBottom: 12,
+  },
+  schemeDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  infoCard: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  infoValue: {
+    fontSize: 14,
+    color: '#333',
+  },
+  infoValueHighlight: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1B5E20',
+  },
+  benefitDescription: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  checkButton: {
+    backgroundColor: '#1B5E20',
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  checkButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  assessmentSection: {
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  scoreCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  scoreLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 8,
+  },
+  scoreValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  statusBadge: {
+    backgroundColor: '#FFF3E0',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  statusEligible: {
+    backgroundColor: '#E8F5E9',
+  },
+  statusNotEligible: {
+    backgroundColor: '#FFEBEE',
+  },
+  statusText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  rulesSummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  rulesTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  rulesCount: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  passedCount: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  failedCount: {
+    fontSize: 14,
+    color: '#f44336',
+    fontWeight: '600',
+  },
+  ruleItem: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+  },
+  rulePassed: {
+    borderLeftColor: '#4CAF50',
+  },
+  ruleFailed: {
+    borderLeftColor: '#f44336',
+  },
+  ruleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  ruleIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  ruleName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
+  },
+  mandatoryTag: {
+    fontSize: 10,
+    color: '#f44336',
+    backgroundColor: '#FFEBEE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  ruleMessage: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 4,
+  },
+  ruleValues: {
+    fontSize: 12,
+    color: '#999',
+  },
+  applyButton: {
+    backgroundColor: '#1B5E20',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  notEligibleMessage: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  notEligibleTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  notEligibleText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 24,
+  },
+});
