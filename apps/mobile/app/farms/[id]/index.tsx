@@ -51,24 +51,25 @@ export default function FarmDetailScreen() {
 
   if (isLoading && !farm) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading farm details...</Text>
+      <View style={styles.loadingContainer} testID="farm-detail-loading">
+        <ActivityIndicator size="large" color={COLORS.primary} testID="farm-detail-loading-indicator" />
+        <Text style={styles.loadingText} testID="farm-detail-loading-text">Loading farm details...</Text>
       </View>
     );
   }
 
   if (!farm) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={styles.errorContainer} testID="farm-detail-error">
         <Text style={styles.errorIcon}>🚫</Text>
-        <Text style={styles.errorTitle}>Farm Not Found</Text>
-        <Text style={styles.errorText}>
+        <Text style={styles.errorTitle} testID="farm-detail-error-title">Farm Not Found</Text>
+        <Text style={styles.errorText} testID="farm-detail-error-text">
           This farm could not be found. It may have been removed.
         </Text>
         <TouchableOpacity
           style={styles.backToListButton}
           onPress={() => router.replace('/(tabs)/farms')}
+          testID="farm-detail-back-to-list"
         >
           <Text style={styles.backToListButtonText}>Back to Farms</Text>
         </TouchableOpacity>
@@ -92,39 +93,40 @@ export default function FarmDetailScreen() {
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
+      testID="farm-detail-screen"
     >
       {/* Hero Section */}
-      <View style={styles.hero}>
+      <View style={styles.hero} testID="farm-detail-hero">
         <View style={styles.heroContent}>
-          <View style={[styles.statusBadge, { backgroundColor: status.color + '20' }]}>
+          <View style={[styles.statusBadge, { backgroundColor: status.color + '20' }]} testID="farm-detail-status-badge">
             <View style={[styles.statusDot, { backgroundColor: status.color }]} />
-            <Text style={[styles.statusText, { color: status.color }]}>
+            <Text style={[styles.statusText, { color: status.color }]} testID="farm-detail-status-text">
               {status.label}
             </Text>
           </View>
-          <Text style={styles.farmName}>{farm.name}</Text>
+          <Text style={styles.farmName} testID="farm-detail-name">{farm.name}</Text>
           {farm.plotId && (
-            <Text style={styles.plotId}>Plot ID: {farm.plotId}</Text>
+            <Text style={styles.plotId} testID="farm-detail-plot-id">Plot ID: {farm.plotId}</Text>
           )}
         </View>
       </View>
 
       {/* Quick Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
+      <View style={styles.statsContainer} testID="farm-detail-stats">
+        <View style={styles.statCard} testID="farm-detail-stat-acreage">
+          <Text style={styles.statValue} testID="farm-detail-stat-acreage-value">
             {farm.totalAcreage?.toFixed(1) || '-'}
           </Text>
           <Text style={styles.statLabel}>Acres</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
+        <View style={styles.statCard} testID="farm-detail-stat-crops">
+          <Text style={styles.statValue} testID="farm-detail-stat-crops-value">
             {farm.crops?.length || 0}
           </Text>
           <Text style={styles.statLabel}>Crops</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
+        <View style={styles.statCard} testID="farm-detail-stat-docs">
+          <Text style={styles.statValue} testID="farm-detail-stat-docs-value">
             {farm.documents?.length || 0}
           </Text>
           <Text style={styles.statLabel}>Documents</Text>
@@ -132,37 +134,37 @@ export default function FarmDetailScreen() {
       </View>
 
       {/* Location Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Location</Text>
-        <View style={styles.card}>
+      <View style={styles.section} testID="farm-detail-location-section">
+        <Text style={styles.sectionTitle} testID="farm-detail-location-title">Location</Text>
+        <View style={styles.card} testID="farm-detail-location-card">
           {farm.county && (
-            <View style={styles.infoRow}>
+            <View style={styles.infoRow} testID="farm-detail-county-row">
               <Text style={styles.infoLabel}>County</Text>
-              <Text style={styles.infoValue}>{farm.county}</Text>
+              <Text style={styles.infoValue} testID="farm-detail-county-value">{farm.county}</Text>
             </View>
           )}
           {farm.subCounty && (
-            <View style={styles.infoRow}>
+            <View style={styles.infoRow} testID="farm-detail-subcounty-row">
               <Text style={styles.infoLabel}>Sub-County</Text>
-              <Text style={styles.infoValue}>{farm.subCounty}</Text>
+              <Text style={styles.infoValue} testID="farm-detail-subcounty-value">{farm.subCounty}</Text>
             </View>
           )}
           {farm.ward && (
-            <View style={styles.infoRow}>
+            <View style={styles.infoRow} testID="farm-detail-ward-row">
               <Text style={styles.infoLabel}>Ward</Text>
-              <Text style={styles.infoValue}>{farm.ward}</Text>
+              <Text style={styles.infoValue} testID="farm-detail-ward-value">{farm.ward}</Text>
             </View>
           )}
-          <View style={styles.infoRow}>
+          <View style={styles.infoRow} testID="farm-detail-coordinates-row">
             <Text style={styles.infoLabel}>Coordinates</Text>
-            <Text style={styles.infoValue}>
+            <Text style={styles.infoValue} testID="farm-detail-coordinates-value">
               {farm.latitude?.toFixed(6)}, {farm.longitude?.toFixed(6)}
             </Text>
           </View>
           {farm.addressDescription && (
-            <View style={styles.infoRow}>
+            <View style={styles.infoRow} testID="farm-detail-directions-row">
               <Text style={styles.infoLabel}>Directions</Text>
-              <Text style={styles.infoValueFull}>{farm.addressDescription}</Text>
+              <Text style={styles.infoValueFull} testID="farm-detail-directions-value">{farm.addressDescription}</Text>
             </View>
           )}
         </View>
@@ -171,6 +173,7 @@ export default function FarmDetailScreen() {
         <TouchableOpacity
           style={styles.mapButton}
           onPress={() => router.push(`/farms/${id}/boundary`)}
+          testID="farm-detail-view-boundary-button"
         >
           <Text style={styles.mapButtonIcon}>🗺️</Text>
           <Text style={styles.mapButtonText}>View Boundary on Map</Text>
@@ -178,9 +181,9 @@ export default function FarmDetailScreen() {
       </View>
 
       {/* Land Details Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Land Details</Text>
-        <View style={styles.card}>
+      <View style={styles.section} testID="farm-detail-land-section">
+        <Text style={styles.sectionTitle} testID="farm-detail-land-title">Land Details</Text>
+        <View style={styles.card} testID="farm-detail-land-card">
           {farm.ownershipType && (
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Ownership</Text>
@@ -307,10 +310,11 @@ export default function FarmDetailScreen() {
       </View>
 
       {/* Actions */}
-      <View style={styles.actions}>
+      <View style={styles.actions} testID="farm-detail-actions">
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => router.push(`/farms/${id}/land-details`)}
+          testID="farm-detail-edit-button"
         >
           <Text style={styles.actionButtonIcon}>✏️</Text>
           <Text style={styles.actionButtonText}>Edit Details</Text>
@@ -335,6 +339,7 @@ export default function FarmDetailScreen() {
               ]
             );
           }}
+          testID="farm-detail-delete-button"
         >
           <Text style={styles.actionButtonIcon}>🗑️</Text>
           <Text style={[styles.actionButtonText, styles.actionButtonTextDanger]}>

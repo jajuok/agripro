@@ -1,5 +1,5 @@
 # Eligibility E2E Test Flow
-# Tests the eligibility assessment feature
+# Tests the eligibility assessment feature using unique testIDs
 
 appId: com.agrischeme.pro
 name: Eligibility Flow
@@ -18,117 +18,155 @@ tags:
 # Handle already logged in state - logout first if needed
 - runFlow:
     when:
-      visible: "Welcome back!"
+      visible:
+        id: "home-greeting"
     commands:
+      # Navigate to profile tab using testID
       - tapOn:
-          point: "85%,94%"
+          id: "tab-profile"
       - waitForAnimationToEnd
+      # Scroll to find logout button
       - swipe:
           start: "50%,80%"
           end: "50%,20%"
       - waitForAnimationToEnd
+      # Tap logout using new testID
       - tapOn:
-          id: "logout-button"
+          id: "profile-logout-button"
       - waitForAnimationToEnd
 
-# Login with demo account
+# Wait for login screen using new testID
 - extendedWaitUntil:
-    visible: "Farm Management System"
+    visible:
+      id: "login-subtitle"
     timeout: 15000
 
+# Enter credentials using unique testIDs
 - tapOn:
-    id: "email-input"
+    id: "login-email-input"
 - inputText: "demo@agripro.com"
 
 - tapOn:
-    id: "password-input"
+    id: "login-password-input"
 - inputText: "Demo1234X"
 
-- tapOn: "Login"
+- tapOn:
+    id: "login-submit-button"
 
+# Wait for home screen using new testID
 - extendedWaitUntil:
-    visible: "Welcome back!"
+    visible:
+      id: "home-greeting"
     timeout: 15000
 
-# ===== PHASE 2: NAVIGATE TO ELIGIBILITY =====
-# Wait for home screen to fully load
-- extendedWaitUntil:
-    visible: "Scheme Eligibility"
-    timeout: 10000
+# ===== PHASE 2: VERIFY HOME SCREEN =====
+# Verify key elements using testIDs
+- assertVisible:
+    id: "home-screen"
+- assertVisible:
+    id: "home-stats-container"
+- assertVisible:
+    id: "home-eligibility-card"
 
-# Scroll down to ensure eligibility card is visible
+# ===== PHASE 3: NAVIGATE TO ELIGIBILITY =====
+# Scroll to ensure eligibility card is visible
 - swipe:
     start: "50%,70%"
     end: "50%,40%"
 - waitForAnimationToEnd
 
-# Tap on eligibility card using testID
+# Tap on eligibility card using new testID
 - tapOn:
-    id: "eligibility-card"
-
+    id: "home-eligibility-card"
 - waitForAnimationToEnd
 
-# ===== PHASE 3: VERIFY ELIGIBILITY LIST SCREEN =====
-- assertVisible: "Eligibility & Schemes"
-- assertVisible: "Available Programs"
-
-# Verify stats are visible
-- assertVisible: "Available Schemes"
-- assertVisible: "Enrolled"
-- assertVisible: "Pending"
-
-# ===== PHASE 4: VIEW SCHEME DETAILS =====
-# Tap on first scheme card
-- tapOn:
-    id: "scheme-card-1"
-
-- waitForAnimationToEnd
-
-# Verify scheme detail screen
-- assertVisible: "Agricultural Input Subsidy"
-- assertVisible: "SUBSIDY"
-- assertVisible: "Benefit Type"
-- assertVisible: "Benefit Amount"
-- assertVisible: "Application Deadline"
-
-# ===== PHASE 5: CHECK ELIGIBILITY =====
-# Tap Check Eligibility button
-- tapOn:
-    id: "check-eligibility-button"
-
-# Wait for assessment to complete
+# ===== PHASE 4: VERIFY ELIGIBILITY LIST SCREEN =====
 - extendedWaitUntil:
-    visible: "Eligibility Assessment"
+    visible:
+      id: "eligibility-list-screen"
     timeout: 10000
 
-# Verify assessment results
-- assertVisible: "Eligibility Score"
-- assertVisible: "Risk Level"
-- assertVisible: "You are eligible for this scheme"
+- assertVisible:
+    id: "eligibility-list-title"
+- assertVisible:
+    id: "eligibility-list-stats"
+- assertVisible:
+    id: "eligibility-list-stat-available"
+- assertVisible:
+    id: "eligibility-list-stat-enrolled"
+- assertVisible:
+    id: "eligibility-list-stat-pending"
+- assertVisible:
+    id: "eligibility-list-section-title"
 
-# ===== PHASE 6: VERIFY RULE RESULTS =====
+# ===== PHASE 5: VIEW SCHEME DETAILS =====
+# Tap on first scheme card using new testID
+- tapOn:
+    id: "eligibility-list-scheme-card-1"
+- waitForAnimationToEnd
+
+# Verify scheme detail screen using testIDs
+- extendedWaitUntil:
+    visible:
+      id: "eligibility-detail-screen"
+    timeout: 10000
+
+- assertVisible:
+    id: "eligibility-detail-name"
+- assertVisible:
+    id: "eligibility-detail-type-tag"
+- assertVisible:
+    id: "eligibility-detail-info-card"
+- assertVisible:
+    id: "eligibility-detail-benefit-type"
+- assertVisible:
+    id: "eligibility-detail-benefit-amount"
+- assertVisible:
+    id: "eligibility-detail-deadline"
+
+# ===== PHASE 6: CHECK ELIGIBILITY =====
+# Tap Check Eligibility button using new testID
+- tapOn:
+    id: "eligibility-detail-check-button"
+
+# Wait for assessment to complete (2 second delay in mock)
+- extendedWaitUntil:
+    visible:
+      id: "eligibility-detail-assessment"
+    timeout: 10000
+
+# Verify assessment results using testIDs
+- assertVisible:
+    id: "eligibility-detail-assessment-title"
+- assertVisible:
+    id: "eligibility-detail-score-card"
+- assertVisible:
+    id: "eligibility-detail-score-value"
+- assertVisible:
+    id: "eligibility-detail-risk-card"
+- assertVisible:
+    id: "eligibility-detail-risk-value"
+- assertVisible:
+    id: "eligibility-detail-status-badge"
+
+# ===== PHASE 7: VERIFY RULE RESULTS =====
 # Scroll to see eligibility criteria
 - swipe:
     start: "50%,80%"
     end: "50%,30%"
 - waitForAnimationToEnd
 
-- assertVisible: "Eligibility Criteria"
+- assertVisible:
+    id: "eligibility-detail-rules-summary"
+- assertVisible:
+    id: "eligibility-detail-rules-title"
 
-# Scroll to see all rules
-- swipe:
-    start: "50%,80%"
-    end: "50%,30%"
-- waitForAnimationToEnd
+# Verify at least one rule is visible
+- assertVisible:
+    id: "eligibility-detail-rule-1"
 
-# ===== PHASE 7: TEST COMPLETE =====
-# The eligibility assessment flow has been successfully tested:
-# - Navigated to eligibility list
-# - Viewed scheme details
-# - Checked eligibility
-# - Verified assessment results with score, risk level, and criteria
-
-# Scroll back to top to verify we can see scheme info
+# ===== PHASE 8: NAVIGATE BACK =====
+# Scroll back to top
 - swipe:
     start: "50%,30%"
     end: "50%,80%"
@@ -137,6 +175,46 @@ tags:
     end: "50%,80%"
 - waitForAnimationToEnd
 
-# Verify we're still on the scheme detail with assessment
-- assertVisible: "Agricultural Input Subsidy"
-- assertVisible: "Eligibility Assessment"
+# Tap back button using new testID
+- tapOn:
+    id: "eligibility-detail-back-button"
+- waitForAnimationToEnd
+
+# Verify we're back on the eligibility list
+- extendedWaitUntil:
+    visible:
+      id: "eligibility-list-screen"
+    timeout: 5000
+
+- assertVisible:
+    id: "eligibility-list-title"
+
+# ===== PHASE 9: RETURN TO HOME =====
+# Navigate back to home using back button
+- tapOn:
+    id: "eligibility-list-back-button"
+- waitForAnimationToEnd
+
+# Verify we're on home screen
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 5000
+
+# Scroll to top to ensure greeting is visible
+- swipe:
+    start: "50%,30%"
+    end: "50%,80%"
+- waitForAnimationToEnd
+
+- assertVisible:
+    id: "home-greeting"
+
+# ===== TEST COMPLETE =====
+# Successfully tested using unique testIDs:
+# - Login with credentials (login-email-input, login-password-input, login-submit-button)
+# - Home screen elements (home-screen, home-greeting, home-eligibility-card)
+# - Eligibility list (eligibility-list-screen, eligibility-list-title, eligibility-list-stats)
+# - Scheme details (eligibility-detail-screen, eligibility-detail-name, eligibility-detail-check-button)
+# - Assessment results (eligibility-detail-assessment, eligibility-detail-score-value, eligibility-detail-rule-*)
+# - Navigation (eligibility-detail-back-button, profile-logout-button)

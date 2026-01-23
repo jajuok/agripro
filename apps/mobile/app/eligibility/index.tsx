@@ -122,7 +122,7 @@ export default function EligibilityScreen() {
     return myAssessments.find((a) => a.scheme_id === schemeId);
   };
 
-  const getStatusBadge = (status: string, assessment?: Assessment) => {
+  const getStatusBadge = (status: string, assessment?: Assessment, schemeId?: string) => {
     if (assessment) {
       const statusColors: Record<string, { bg: string; text: string }> = {
         approved: { bg: '#E8F5E9', text: '#2E7D32' },
@@ -134,8 +134,8 @@ export default function EligibilityScreen() {
       };
       const style = statusColors[assessment.status] || statusColors.pending;
       return (
-        <View style={[styles.badge, { backgroundColor: style.bg }]}>
-          <Text style={[styles.badgeText, { color: style.text }]}>
+        <View style={[styles.badge, { backgroundColor: style.bg }]} testID={`eligibility-list-scheme-${schemeId}-status-badge`}>
+          <Text style={[styles.badgeText, { color: style.text }]} testID={`eligibility-list-scheme-${schemeId}-status-text`}>
             {assessment.status.replace('_', ' ').toUpperCase()}
           </Text>
         </View>
@@ -154,36 +154,42 @@ export default function EligibilityScreen() {
         key={scheme.id}
         style={styles.schemeCard}
         onPress={() => router.push(`/eligibility/${scheme.id}`)}
-        testID={`scheme-card-${scheme.id}`}
+        testID={`eligibility-list-scheme-card-${scheme.id}`}
       >
-        <View style={styles.schemeHeader}>
-          <View style={styles.schemeTypeTag}>
-            <Text style={styles.schemeTypeText}>{scheme.scheme_type.toUpperCase()}</Text>
+        <View style={styles.schemeHeader} testID={`eligibility-list-scheme-${scheme.id}-header`}>
+          <View style={styles.schemeTypeTag} testID={`eligibility-list-scheme-${scheme.id}-type-tag`}>
+            <Text style={styles.schemeTypeText} testID={`eligibility-list-scheme-${scheme.id}-type-text`}>
+              {scheme.scheme_type.toUpperCase()}
+            </Text>
           </View>
-          {getStatusBadge(scheme.status, assessment)}
+          {getStatusBadge(scheme.status, assessment, scheme.id)}
         </View>
 
-        <Text style={styles.schemeName}>{scheme.name}</Text>
-        <Text style={styles.schemeCode}>{scheme.code}</Text>
-        <Text style={styles.schemeDescription} numberOfLines={2}>
+        <Text style={styles.schemeName} testID={`eligibility-list-scheme-${scheme.id}-name`}>
+          {scheme.name}
+        </Text>
+        <Text style={styles.schemeCode} testID={`eligibility-list-scheme-${scheme.id}-code`}>
+          {scheme.code}
+        </Text>
+        <Text style={styles.schemeDescription} numberOfLines={2} testID={`eligibility-list-scheme-${scheme.id}-description`}>
           {scheme.description}
         </Text>
 
-        <View style={styles.benefitRow}>
+        <View style={styles.benefitRow} testID={`eligibility-list-scheme-${scheme.id}-benefit`}>
           <Text style={styles.benefitLabel}>Benefit:</Text>
-          <Text style={styles.benefitValue}>
+          <Text style={styles.benefitValue} testID={`eligibility-list-scheme-${scheme.id}-benefit-amount`}>
             KES {scheme.benefit_amount.toLocaleString()} ({scheme.benefit_type})
           </Text>
         </View>
 
-        <View style={styles.capacityContainer}>
+        <View style={styles.capacityContainer} testID={`eligibility-list-scheme-${scheme.id}-capacity`}>
           <View style={styles.capacityHeader}>
             <Text style={styles.capacityLabel}>Capacity</Text>
-            <Text style={styles.capacityValue}>
+            <Text style={styles.capacityValue} testID={`eligibility-list-scheme-${scheme.id}-spots-left`}>
               {spotsLeft.toLocaleString()} spots left
             </Text>
           </View>
-          <View style={styles.capacityBar}>
+          <View style={styles.capacityBar} testID={`eligibility-list-scheme-${scheme.id}-capacity-bar`}>
             <View
               style={[
                 styles.capacityFill,
@@ -194,9 +200,9 @@ export default function EligibilityScreen() {
           </View>
         </View>
 
-        <View style={styles.deadlineRow}>
+        <View style={styles.deadlineRow} testID={`eligibility-list-scheme-${scheme.id}-deadline`}>
           <Text style={styles.deadlineIcon}>📅</Text>
-          <Text style={styles.deadlineText}>
+          <Text style={styles.deadlineText} testID={`eligibility-list-scheme-${scheme.id}-deadline-text`}>
             Apply by: {new Date(scheme.application_deadline).toLocaleDateString()}
           </Text>
         </View>
@@ -205,23 +211,25 @@ export default function EligibilityScreen() {
           <TouchableOpacity
             style={styles.applyButton}
             onPress={() => router.push(`/eligibility/${scheme.id}`)}
-            testID={`apply-button-${scheme.id}`}
+            testID={`eligibility-list-scheme-${scheme.id}-check-button`}
           >
             <Text style={styles.applyButtonText}>Check Eligibility</Text>
           </TouchableOpacity>
         )}
 
         {assessment && assessment.status === 'waitlisted' && (
-          <View style={styles.waitlistInfo}>
-            <Text style={styles.waitlistText}>
+          <View style={styles.waitlistInfo} testID={`eligibility-list-scheme-${scheme.id}-waitlist-info`}>
+            <Text style={styles.waitlistText} testID={`eligibility-list-scheme-${scheme.id}-waitlist-position`}>
               Waitlist Position: #{assessment.waitlist_position}
             </Text>
           </View>
         )}
 
         {assessment && assessment.status === 'approved' && (
-          <View style={styles.approvedInfo}>
-            <Text style={styles.approvedText}>You are enrolled in this scheme</Text>
+          <View style={styles.approvedInfo} testID={`eligibility-list-scheme-${scheme.id}-enrolled-info`}>
+            <Text style={styles.approvedText} testID={`eligibility-list-scheme-${scheme.id}-enrolled-text`}>
+              You are enrolled in this scheme
+            </Text>
           </View>
         )}
       </TouchableOpacity>
@@ -230,9 +238,9 @@ export default function EligibilityScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1B5E20" />
-        <Text style={styles.loadingText}>Loading schemes...</Text>
+      <View style={styles.loadingContainer} testID="eligibility-list-loading">
+        <ActivityIndicator size="large" color="#1B5E20" testID="eligibility-list-loading-indicator" />
+        <Text style={styles.loadingText} testID="eligibility-list-loading-text">Loading schemes...</Text>
       </View>
     );
   }
@@ -240,40 +248,48 @@ export default function EligibilityScreen() {
   return (
     <ScrollView
       style={styles.container}
+      testID="eligibility-list-screen"
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      <View style={styles.header}>
-        <Text style={styles.title}>Eligibility & Schemes</Text>
-        <Text style={styles.subtitle}>
+      <View style={styles.header} testID="eligibility-list-header">
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+          testID="eligibility-list-back-button"
+        >
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title} testID="eligibility-list-title">Eligibility & Schemes</Text>
+        <Text style={styles.subtitle} testID="eligibility-list-subtitle">
           Check your eligibility for government and private agricultural programs
         </Text>
       </View>
 
       {/* Summary Stats */}
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{schemes.length}</Text>
-          <Text style={styles.statLabel}>Available Schemes</Text>
+      <View style={styles.statsRow} testID="eligibility-list-stats">
+        <View style={styles.statCard} testID="eligibility-list-stat-available">
+          <Text style={styles.statValue} testID="eligibility-list-stat-available-value">{schemes.length}</Text>
+          <Text style={styles.statLabel} testID="eligibility-list-stat-available-label">Available Schemes</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
+        <View style={styles.statCard} testID="eligibility-list-stat-enrolled">
+          <Text style={styles.statValue} testID="eligibility-list-stat-enrolled-value">
             {myAssessments.filter((a) => a.status === 'approved').length}
           </Text>
-          <Text style={styles.statLabel}>Enrolled</Text>
+          <Text style={styles.statLabel} testID="eligibility-list-stat-enrolled-label">Enrolled</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
+        <View style={styles.statCard} testID="eligibility-list-stat-pending">
+          <Text style={styles.statValue} testID="eligibility-list-stat-pending-value">
             {myAssessments.filter((a) => a.status === 'pending' || a.status === 'eligible').length}
           </Text>
-          <Text style={styles.statLabel}>Pending</Text>
+          <Text style={styles.statLabel} testID="eligibility-list-stat-pending-label">Pending</Text>
         </View>
       </View>
 
       {/* Scheme Cards */}
-      <View style={styles.schemesSection}>
-        <Text style={styles.sectionTitle}>Available Programs</Text>
+      <View style={styles.schemesSection} testID="eligibility-list-schemes-section">
+        <Text style={styles.sectionTitle} testID="eligibility-list-section-title">Available Programs</Text>
         {schemes.map(renderSchemeCard)}
       </View>
     </ScrollView>
@@ -299,6 +315,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#1B5E20',
     padding: 20,
     paddingTop: 60,
+  },
+  backButton: {
+    marginBottom: 12,
+  },
+  backButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
   },
   title: {
     fontSize: 24,

@@ -17,6 +17,7 @@ export default function TabsLayout() {
         name="home"
         options={{
           title: 'Home',
+          tabBarTestID: 'tab-home',
           tabBarIcon: ({ color }) => (
             <Text style={{ color, fontSize: 20 }}>🏠</Text>
           ),
@@ -26,6 +27,7 @@ export default function TabsLayout() {
         name="farms"
         options={{
           title: 'My Farms',
+          tabBarTestID: 'tab-farms',
           tabBarIcon: ({ color }) => (
             <Text style={{ color, fontSize: 20 }}>🌿</Text>
           ),
@@ -35,6 +37,7 @@ export default function TabsLayout() {
         name="tasks"
         options={{
           title: 'Tasks',
+          tabBarTestID: 'tab-tasks',
           tabBarIcon: ({ color }) => (
             <Text style={{ color, fontSize: 20 }}>✓</Text>
           ),
@@ -44,6 +47,7 @@ export default function TabsLayout() {
         name="market"
         options={{
           title: 'Market',
+          tabBarTestID: 'tab-market',
           tabBarIcon: ({ color }) => (
             <Text style={{ color, fontSize: 20 }}>🛒</Text>
           ),
@@ -53,6 +57,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
+          tabBarTestID: 'tab-profile',
           tabBarIcon: ({ color }) => (
             <Text style={{ color, fontSize: 20 }}>👤</Text>
           ),

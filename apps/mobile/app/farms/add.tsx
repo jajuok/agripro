@@ -109,100 +109,103 @@ export default function AddFarmScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      testID="farms-add-screen"
     >
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        testID="farms-add-scroll"
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>Register Your Farm</Text>
-          <Text style={styles.subtitle}>
+        <View style={styles.header} testID="farms-add-header">
+          <Text style={styles.title} testID="farms-add-title">Register Your Farm</Text>
+          <Text style={styles.subtitle} testID="farms-add-subtitle">
             Start by giving your farm a name and capturing your current location.
           </Text>
         </View>
 
         {/* Farm Name */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Farm Name *</Text>
+        <View style={styles.inputGroup} testID="farms-add-name-group">
+          <Text style={styles.label} testID="farms-add-name-label">Farm Name *</Text>
           <TextInput
             style={styles.input}
             value={name}
             onChangeText={setName}
             placeholder="e.g., Kijani Shamba"
             placeholderTextColor={COLORS.gray[400]}
+            testID="farms-add-name-input"
           />
         </View>
 
         {/* Location */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Location *</Text>
+        <View style={styles.inputGroup} testID="farms-add-location-group">
+          <Text style={styles.label} testID="farms-add-location-label">Location *</Text>
 
           {isGettingLocation ? (
-            <View style={styles.locationLoading}>
-              <ActivityIndicator color={COLORS.primary} />
-              <Text style={styles.locationLoadingText}>Getting your location...</Text>
+            <View style={styles.locationLoading} testID="farms-add-location-loading">
+              <ActivityIndicator color={COLORS.primary} testID="farms-add-location-loading-indicator" />
+              <Text style={styles.locationLoadingText} testID="farms-add-location-loading-text">Getting your location...</Text>
             </View>
           ) : locationError ? (
-            <View style={styles.locationError}>
-              <Text style={styles.locationErrorText}>{locationError}</Text>
-              <TouchableOpacity onPress={getCurrentLocation}>
+            <View style={styles.locationError} testID="farms-add-location-error">
+              <Text style={styles.locationErrorText} testID="farms-add-location-error-text">{locationError}</Text>
+              <TouchableOpacity onPress={getCurrentLocation} testID="farms-add-location-error-retry">
                 <Text style={styles.retryText}>Tap to retry</Text>
               </TouchableOpacity>
             </View>
           ) : latitude && longitude ? (
-            <View style={styles.locationSuccess}>
-              <Text style={styles.coordinatesText}>
+            <View style={styles.locationSuccess} testID="farms-add-location-success">
+              <Text style={styles.coordinatesText} testID="farms-add-location-coordinates">
                 📍 {latitude.toFixed(6)}, {longitude.toFixed(6)}
               </Text>
 
               {adminLocation && (
-                <View style={styles.adminLocation}>
+                <View style={styles.adminLocation} testID="farms-add-admin-location">
                   {adminLocation.county && (
-                    <Text style={styles.adminLocationText}>
+                    <Text style={styles.adminLocationText} testID="farms-add-admin-county">
                       County: {adminLocation.county}
                     </Text>
                   )}
                   {adminLocation.subCounty && (
-                    <Text style={styles.adminLocationText}>
+                    <Text style={styles.adminLocationText} testID="farms-add-admin-subcounty">
                       Sub-County: {adminLocation.subCounty}
                     </Text>
                   )}
                   {adminLocation.ward && (
-                    <Text style={styles.adminLocationText}>
+                    <Text style={styles.adminLocationText} testID="farms-add-admin-ward">
                       Ward: {adminLocation.ward}
                     </Text>
                   )}
                 </View>
               )}
 
-              <TouchableOpacity style={styles.refreshButton} onPress={getCurrentLocation}>
+              <TouchableOpacity style={styles.refreshButton} onPress={getCurrentLocation} testID="farms-add-location-refresh">
                 <Text style={styles.refreshButtonText}>Refresh Location</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity style={styles.captureButton} onPress={getCurrentLocation}>
+            <TouchableOpacity style={styles.captureButton} onPress={getCurrentLocation} testID="farms-add-location-capture">
               <Text style={styles.captureButtonText}>📍 Capture Location</Text>
             </TouchableOpacity>
           )}
         </View>
 
         {/* Info card */}
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>What happens next?</Text>
-          <View style={styles.infoItem}>
+        <View style={styles.infoCard} testID="farms-add-info-card">
+          <Text style={styles.infoTitle} testID="farms-add-info-title">What happens next?</Text>
+          <View style={styles.infoItem} testID="farms-add-info-step-1">
             <Text style={styles.infoNumber}>1</Text>
             <Text style={styles.infoText}>Mark your farm boundaries on a map</Text>
           </View>
-          <View style={styles.infoItem}>
+          <View style={styles.infoItem} testID="farms-add-info-step-2">
             <Text style={styles.infoNumber}>2</Text>
             <Text style={styles.infoText}>Enter land details and ownership info</Text>
           </View>
-          <View style={styles.infoItem}>
+          <View style={styles.infoItem} testID="farms-add-info-step-3">
             <Text style={styles.infoNumber}>3</Text>
             <Text style={styles.infoText}>Upload documents and photos</Text>
           </View>
-          <View style={styles.infoItem}>
+          <View style={styles.infoItem} testID="farms-add-info-step-4">
             <Text style={styles.infoNumber}>4</Text>
             <Text style={styles.infoText}>Add soil, water, and crop information</Text>
           </View>
@@ -210,23 +213,24 @@ export default function AddFarmScreen() {
 
         {/* Error message */}
         {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
+          <View style={styles.errorContainer} testID="farms-add-error">
+            <Text style={styles.errorText} testID="farms-add-error-text">{error}</Text>
           </View>
         )}
 
         {/* Submit button */}
-        <View style={styles.buttonContainer}>
+        <View style={styles.buttonContainer} testID="farms-add-submit-container">
           <Button
             title="Continue"
             onPress={handleSubmit}
             loading={isLoading}
             disabled={!name.trim() || !latitude || !longitude || isLoading}
+            testID="farms-add-submit-button"
           />
         </View>
 
         {/* Cancel */}
-        <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()} testID="farms-add-cancel-button">
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
       </ScrollView>

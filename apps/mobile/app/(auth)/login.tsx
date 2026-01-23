@@ -42,12 +42,15 @@ export default function LoginScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      testID="login-screen"
     >
-      <View style={styles.content}>
-        <Text style={styles.title}>AgriScheme Pro</Text>
-        <Text style={styles.subtitle}>Farm Management System</Text>
+      <View style={styles.content} testID="login-content">
+        <Text style={styles.title} testID="login-title">AgriScheme Pro</Text>
+        <Text style={styles.subtitle} testID="login-subtitle">Farm Management System</Text>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Text style={styles.error} testID="login-error">{error}</Text>
+        ) : null}
 
         <TextInput
           style={styles.input}
@@ -56,6 +59,8 @@ export default function LoginScreen() {
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
+          testID="login-email-input"
+          accessibilityLabel="Email input"
         />
 
         <TextInput
@@ -64,30 +69,33 @@ export default function LoginScreen() {
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          testID="login-password-input"
+          accessibilityLabel="Password input"
         />
 
         <TouchableOpacity
           style={styles.button}
           onPress={handleLogin}
           disabled={loading}
+          testID="login-submit-button"
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#fff" testID="login-loading-indicator" />
           ) : (
             <Text style={styles.buttonText}>Login</Text>
           )}
         </TouchableOpacity>
 
         <Link href="/(auth)/forgot-password" asChild>
-          <TouchableOpacity>
+          <TouchableOpacity testID="login-forgot-password-link">
             <Text style={styles.link}>Forgot Password?</Text>
           </TouchableOpacity>
         </Link>
 
-        <View style={styles.registerContainer}>
+        <View style={styles.registerContainer} testID="login-register-container">
           <Text style={styles.registerText}>Don't have an account? </Text>
           <Link href="/(auth)/register" asChild>
-            <TouchableOpacity>
+            <TouchableOpacity testID="login-register-link">
               <Text style={styles.registerLink}>Register</Text>
             </TouchableOpacity>
           </Link>

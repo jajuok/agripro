@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth';
 type MenuItem = {
   icon: string;
   label: string;
+  testID: string;
   route?: string;
   action?: () => void;
 };
@@ -13,60 +14,60 @@ export default function ProfileScreen() {
   const { logout } = useAuthStore();
 
   const menuItems: MenuItem[] = [
-    { icon: '👤', label: 'Edit Profile', route: '/profile/edit' },
-    { icon: '🛡️', label: 'KYC Documents', route: '/kyc' },
-    { icon: '💳', label: 'Payment Methods', route: '/profile/payments' },
-    { icon: '🔔', label: 'Notifications', route: '/profile/notifications' },
-    { icon: '❓', label: 'Help & Support', route: '/support' },
-    { icon: '📄', label: 'Terms & Privacy', route: '/legal' },
-    { icon: '🚪', label: 'Logout', action: () => {
+    { icon: '👤', label: 'Edit Profile', testID: 'profile-menu-edit', route: '/profile/edit' },
+    { icon: '🛡️', label: 'KYC Documents', testID: 'profile-menu-kyc', route: '/kyc' },
+    { icon: '💳', label: 'Payment Methods', testID: 'profile-menu-payments', route: '/profile/payments' },
+    { icon: '🔔', label: 'Notifications', testID: 'profile-menu-notifications', route: '/profile/notifications' },
+    { icon: '❓', label: 'Help & Support', testID: 'profile-menu-help', route: '/support' },
+    { icon: '📄', label: 'Terms & Privacy', testID: 'profile-menu-terms', route: '/legal' },
+    { icon: '🚪', label: 'Logout', testID: 'profile-logout-button', action: () => {
       logout();
       router.replace('/(auth)/login');
     }},
   ];
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
+    <ScrollView style={styles.container} testID="profile-screen">
+      <View style={styles.header} testID="profile-header">
+        <View style={styles.avatarContainer} testID="profile-avatar-container">
+          <View style={styles.avatar} testID="profile-avatar">
             <Text style={{ fontSize: 40 }}>👤</Text>
           </View>
-          <TouchableOpacity style={styles.editAvatar}>
+          <TouchableOpacity style={styles.editAvatar} testID="profile-edit-avatar-button">
             <Text style={{ fontSize: 16 }}>📷</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.name}>John Doe</Text>
-        <Text style={styles.email}>john.doe@example.com</Text>
-        <View style={styles.verifiedBadge}>
+        <Text style={styles.name} testID="profile-name">John Doe</Text>
+        <Text style={styles.email} testID="profile-email">john.doe@example.com</Text>
+        <View style={styles.verifiedBadge} testID="profile-verified-badge">
           <Text style={{ fontSize: 16 }}>✅</Text>
-          <Text style={styles.verifiedText}>KYC Verified</Text>
+          <Text style={styles.verifiedText} testID="profile-verified-text">KYC Verified</Text>
         </View>
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>3</Text>
-          <Text style={styles.statLabel}>Farms</Text>
+      <View style={styles.statsRow} testID="profile-stats">
+        <View style={styles.statItem} testID="profile-stat-farms">
+          <Text style={styles.statValue} testID="profile-stat-farms-value">3</Text>
+          <Text style={styles.statLabel} testID="profile-stat-farms-label">Farms</Text>
         </View>
         <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>12.5</Text>
-          <Text style={styles.statLabel}>Hectares</Text>
+        <View style={styles.statItem} testID="profile-stat-hectares">
+          <Text style={styles.statValue} testID="profile-stat-hectares-value">12.5</Text>
+          <Text style={styles.statLabel} testID="profile-stat-hectares-label">Hectares</Text>
         </View>
         <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>2</Text>
-          <Text style={styles.statLabel}>Schemes</Text>
+        <View style={styles.statItem} testID="profile-stat-schemes">
+          <Text style={styles.statValue} testID="profile-stat-schemes-value">2</Text>
+          <Text style={styles.statLabel} testID="profile-stat-schemes-label">Schemes</Text>
         </View>
       </View>
 
-      <View style={styles.menu}>
+      <View style={styles.menu} testID="profile-menu">
         {menuItems.map((item, index) => (
           <TouchableOpacity
             key={index}
             style={styles.menuItem}
-            testID={item.label === 'Logout' ? 'logout-button' : undefined}
+            testID={item.testID}
             onPress={() => {
               if (item.action) {
                 item.action();
@@ -84,7 +85,7 @@ export default function ProfileScreen() {
         ))}
       </View>
 
-      <Text style={styles.version}>Version 0.1.0</Text>
+      <Text style={styles.version} testID="profile-version">Version 0.1.0</Text>
     </ScrollView>
   );
 }

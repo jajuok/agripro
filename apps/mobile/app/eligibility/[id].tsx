@@ -234,69 +234,70 @@ export default function SchemeDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1B5E20" />
+      <View style={styles.loadingContainer} testID="eligibility-detail-loading">
+        <ActivityIndicator size="large" color="#1B5E20" testID="eligibility-detail-loading-indicator" />
       </View>
     );
   }
 
   if (!scheme) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Scheme not found</Text>
+      <View style={styles.errorContainer} testID="eligibility-detail-error">
+        <Text style={styles.errorText} testID="eligibility-detail-error-text">Scheme not found</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} testID="eligibility-detail-screen">
       {/* Header */}
-      <View style={styles.header}>
+      <View style={styles.header} testID="eligibility-detail-header">
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
+          testID="eligibility-detail-back-button"
         >
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
-        <View style={styles.schemeTypeTag}>
-          <Text style={styles.schemeTypeText}>
+        <View style={styles.schemeTypeTag} testID="eligibility-detail-type-tag">
+          <Text style={styles.schemeTypeText} testID="eligibility-detail-type-text">
             {scheme.scheme_type.toUpperCase()}
           </Text>
         </View>
       </View>
 
       {/* Scheme Info */}
-      <View style={styles.schemeInfo}>
-        <Text style={styles.schemeName}>{scheme.name}</Text>
-        <Text style={styles.schemeCode}>{scheme.code}</Text>
-        <Text style={styles.schemeDescription}>{scheme.description}</Text>
+      <View style={styles.schemeInfo} testID="eligibility-detail-info">
+        <Text style={styles.schemeName} testID="eligibility-detail-name">{scheme.name}</Text>
+        <Text style={styles.schemeCode} testID="eligibility-detail-code">{scheme.code}</Text>
+        <Text style={styles.schemeDescription} testID="eligibility-detail-description">{scheme.description}</Text>
 
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
+        <View style={styles.infoCard} testID="eligibility-detail-info-card">
+          <View style={styles.infoRow} testID="eligibility-detail-benefit-type-row">
             <Text style={styles.infoLabel}>Benefit Type</Text>
-            <Text style={styles.infoValue}>{scheme.benefit_type}</Text>
+            <Text style={styles.infoValue} testID="eligibility-detail-benefit-type">{scheme.benefit_type}</Text>
           </View>
-          <View style={styles.infoRow}>
+          <View style={styles.infoRow} testID="eligibility-detail-benefit-amount-row">
             <Text style={styles.infoLabel}>Benefit Amount</Text>
-            <Text style={styles.infoValueHighlight}>
+            <Text style={styles.infoValueHighlight} testID="eligibility-detail-benefit-amount">
               KES {scheme.benefit_amount.toLocaleString()}
             </Text>
           </View>
-          <View style={styles.infoRow}>
+          <View style={styles.infoRow} testID="eligibility-detail-deadline-row">
             <Text style={styles.infoLabel}>Application Deadline</Text>
-            <Text style={styles.infoValue}>
+            <Text style={styles.infoValue} testID="eligibility-detail-deadline">
               {new Date(scheme.application_deadline).toLocaleDateString()}
             </Text>
           </View>
-          <View style={styles.infoRow}>
+          <View style={styles.infoRow} testID="eligibility-detail-slots-row">
             <Text style={styles.infoLabel}>Remaining Slots</Text>
-            <Text style={styles.infoValue}>
+            <Text style={styles.infoValue} testID="eligibility-detail-slots">
               {(scheme.max_beneficiaries - scheme.current_beneficiaries).toLocaleString()}
             </Text>
           </View>
         </View>
 
-        <Text style={styles.benefitDescription}>{scheme.benefit_description}</Text>
+        <Text style={styles.benefitDescription} testID="eligibility-detail-benefit-description">{scheme.benefit_description}</Text>
       </View>
 
       {/* Check Eligibility Button */}
@@ -305,10 +306,10 @@ export default function SchemeDetailScreen() {
           style={styles.checkButton}
           onPress={checkEligibility}
           disabled={assessing}
-          testID="check-eligibility-button"
+          testID="eligibility-detail-check-button"
         >
           {assessing ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#fff" testID="eligibility-detail-check-loading" />
           ) : (
             <Text style={styles.checkButtonText}>Check My Eligibility</Text>
           )}
@@ -317,29 +318,31 @@ export default function SchemeDetailScreen() {
 
       {/* Assessment Results */}
       {assessment && (
-        <View style={styles.assessmentSection}>
-          <Text style={styles.sectionTitle}>Eligibility Assessment</Text>
+        <View style={styles.assessmentSection} testID="eligibility-detail-assessment">
+          <Text style={styles.sectionTitle} testID="eligibility-detail-assessment-title">Eligibility Assessment</Text>
 
           {/* Score Cards */}
-          <View style={styles.scoreRow}>
-            <View style={styles.scoreCard}>
-              <Text style={styles.scoreLabel}>Eligibility Score</Text>
+          <View style={styles.scoreRow} testID="eligibility-detail-scores">
+            <View style={styles.scoreCard} testID="eligibility-detail-score-card">
+              <Text style={styles.scoreLabel} testID="eligibility-detail-score-label">Eligibility Score</Text>
               <Text
                 style={[
                   styles.scoreValue,
                   { color: getScoreColor(assessment.eligibility_score) },
                 ]}
+                testID="eligibility-detail-score-value"
               >
                 {assessment.eligibility_score}%
               </Text>
             </View>
-            <View style={styles.scoreCard}>
-              <Text style={styles.scoreLabel}>Risk Level</Text>
+            <View style={styles.scoreCard} testID="eligibility-detail-risk-card">
+              <Text style={styles.scoreLabel} testID="eligibility-detail-risk-label">Risk Level</Text>
               <Text
                 style={[
                   styles.scoreValue,
                   { color: getRiskLevelColor(assessment.risk_level) },
                 ]}
+                testID="eligibility-detail-risk-value"
               >
                 {assessment.risk_level.toUpperCase()}
               </Text>
@@ -353,8 +356,9 @@ export default function SchemeDetailScreen() {
               assessment.status === 'eligible' && styles.statusEligible,
               assessment.status === 'not_eligible' && styles.statusNotEligible,
             ]}
+            testID="eligibility-detail-status-badge"
           >
-            <Text style={styles.statusText}>
+            <Text style={styles.statusText} testID="eligibility-detail-status-text">
               {assessment.status === 'eligible'
                 ? 'You are eligible for this scheme'
                 : 'You are not eligible for this scheme'}
@@ -362,13 +366,13 @@ export default function SchemeDetailScreen() {
           </View>
 
           {/* Rules Summary */}
-          <View style={styles.rulesSummary}>
-            <Text style={styles.rulesTitle}>Eligibility Criteria</Text>
-            <View style={styles.rulesCount}>
-              <Text style={styles.passedCount}>
+          <View style={styles.rulesSummary} testID="eligibility-detail-rules-summary">
+            <Text style={styles.rulesTitle} testID="eligibility-detail-rules-title">Eligibility Criteria</Text>
+            <View style={styles.rulesCount} testID="eligibility-detail-rules-count">
+              <Text style={styles.passedCount} testID="eligibility-detail-rules-passed">
                 {assessment.rules_passed} Passed
               </Text>
-              <Text style={styles.failedCount}>
+              <Text style={styles.failedCount} testID="eligibility-detail-rules-failed">
                 {assessment.rules_failed} Failed
               </Text>
             </View>
@@ -382,17 +386,26 @@ export default function SchemeDetailScreen() {
                 styles.ruleItem,
                 rule.passed ? styles.rulePassed : styles.ruleFailed,
               ]}
+              testID={`eligibility-detail-rule-${rule.rule_id}`}
             >
-              <View style={styles.ruleHeader}>
-                <Text style={styles.ruleIcon}>{rule.passed ? '✓' : '✗'}</Text>
-                <Text style={styles.ruleName}>{rule.rule_name}</Text>
+              <View style={styles.ruleHeader} testID={`eligibility-detail-rule-${rule.rule_id}-header`}>
+                <Text style={styles.ruleIcon} testID={`eligibility-detail-rule-${rule.rule_id}-icon`}>
+                  {rule.passed ? '✓' : '✗'}
+                </Text>
+                <Text style={styles.ruleName} testID={`eligibility-detail-rule-${rule.rule_id}-name`}>
+                  {rule.rule_name}
+                </Text>
                 {rule.is_mandatory && (
-                  <Text style={styles.mandatoryTag}>Required</Text>
+                  <Text style={styles.mandatoryTag} testID={`eligibility-detail-rule-${rule.rule_id}-mandatory`}>
+                    Required
+                  </Text>
                 )}
               </View>
-              <Text style={styles.ruleMessage}>{rule.message}</Text>
+              <Text style={styles.ruleMessage} testID={`eligibility-detail-rule-${rule.rule_id}-message`}>
+                {rule.message}
+              </Text>
               {rule.actual_value && (
-                <Text style={styles.ruleValues}>
+                <Text style={styles.ruleValues} testID={`eligibility-detail-rule-${rule.rule_id}-value`}>
                   Your value: {rule.actual_value}
                 </Text>
               )}
@@ -404,7 +417,7 @@ export default function SchemeDetailScreen() {
             <TouchableOpacity
               style={styles.applyButton}
               onPress={submitApplication}
-              testID="submit-application-button"
+              testID="eligibility-detail-submit-button"
             >
               <Text style={styles.applyButtonText}>Submit Application</Text>
             </TouchableOpacity>
@@ -412,9 +425,9 @@ export default function SchemeDetailScreen() {
 
           {/* Not Eligible Message */}
           {assessment.status === 'not_eligible' && (
-            <View style={styles.notEligibleMessage}>
-              <Text style={styles.notEligibleTitle}>What you can do:</Text>
-              <Text style={styles.notEligibleText}>
+            <View style={styles.notEligibleMessage} testID="eligibility-detail-not-eligible-message">
+              <Text style={styles.notEligibleTitle} testID="eligibility-detail-not-eligible-title">What you can do:</Text>
+              <Text style={styles.notEligibleText} testID="eligibility-detail-not-eligible-text">
                 - Complete your KYC verification{'\n'}
                 - Register your farm with accurate details{'\n'}
                 - Ensure your credit record is up to date{'\n'}

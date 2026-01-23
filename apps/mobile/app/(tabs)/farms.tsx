@@ -74,49 +74,50 @@ export default function FarmsScreen() {
       <TouchableOpacity
         style={styles.farmCard}
         onPress={() => router.push(`/farms/${item.id}`)}
+        testID={`farms-card-${item.id}`}
       >
-        <View style={styles.farmHeader}>
-          <View style={styles.farmIcon}>
+        <View style={styles.farmHeader} testID={`farms-card-${item.id}-header`}>
+          <View style={styles.farmIcon} testID={`farms-card-${item.id}-icon`}>
             <Text style={{ fontSize: 24 }}>🌿</Text>
           </View>
-          <View style={styles.farmInfo}>
+          <View style={styles.farmInfo} testID={`farms-card-${item.id}-info`}>
             <View style={styles.farmNameRow}>
-              <Text style={styles.farmName}>{item.name}</Text>
+              <Text style={styles.farmName} testID={`farms-card-${item.id}-name`}>{item.name}</Text>
               {status && (
-                <View style={[styles.statusBadge, { backgroundColor: status.color + '20' }]}>
-                  <Text style={[styles.statusText, { color: status.color }]}>
+                <View style={[styles.statusBadge, { backgroundColor: status.color + '20' }]} testID={`farms-card-${item.id}-status-badge`}>
+                  <Text style={[styles.statusText, { color: status.color }]} testID={`farms-card-${item.id}-status-text`}>
                     {status.label}
                   </Text>
                 </View>
               )}
             </View>
-            <Text style={styles.farmLocation}>
+            <Text style={styles.farmLocation} testID={`farms-card-${item.id}-location`}>
               📍{' '}
               {location}
             </Text>
           </View>
           <Text style={{ fontSize: 20, color: COLORS.gray[300] }}>›</Text>
         </View>
-        <View style={styles.farmDetails}>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailValue}>
+        <View style={styles.farmDetails} testID={`farms-card-${item.id}-details`}>
+          <View style={styles.detailItem} testID={`farms-card-${item.id}-acreage`}>
+            <Text style={styles.detailValue} testID={`farms-card-${item.id}-acreage-value`}>
               {item.totalAcreage?.toFixed(1) || '-'}
             </Text>
             <Text style={styles.detailLabel}>Acres</Text>
           </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailValue}>{crops.length || '-'}</Text>
+          <View style={styles.detailItem} testID={`farms-card-${item.id}-crops`}>
+            <Text style={styles.detailValue} testID={`farms-card-${item.id}-crops-count`}>{crops.length || '-'}</Text>
             <Text style={styles.detailLabel}>Crops</Text>
           </View>
-          <View style={styles.cropTags}>
+          <View style={styles.cropTags} testID={`farms-card-${item.id}-crop-tags`}>
             {crops.length > 0 ? (
               crops.map((crop, index) => (
-                <View key={index} style={styles.cropTag}>
+                <View key={index} style={styles.cropTag} testID={`farms-card-${item.id}-crop-tag-${index}`}>
                   <Text style={styles.cropTagText}>{crop}</Text>
                 </View>
               ))
             ) : (
-              <Text style={styles.noCropsText}>No crops yet</Text>
+              <Text style={styles.noCropsText} testID={`farms-card-${item.id}-no-crops`}>No crops yet</Text>
             )}
           </View>
         </View>
@@ -125,17 +126,18 @@ export default function FarmsScreen() {
   };
 
   const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <View style={styles.emptyIcon}>
+    <View style={styles.emptyState} testID="farms-empty-state">
+      <View style={styles.emptyIcon} testID="farms-empty-icon">
         <Text style={{ fontSize: 64 }}>🌿</Text>
       </View>
-      <Text style={styles.emptyTitle}>No Farms Yet</Text>
-      <Text style={styles.emptyText}>
+      <Text style={styles.emptyTitle} testID="farms-empty-title">No Farms Yet</Text>
+      <Text style={styles.emptyText} testID="farms-empty-text">
         Register your first farm to get started with AgriPro.
       </Text>
       <TouchableOpacity
         style={styles.emptyButton}
         onPress={() => router.push('/farms/add')}
+        testID="farms-empty-add-button"
       >
         <Text style={{ fontSize: 20, color: COLORS.white }}>+</Text>
         <Text style={styles.emptyButtonText}>Add Your First Farm</Text>
@@ -149,11 +151,11 @@ export default function FarmsScreen() {
     const totalAcreage = farms.reduce((sum, f) => sum + (f.totalAcreage || 0), 0);
 
     return (
-      <View style={styles.header}>
-        <Text style={styles.totalFarms}>
+      <View style={styles.header} testID="farms-header">
+        <Text style={styles.totalFarms} testID="farms-header-count">
           {farms.length} {farms.length === 1 ? 'Farm' : 'Farms'}
         </Text>
-        <Text style={styles.totalAcreage}>
+        <Text style={styles.totalAcreage} testID="farms-header-total-acreage">
           Total: {totalAcreage.toFixed(1)} acres
         </Text>
       </View>
@@ -162,20 +164,20 @@ export default function FarmsScreen() {
 
   if (isLoading && farms.length === 0) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading farms...</Text>
+      <View style={styles.loadingContainer} testID="farms-loading">
+        <ActivityIndicator size="large" color={COLORS.primary} testID="farms-loading-indicator" />
+        <Text style={styles.loadingText} testID="farms-loading-text">Loading farms...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="farms-screen">
       {error && (
-        <View style={styles.errorBanner}>
+        <View style={styles.errorBanner} testID="farms-error-banner">
           <Text style={{ fontSize: 16 }}>⚠️</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={onRefresh}>
+          <Text style={styles.errorText} testID="farms-error-text">{error}</Text>
+          <TouchableOpacity onPress={onRefresh} testID="farms-error-retry">
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -185,6 +187,7 @@ export default function FarmsScreen() {
         data={farms}
         renderItem={renderFarm}
         keyExtractor={(item) => item.id}
+        testID="farms-list"
         contentContainerStyle={[
           styles.list,
           farms.length === 0 && styles.listEmpty,
@@ -205,6 +208,7 @@ export default function FarmsScreen() {
         <TouchableOpacity
           style={styles.fab}
           onPress={() => router.push('/farms/add')}
+          testID="farms-add-fab"
         >
           <Text style={{ fontSize: 28, color: COLORS.white }}>+</Text>
         </TouchableOpacity>
