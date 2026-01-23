@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format build clean docker-up docker-down migrate
+.PHONY: help install dev test lint format build clean docker-up docker-down migrate services services-stop services-status
 
 # Default target
 help:
@@ -6,7 +6,13 @@ help:
 	@echo ""
 	@echo "Setup:"
 	@echo "  make install        Install all dependencies"
-	@echo "  make dev            Start development environment"
+	@echo "  make dev            Start development environment (legacy)"
+	@echo ""
+	@echo "Services:"
+	@echo "  make services       Start all backend microservices"
+	@echo "  make services-stop  Stop all backend microservices"
+	@echo "  make services-status Show service status"
+	@echo "  make infra          Start only infrastructure (PostgreSQL, Redis)"
 	@echo ""
 	@echo "Development:"
 	@echo "  make test           Run all tests"
@@ -21,6 +27,25 @@ help:
 	@echo "Database:"
 	@echo "  make migrate        Run database migrations"
 	@echo "  make migrate-new    Create new migration"
+
+# ===================
+# Services (New)
+# ===================
+services:
+	@./scripts/start-services.sh
+
+services-stop:
+	@./scripts/start-services.sh --stop
+
+services-status:
+	@./scripts/start-services.sh --status
+
+infra:
+	@./scripts/start-services.sh --infra-only
+
+services-logs:
+	@echo "Available logs: auth, farmer, gis"
+	@echo "Usage: ./scripts/start-services.sh --logs=<service>"
 
 # ===================
 # Setup
@@ -45,10 +70,13 @@ dev:
 	make -j2 dev-auth dev-farmer
 
 dev-auth:
-	cd services/auth && uvicorn app.main:app --reload --port 8000
+	cd services/auth && .venv/bin/uvicorn app.main:app --reload --port 9001
 
 dev-farmer:
-	cd services/farmer && uvicorn app.main:app --reload --port 8001
+	cd services/farmer && .venv/bin/uvicorn app.main:app --reload --port 9002
+
+dev-gis:
+	cd services/gis && .venv/bin/uvicorn app.main:app --reload --port 9003
 
 dev-mobile:
 	cd apps/mobile && npx expo start

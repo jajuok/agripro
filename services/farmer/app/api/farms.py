@@ -57,3 +57,13 @@ async def list_farmer_farms(
     """List all farms for a farmer."""
     service = FarmService(db)
     return await service.list_farmer_farms(farmer_id)
+
+
+@router.get("/user/{user_id}", response_model=list[FarmResponse])
+async def list_farms_by_user_id(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> list[FarmResponse]:
+    """List all farms for a user (via farmer lookup)."""
+    service = FarmService(db)
+    return await service.list_farms_by_user_id(user_id)

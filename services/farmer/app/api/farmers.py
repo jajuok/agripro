@@ -34,6 +34,19 @@ async def list_farmers(
     return await service.list_farmers(page=page, page_size=page_size, kyc_status=kyc_status)
 
 
+@router.get("/by-user/{user_id}", response_model=FarmerResponse)
+async def get_farmer_by_user_id(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> FarmerResponse:
+    """Get farmer by auth user ID."""
+    service = FarmerService(db)
+    farmer = await service.get_farmer_by_user_id(user_id)
+    if not farmer:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Farmer not found")
+    return farmer
+
+
 @router.get("/{farmer_id}", response_model=FarmerResponse)
 async def get_farmer(
     farmer_id: UUID,

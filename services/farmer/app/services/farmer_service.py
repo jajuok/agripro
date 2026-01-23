@@ -28,6 +28,12 @@ class FarmerService:
         farmer = result.scalar_one_or_none()
         return FarmerResponse.model_validate(farmer) if farmer else None
 
+    async def get_farmer_by_user_id(self, user_id: UUID) -> FarmerResponse | None:
+        """Get farmer by auth user ID."""
+        result = await self.db.execute(select(Farmer).where(Farmer.user_id == user_id))
+        farmer = result.scalar_one_or_none()
+        return FarmerResponse.model_validate(farmer) if farmer else None
+
     async def update_farmer(self, farmer_id: UUID, data: FarmerUpdate) -> FarmerResponse | None:
         """Update farmer profile."""
         result = await self.db.execute(select(Farmer).where(Farmer.id == farmer_id))

@@ -1,7 +1,9 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { useAuthStore } from '@/store/auth';
+
+// Lazy getter to avoid require cycle with auth store
+const getAuthStore = () => require('@/store/auth').useAuthStore;
 
 // Get the development server host dynamically
 // This extracts the IP from Expo's manifest (e.g., "192.168.1.64:8084" -> "192.168.1.64")
@@ -67,7 +69,7 @@ export const farmerClient = axios.create({
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = useAuthStore.getState().accessToken;
+    const token = getAuthStore().getState().accessToken;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -84,14 +86,14 @@ apiClient.interceptors.response.use(
 
     if (error.response?.status === 401 && originalRequest) {
       try {
-        await useAuthStore.getState().refreshTokens();
-        const token = useAuthStore.getState().accessToken;
+        await getAuthStore().getState().refreshTokens();
+        const token = getAuthStore().getState().accessToken;
         if (token && originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${token}`;
         }
         return apiClient(originalRequest);
       } catch {
-        useAuthStore.getState().logout();
+        getAuthStore().getState().logout();
       }
     }
 
@@ -102,7 +104,7 @@ apiClient.interceptors.response.use(
 // Farmer client interceptors
 farmerClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = useAuthStore.getState().accessToken;
+    const token = getAuthStore().getState().accessToken;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -118,14 +120,14 @@ farmerClient.interceptors.response.use(
 
     if (error.response?.status === 401 && originalRequest) {
       try {
-        await useAuthStore.getState().refreshTokens();
-        const token = useAuthStore.getState().accessToken;
+        await getAuthStore().getState().refreshTokens();
+        const token = getAuthStore().getState().accessToken;
         if (token && originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${token}`;
         }
         return farmerClient(originalRequest);
       } catch {
-        useAuthStore.getState().logout();
+        getAuthStore().getState().logout();
       }
     }
 
@@ -200,8 +202,9 @@ export const farmerApi = {
 
 // Farm API
 export const farmApi = {
-  list: async (farmerId: string) => {
-    const response = await farmerClient.get(`/farms/farmer/${farmerId}`);
+  list: async (userId: string) => {
+    // Use user_id endpoint which internally looks up farmer_id
+    const response = await farmerClient.get(`/farms/user/${userId}`);
     return response.data;
   },
 

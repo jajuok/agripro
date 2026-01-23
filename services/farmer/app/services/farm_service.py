@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.farmer import FarmProfile
+from app.models.farmer import Farmer, FarmProfile
 from app.schemas.farm import FarmCreate, FarmResponse, FarmUpdate
 
 
@@ -44,6 +44,23 @@ class FarmService:
         """List all farms for a farmer."""
         result = await self.db.execute(
             select(FarmProfile).where(FarmProfile.farmer_id == farmer_id)
+        )
+        farms = result.scalars().all()
+        return [FarmResponse.model_validate(f) for f in farms]
+
+    async def list_farms_by_user_id(self, user_id: UUID) -> list[FarmResponse]:
+        """List all farms for a user (via farmer lookup)."""
+        # First find the farmer by user_id
+        farmer_result = await self.db.execute(
+            select(Farmer).where(Farmer.user_id == user_id)
+        )
+        farmer = farmer_result.scalar_one_or_none()
+        if not farmer:
+            return []
+
+        # Then get their farms
+        result = await self.db.execute(
+            select(FarmProfile).where(FarmProfile.farmer_id == farmer.id)
         )
         farms = result.scalars().all()
         return [FarmResponse.model_validate(f) for f in farms]
