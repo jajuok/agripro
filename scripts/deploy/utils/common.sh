@@ -69,9 +69,9 @@ generate_password() {
 check_ssh_connection() {
     local server_ip=$1
     local ssh_key=$2
-    local user=${3:-root}
+    local user=${3:-ubuntu}
 
-    log_step "Testing SSH connection to ${server_ip}"
+    log_step "Testing SSH connection to ${server_ip} as ${user}"
 
     if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i "$ssh_key" "${user}@${server_ip}" "echo 'Connection successful'" >/dev/null 2>&1; then
         log_success "SSH connection successful"
@@ -87,9 +87,19 @@ remote_exec() {
     local server_ip=$1
     local ssh_key=$2
     local command=$3
-    local user=${4:-root}
+    local user=${4:-ubuntu}
 
     ssh -o StrictHostKeyChecking=no -i "$ssh_key" "${user}@${server_ip}" "$command"
+}
+
+# Remote command execution with sudo
+remote_exec_sudo() {
+    local server_ip=$1
+    local ssh_key=$2
+    local command=$3
+    local user=${4:-ubuntu}
+
+    ssh -o StrictHostKeyChecking=no -i "$ssh_key" "${user}@${server_ip}" "sudo bash -c '$command'"
 }
 
 # Copy file to remote server
@@ -98,7 +108,7 @@ remote_copy() {
     local ssh_key=$2
     local local_file=$3
     local remote_path=$4
-    local user=${5:-root}
+    local user=${5:-ubuntu}
 
     scp -o StrictHostKeyChecking=no -i "$ssh_key" "$local_file" "${user}@${server_ip}:${remote_path}"
 }
@@ -241,7 +251,7 @@ confirm_action() {
 # Export all functions
 export -f log_info log_success log_warning log_error log_step log_section
 export -f show_progress command_exists generate_password
-export -f check_ssh_connection remote_exec remote_copy remote_mkdir
+export -f check_ssh_connection remote_exec remote_exec_sudo remote_copy remote_mkdir
 export -f wait_for_service container_exists
 export -f save_secret load_secrets
 export -f validate_ip validate_domain

@@ -21,7 +21,7 @@ log_section "Phase 2: Coolify Installation"
 
 log_step "Installing Coolify"
 
-remote_exec "$SERVER_IP" "$SSH_KEY" "
+remote_exec_sudo "$SERVER_IP" "$SSH_KEY" "
     set -e
 
     # Download and run Coolify installer

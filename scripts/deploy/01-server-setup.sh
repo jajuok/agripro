@@ -21,7 +21,7 @@ log_section "Phase 1: Server Setup"
 
 log_step "Updating system packages"
 
-remote_exec "$SERVER_IP" "$SSH_KEY" "
+remote_exec_sudo "$SERVER_IP" "$SSH_KEY" "
     set -e
     export DEBIAN_FRONTEND=noninteractive
 
@@ -51,7 +51,7 @@ log_success "System packages updated"
 if [ "$UFW_ENABLED" = "true" ]; then
     log_step "Configuring firewall (UFW)"
 
-    remote_exec "$SERVER_IP" "$SSH_KEY" "
+    remote_exec_sudo "$SERVER_IP" "$SSH_KEY" "
         set -e
 
         # Reset UFW to default
@@ -88,7 +88,7 @@ fi
 if [ "$FAIL2BAN_ENABLED" = "true" ]; then
     log_step "Configuring Fail2ban"
 
-    remote_exec "$SERVER_IP" "$SSH_KEY" "
+    remote_exec_sudo "$SERVER_IP" "$SSH_KEY" "
         set -e
 
         # Configure Fail2ban for SSH
@@ -119,7 +119,7 @@ fi
 
 log_step "Installing Docker"
 
-remote_exec "$SERVER_IP" "$SSH_KEY" "
+remote_exec_sudo "$SERVER_IP" "$SSH_KEY" "
     set -e
 
     # Remove old Docker versions
@@ -136,6 +136,9 @@ remote_exec "$SERVER_IP" "$SSH_KEY" "
     # Install Docker
     apt-get update -qq
     apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    # Add ubuntu user to docker group
+    usermod -aG docker ubuntu
 
     # Start Docker
     systemctl enable docker
@@ -154,7 +157,7 @@ log_success "Docker installed"
 
 log_step "Optimizing system settings"
 
-remote_exec "$SERVER_IP" "$SSH_KEY" "
+remote_exec_sudo "$SERVER_IP" "$SSH_KEY" "
     set -e
 
     # Increase file descriptors
@@ -188,7 +191,7 @@ log_success "System optimized"
 
 log_step "Setting timezone to ${SERVER_TIMEZONE}"
 
-remote_exec "$SERVER_IP" "$SSH_KEY" "
+remote_exec_sudo "$SERVER_IP" "$SSH_KEY" "
     timedatectl set-timezone ${SERVER_TIMEZONE}
 "
 
@@ -201,7 +204,7 @@ log_success "Timezone configured"
 if [ "$UNATTENDED_UPGRADES" = "true" ]; then
     log_step "Configuring automatic security updates"
 
-    remote_exec "$SERVER_IP" "$SSH_KEY" "
+    remote_exec_sudo "$SERVER_IP" "$SSH_KEY" "
         set -e
 
         # Configure unattended upgrades
@@ -237,11 +240,12 @@ fi
 
 log_step "Creating deployment directories"
 
-remote_exec "$SERVER_IP" "$SSH_KEY" "
+remote_exec_sudo "$SERVER_IP" "$SSH_KEY" "
     mkdir -p /opt/agrischeme
     mkdir -p /opt/agrischeme/config
     mkdir -p /opt/agrischeme/backups
     mkdir -p /opt/agrischeme/logs
+    chown -R ubuntu:ubuntu /opt/agrischeme
 "
 
 log_success "Directories created"
