@@ -1,0 +1,11 @@
+# Secrets
+.secrets/
+*.secrets
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+.DS_Store

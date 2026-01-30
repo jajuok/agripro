@@ -4,6 +4,51 @@
 
 This document outlines the deployment strategy for AgriScheme Pro using **Coolify**, an open-source, self-hosted PaaS (Platform-as-a-Service) alternative to Heroku/Vercel/Netlify.
 
+## 🚀 Quick Start - Automated Deployment
+
+Deploy the entire AgriScheme Pro stack with a single command:
+
+```bash
+./scripts/deploy/deploy.sh <SERVER_IP> <DOMAIN> [SSH_KEY_PATH]
+```
+
+**Example:**
+```bash
+./scripts/deploy/deploy.sh 51.178.42.123 agrischeme.com ~/.ssh/id_rsa
+```
+
+### What Gets Automated
+
+✅ **Fully Automated:**
+- Server setup and security hardening
+- Coolify installation and configuration
+- PostgreSQL database deployment (10 containers)
+- Redis and Kafka cluster deployment
+- Docker network configuration
+- Secrets generation and management
+- Health checks and verification
+
+⚠️ **Requires Manual Steps:**
+- DNS record configuration (2 minutes)
+- Coolify initial setup wizard (3 minutes)
+- GitHub repository connection (2 minutes)
+- Service deployment via Coolify UI (15 minutes)
+
+### Time to Production
+
+- **Automated steps:** ~30 minutes
+- **Manual steps:** ~20 minutes
+- **Total:** ~50 minutes to full production deployment
+
+### Prerequisites
+
+1. Fresh Ubuntu 22.04 LTS VPS from OVHcloud
+2. Root SSH access
+3. Domain name with DNS management access
+4. SSH key for authentication
+
+For detailed automation documentation, see: [`scripts/deploy/README.md`](../../scripts/deploy/README.md)
+
 ---
 
 ## Project Summary
