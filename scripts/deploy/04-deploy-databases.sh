@@ -24,19 +24,13 @@ log_info "Deploying ${#DATABASES[@]} PostgreSQL databases"
 
 log_step "Cleaning up existing database containers (if any)"
 
-remote_exec_sudo "$SERVER_IP" "$SSH_KEY" "
-    # Stop and remove ALL existing database containers
-    for container in \$(docker ps -a --filter 'name=agrischeme-.*-db' --format '{{.Names}}'); do
-        echo \"Removing \$container\"
-        docker rm -f \$container 2>/dev/null || true
-    done
+# Stop and remove existing containers using simpler commands
+remote_exec "$SERVER_IP" "$SSH_KEY" "
+    docker ps -a --filter 'name=agrischeme-' --format '{{.Names}}' | grep '\-db$' | xargs -r docker rm -f 2>/dev/null || true
+" || true
 
-    # Remove old compose file
-    rm -f /opt/agrischeme/docker-compose-databases.yml
-
-    # Remove any dangling volumes
-    docker volume prune -f 2>/dev/null || true
-"
+# Remove old compose file
+remote_exec "$SERVER_IP" "$SSH_KEY" "rm -f /opt/agrischeme/docker-compose-databases.yml" || true
 
 log_success "Cleanup completed"
 
