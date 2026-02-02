@@ -74,6 +74,7 @@ create_application() {
     local db_name=$3
 
     log_step "Creating ${service_name}-service"
+    log_info "API endpoint: ${COOLIFY_URL}/api/v1/applications/public"
 
     # Get database URL
     local db_container="agrischeme-${service_name}-db"
@@ -99,13 +100,16 @@ create_application() {
 EOF
 )
 
-    response=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
+    log_info "Sending API request..."
+    response=$(curl -v -s -w "\nHTTP_CODE:%{http_code}" \
+        --connect-timeout 10 \
+        --max-time 30 \
         -X POST \
         "${COOLIFY_URL}/api/v1/applications/public" \
         -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
-        -d "$payload")
+        -d "$payload" 2>&1)
 
     http_code=$(echo "$response" | grep "HTTP_CODE:" | cut -d: -f2)
     body=$(echo "$response" | sed '/HTTP_CODE:/d')
