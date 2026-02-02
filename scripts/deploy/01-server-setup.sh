@@ -258,7 +258,7 @@ log_success "Directories created"
 
 log_step "Verifying server setup"
 
-remote_exec "$SERVER_IP" "$SSH_KEY" "
+remote_exec_sudo "$SERVER_IP" "$SSH_KEY" "
     set -e
 
     # Check Docker
