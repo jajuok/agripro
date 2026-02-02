@@ -18,7 +18,7 @@ SERVER_IP="${1}"
 COOLIFY_API_TOKEN="${2}"
 SERVER_UUID="${3:-0}"  # Default server ID
 
-COOLIFY_URL="http://${SERVER_IP}"
+COOLIFY_URL="http://${SERVER_IP}:8000"
 GITHUB_REPO="jajuok/agripro"
 GITHUB_BRANCH="main"
 
@@ -100,8 +100,8 @@ create_application() {
 EOF
 )
 
-    log_info "Sending API request..."
-    response=$(curl -v -s -w "\nHTTP_CODE:%{http_code}" \
+    log_info "Sending API request to ${COOLIFY_URL}/api/v1/applications/public..."
+    response=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
         --connect-timeout 10 \
         --max-time 30 \
         -X POST \
@@ -109,7 +109,7 @@ EOF
         -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
-        -d "$payload" 2>&1)
+        -d "$payload")
 
     http_code=$(echo "$response" | grep "HTTP_CODE:" | cut -d: -f2)
     body=$(echo "$response" | sed '/HTTP_CODE:/d')
