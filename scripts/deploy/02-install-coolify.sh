@@ -43,21 +43,25 @@ log_success "Coolify installed"
 
 log_step "Waiting for Coolify to be ready"
 
-max_attempts=30
+max_attempts=20
 attempt=0
 
 while [ $attempt -lt $max_attempts ]; do
-    if remote_exec "$SERVER_IP" "$SSH_KEY" "curl -s http://localhost:${COOLIFY_PORT}/api/health 2>/dev/null | grep -q 'ok' || curl -s http://localhost:${COOLIFY_PORT} 2>/dev/null | grep -q 'Coolify'"; then
+    # Add retry logic for SSH connection issues
+    if remote_exec "$SERVER_IP" "$SSH_KEY" "curl -s http://localhost:${COOLIFY_PORT}/api/health 2>/dev/null | grep -q 'ok' || curl -s http://localhost:${COOLIFY_PORT} 2>/dev/null | grep -q 'Coolify'" 2>/dev/null; then
         log_success "Coolify is ready"
         break
     fi
 
     attempt=$((attempt + 1))
     echo -n "."
-    sleep 10
+
+    # Longer sleep to avoid overwhelming SSH
+    sleep 15
 
     if [ $attempt -eq $max_attempts ]; then
         log_error "Coolify failed to start within expected time"
+        log_info "You can check Coolify status manually at: http://${SERVER_IP}:8000"
         exit 1
     fi
 done
