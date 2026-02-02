@@ -298,7 +298,9 @@ deploy_application() {
 
 log_section "Deploying Services"
 
-declare -A app_uuids
+# Use regular arrays (compatible with bash 3.x)
+app_uuids_names=()
+app_uuids_values=()
 success_count=0
 failed_count=0
 failed_services=()
@@ -313,7 +315,8 @@ for service_config in "${SERVICES[@]}"; do
     app_uuid=$(create_application "$service_name" "$base_dir" "$db_name")
 
     if [ -n "$app_uuid" ] && [ "$app_uuid" != "null" ]; then
-        app_uuids[$service_name]=$app_uuid
+        app_uuids_names+=("$service_name")
+        app_uuids_values+=("$app_uuid")
 
         # Set environment variables
         if set_environment_variables "$app_uuid" "$service_name" "$db_name"; then
@@ -358,8 +361,8 @@ if [ ${#failed_services[@]} -gt 0 ]; then
 fi
 
 echo -e "${CYAN}Deployed services:${NC}"
-for svc in "${!app_uuids[@]}"; do
-    echo "  ✓ ${svc}-service (UUID: ${app_uuids[$svc]})"
+for i in "${!app_uuids_names[@]}"; do
+    echo "  ✓ ${app_uuids_names[$i]}-service (UUID: ${app_uuids_values[$i]})"
 done
 
 echo ""
@@ -378,8 +381,8 @@ fi
 
 # Save app UUIDs for future reference
 echo "# Application UUIDs" > "${SCRIPT_DIR}/.secrets/app_uuids.txt"
-for svc in "${!app_uuids[@]}"; do
-    echo "${svc}=${app_uuids[$svc]}" >> "${SCRIPT_DIR}/.secrets/app_uuids.txt"
+for i in "${!app_uuids_names[@]}"; do
+    echo "${app_uuids_names[$i]}=${app_uuids_values[$i]}" >> "${SCRIPT_DIR}/.secrets/app_uuids.txt"
 done
 
 log_info "App UUIDs saved to .secrets/app_uuids.txt"
