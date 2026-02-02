@@ -22,6 +22,18 @@ log_info "Deploying ${#DATABASES[@]} PostgreSQL databases"
 # CREATE DOCKER COMPOSE FOR ALL DATABASES
 # =============================================================================
 
+log_step "Cleaning up existing database containers (if any)"
+
+remote_exec "$SERVER_IP" "$SSH_KEY" "
+    # Stop and remove existing database containers
+    docker ps -a --filter 'name=agrischeme-*-db' -q | xargs -r docker rm -f 2>/dev/null || true
+
+    # Remove old compose file
+    rm -f /opt/agrischeme/docker-compose-databases.yml
+" || true
+
+log_info "Cleanup completed"
+
 log_step "Creating database containers"
 
 # Generate docker-compose content
