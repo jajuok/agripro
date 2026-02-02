@@ -25,7 +25,7 @@ fi
 
 # Command line arguments
 SERVER_IP="${1:-}"
-DOMAIN="${2:-${DOMAIN}}"
+DOMAIN="${2:-}"
 SSH_KEY="${3:-$HOME/.ssh/id_rsa}"
 
 # =============================================================================
@@ -37,7 +37,7 @@ validate_inputs() {
 
     if [ -z "$SERVER_IP" ]; then
         log_error "Server IP is required"
-        echo "Usage: $0 <SERVER_IP> <DOMAIN> [SSH_KEY_PATH]"
+        echo "Usage: $0 <SERVER_IP> [DOMAIN] [SSH_KEY_PATH]"
         exit 1
     fi
 
@@ -46,13 +46,7 @@ validate_inputs() {
         exit 1
     fi
 
-    if [ -z "$DOMAIN" ]; then
-        log_error "Domain is required"
-        echo "Usage: $0 <SERVER_IP> <DOMAIN> [SSH_KEY_PATH]"
-        exit 1
-    fi
-
-    if ! validate_domain "$DOMAIN"; then
+    if [ -n "$DOMAIN" ] && ! validate_domain "$DOMAIN"; then
         log_error "Invalid domain: $DOMAIN"
         exit 1
     fi
@@ -60,6 +54,15 @@ validate_inputs() {
     if [ ! -f "$SSH_KEY" ]; then
         log_error "SSH key not found: $SSH_KEY"
         exit 1
+    fi
+
+    # Set deployment mode
+    if [ -z "$DOMAIN" ]; then
+        export DEPLOYMENT_MODE="ip-only"
+        log_info "Deployment mode: IP-only (no domain)"
+    else
+        export DEPLOYMENT_MODE="domain"
+        log_info "Deployment mode: Domain-based"
     fi
 
     log_success "All inputs validated"
@@ -186,7 +189,11 @@ EOF
     echo -e "${NC}"
 
     log_info "Server IP: $SERVER_IP"
-    log_info "Domain: $DOMAIN"
+    if [ -n "$DOMAIN" ]; then
+        log_info "Domain: $DOMAIN"
+    else
+        log_info "Domain: Not configured (IP-only deployment)"
+    fi
     log_info "SSH Key: $SSH_KEY"
     echo ""
 
@@ -212,8 +219,12 @@ EOF
     # Phase 2: Install Coolify
     run_phase 2 "02-install-coolify.sh" "Coolify Installation" || exit 1
 
-    # Phase 3: DNS Configuration
-    run_phase 3 "03-configure-dns.sh" "DNS Configuration Helper" || exit 1
+    # Phase 3: DNS Configuration (skip if IP-only mode)
+    if [ "$DEPLOYMENT_MODE" = "domain" ]; then
+        run_phase 3 "03-configure-dns.sh" "DNS Configuration Helper" || exit 1
+    else
+        log_info "Skipping Phase 3: DNS Configuration (IP-only deployment)"
+    fi
 
     # Phase 4: Deploy Databases
     run_phase 4 "04-deploy-databases.sh" "Database Deployment" || exit 1
@@ -247,11 +258,19 @@ EOF
     echo ""
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}Next Steps:${NC}"
-    echo "  1. Configure DNS A records (see instructions above)"
-    echo "  2. Access Coolify UI: http://${SERVER_IP}:8000"
-    echo "  3. Complete Coolify initial setup wizard"
-    echo "  4. Connect GitHub repository in Coolify"
-    echo "  5. Update mobile app API endpoints"
+    if [ "$DEPLOYMENT_MODE" = "domain" ]; then
+        echo "  1. Configure DNS A records (see instructions above)"
+        echo "  2. Access Coolify UI: http://${SERVER_IP}:8000"
+        echo "  3. Complete Coolify initial setup wizard"
+        echo "  4. Connect GitHub repository in Coolify"
+        echo "  5. Update mobile app API endpoints"
+    else
+        echo "  1. Access Coolify UI: http://${SERVER_IP}:8000"
+        echo "  2. Complete Coolify initial setup wizard"
+        echo "  3. Connect GitHub repository in Coolify"
+        echo "  4. Services will be accessible via IP:PORT"
+        echo "  5. Consider configuring a domain later for SSL/HTTPS"
+    fi
     echo ""
     echo -e "${CYAN}Credentials:${NC}"
     echo "  PostgreSQL: agrischeme_admin / (see .secrets/deployment.secrets)"

@@ -34,13 +34,23 @@ echo ""
 echo -e "${GREEN}Services to deploy:${NC}"
 echo ""
 
-for service in "${SERVICES_TO_DEPLOY[@]}"; do
-    echo "  • ${service}-service"
-    echo "    Base Directory: services/${service}"
-    echo "    Port: 8000"
-    echo "    Domain: ${service}.${API_SUBDOMAIN}.${DOMAIN}"
-    echo ""
-done
+if [ -n "$DOMAIN" ]; then
+    for service in "${SERVICES_TO_DEPLOY[@]}"; do
+        echo "  • ${service}-service"
+        echo "    Base Directory: services/${service}"
+        echo "    Port: 8000"
+        echo "    Domain: ${service}.${API_SUBDOMAIN}.${DOMAIN}"
+        echo ""
+    done
+else
+    for service in "${SERVICES_TO_DEPLOY[@]}"; do
+        echo "  • ${service}-service"
+        echo "    Base Directory: services/${service}"
+        echo "    Port: 8000"
+        echo "    Access: Will be assigned port by Coolify"
+        echo ""
+    done
+fi
 
 echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
