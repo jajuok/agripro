@@ -74,7 +74,7 @@ create_application() {
     local db_name=$3
 
     log_step "Creating ${service_name}-service"
-    log_info "API endpoint: ${COOLIFY_URL}/api/applications/public"
+    log_info "API endpoint: ${COOLIFY_URL}/api/v1/applications/public"
 
     # Get database URL
     local db_container="agrischeme-${service_name}-db"
@@ -100,13 +100,13 @@ create_application() {
 EOF
 )
 
-    log_info "Sending API request to ${COOLIFY_URL}/api/applications/public..."
+    log_info "Sending API request to ${COOLIFY_URL}/api/v1/applications/public..."
     response=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
         --connect-timeout 10 \
         --max-time 30 \
         -X POST \
-        "${COOLIFY_URL}/api/applications/public" \
-        -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
+        "${COOLIFY_URL}/api/v1/applications/public" \
+        -H "Authorization: ${COOLIFY_API_TOKEN}" \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
         -d "$payload")
@@ -256,8 +256,8 @@ set_environment_variables() {
     # Set environment variables via bulk API
     response=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
         -X PATCH \
-        "${COOLIFY_URL}/api/applications/${app_uuid}/envs/bulk" \
-        -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
+        "${COOLIFY_URL}/api/v1/applications/${app_uuid}/envs/bulk" \
+        -H "Authorization: ${COOLIFY_API_TOKEN}" \
         -H "Content-Type: application/json" \
         -d "{\"data\": ${env_vars}}")
 
@@ -280,8 +280,8 @@ deploy_application() {
 
     response=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
         -X POST \
-        "${COOLIFY_URL}/api/deploy" \
-        -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
+        "${COOLIFY_URL}/api/v1/deploy" \
+        -H "Authorization: ${COOLIFY_API_TOKEN}" \
         -H "Content-Type: application/json" \
         -d "{\"uuid\": \"${app_uuid}\"}")
 
