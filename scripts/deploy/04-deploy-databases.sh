@@ -24,20 +24,17 @@ log_info "Deploying ${#DATABASES[@]} PostgreSQL databases"
 
 log_step "Creating database containers"
 
-# Create docker-compose file on server
-remote_exec "$SERVER_IP" "$SSH_KEY" "cat > /opt/agrischeme/docker-compose-databases.yml << 'COMPOSE_EOF'
-version: '3.8'
-
-networks:
+# Generate docker-compose content
+compose_content="networks:
   agrischeme-network:
     external: false
 
 services:
-$(for db_config in "${DATABASES[@]}"; do
-    IFS=':' read -r service_name db_name <<< "$db_config"
-    port=$((5440 + ${#DATABASES[@]}))
+"
 
-    cat << SERVICE_EOF
+for db_config in "${DATABASES[@]}"; do
+    IFS=':' read -r service_name db_name <<< "$db_config"
+    compose_content+="
   agrischeme-${service_name}-db:
     image: postgres:${POSTGRES_VERSION}
     container_name: agrischeme-${service_name}-db
@@ -51,24 +48,25 @@ $(for db_config in "${DATABASES[@]}"; do
       - agrischeme-network
     restart: unless-stopped
     healthcheck:
-      test: [\"CMD-SHELL\", \"pg_isready -U ${POSTGRES_USER} -d ${db_name}\"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${db_name}']
       interval: 10s
       timeout: 5s
       retries: 5
-    labels:
-      - \"coolify.managed=true\"
-      - \"coolify.project=agrischeme-infra\"
-
-SERVICE_EOF
-done)
-
-volumes:
-$(for db_config in "${DATABASES[@]}"; do
-    IFS=':' read -r service_name db_name <<< "$db_config"
-    echo "  ${service_name}-db-data:"
-done)
-COMPOSE_EOF
 "
+done
+
+compose_content+="
+volumes:
+"
+
+for db_config in "${DATABASES[@]}"; do
+    IFS=':' read -r service_name db_name <<< "$db_config"
+    compose_content+="  ${service_name}-db-data:
+"
+done
+
+# Write docker-compose file to server
+remote_exec "$SERVER_IP" "$SSH_KEY" "cat > /opt/agrischeme/docker-compose-databases.yml" <<< "$compose_content"
 
 # Deploy databases
 log_step "Starting database containers"
