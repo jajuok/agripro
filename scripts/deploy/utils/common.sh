@@ -99,7 +99,8 @@ remote_exec_sudo() {
     local command=$3
     local user=${4:-ubuntu}
 
-    ssh -o StrictHostKeyChecking=no -i "$ssh_key" "${user}@${server_ip}" "sudo bash -c '$command'"
+    # Execute command with sudo, passing the full command as a single string
+    ssh -o StrictHostKeyChecking=no -i "$ssh_key" "${user}@${server_ip}" "sudo bash -c \"$command\""
 }
 
 # Copy file to remote server
