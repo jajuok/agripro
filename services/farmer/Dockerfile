@@ -25,14 +25,16 @@ COPY migrations ./migrations
 COPY alembic.ini ./alembic.ini
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 
-# Make entrypoint executable
-RUN chmod +x ./docker-entrypoint.sh
+# Create non-root user first
+RUN useradd -m -u 1000 appuser
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+# Make entrypoint executable and set ownership
+RUN chmod +x ./docker-entrypoint.sh && \
+    chown -R appuser:appuser /app
+
 USER appuser
 
 EXPOSE 8000
 
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
