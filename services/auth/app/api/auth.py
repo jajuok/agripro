@@ -45,24 +45,37 @@ async def register(
     db: AsyncSession = Depends(get_db),
 ) -> LoginResponse:
     """Register a new user account."""
+    import logging
+    logger = logging.getLogger(__name__)
+
     service = AuthService(db)
     audit = AuditService(db)
 
     try:
         result = await service.register(request_data)
 
-        await audit.log(
-            action=AuditAction.REGISTER,
-            resource_type=ResourceType.USER,
-            resource_id=result.user_id,
-            details={"email": request_data.email},
-            ip_address=get_client_ip(request),
-            user_agent=request.headers.get("User-Agent"),
-        )
+        try:
+            await audit.log(
+                action=AuditAction.REGISTER,
+                resource_type=ResourceType.USER,
+                resource_id=result.user_id,
+                details={"email": request_data.email},
+                ip_address=get_client_ip(request),
+                user_agent=request.headers.get("User-Agent"),
+            )
+        except Exception as audit_error:
+            # Log audit error but don't fail registration
+            logger.warning(f"Audit logging failed: {audit_error}")
 
         return result
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"Registration error: {type(e).__name__}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {type(e).__name__}"
+        )
 
 
 @router.post("/login", response_model=LoginResponse | TwoFactorRequiredResponse)
