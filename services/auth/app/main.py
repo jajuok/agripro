@@ -11,14 +11,33 @@ from app.core.config import settings
 from app.core.logging import configure_logging
 from app.middleware.tenant import TenantMiddleware
 
+# Import all models to ensure they're registered with Base.metadata
+import app.models.user  # noqa: F401
+import app.models.audit  # noqa: F401
+import app.models.login_attempt  # noqa: F401
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler for startup and shutdown events."""
     configure_logging()
-    # Initialize database connections, caches, etc.
+
+    # Initialize database schema
+    from app.core.database import engine, Base
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        logger.info("Creating database tables if they don't exist...")
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables ready")
+    except Exception as e:
+        logger.error(f"Error initializing database: {e}")
+
     yield
     # Cleanup resources
+    await engine.dispose()
 
 
 def create_app() -> FastAPI:
