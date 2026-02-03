@@ -1,4 +1,29 @@
 services:
+  # API Gateway
+  traefik:
+    image: traefik:v2.10
+    container_name: agrischeme-traefik
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=agrischeme-network"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infrastructure/docker/traefik/acme.json:/acme.json
+    networks:
+      - agrischeme-network
+
   # Databases
   postgres:
     image: postgres:16-alpine
@@ -6,12 +31,14 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_MULTIPLE_DATABASES: agrischeme_auth,agrischeme_farmer,agrischeme_farm,agrischeme_financial
+      POSTGRES_MULTIPLE_DATABASES: agrischeme_auth,agrischeme_farmer,agrischeme_farm,agrischeme_financial,agrischeme_gis,agrischeme_market,agrischeme_ai,agrischeme_iot,agrischeme_livestock,agrischeme_task,agrischeme_inventory,agrischeme_notification,agrischeme_traceability,agrischeme_compliance,agrischeme_integration
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
     ports:
       - "5433:5432"
+    networks:
+      - agrischeme-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -25,6 +52,8 @@ services:
       - "6380:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - agrischeme-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -46,6 +75,8 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - agrischeme-network
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -53,6 +84,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - agrischeme-network
 
   # Services
   auth-service:
@@ -74,6 +107,21 @@ services:
       - "9000:9000"
     volumes:
       - ./services/auth/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=PathPrefix(`/api/v1/auth`)"
+      - "traefik.http.routers.auth.entrypoints=web"
+      - "traefik.http.services.auth.loadbalancer.server.port=9000"
+      - "traefik.http.routers.auth.middlewares=strip-prefix-auth"
+      - "traefik.http.middlewares.strip-prefix-auth.stripprefix.prefixes=/api/v1/auth"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:9000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     command: uvicorn app.main:app --host 0.0.0.0 --port 9000 --reload
 
   farmer-service:
@@ -86,6 +134,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      auth-service:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/agrischeme_farmer
       REDIS_URL: redis://redis:6379/1
@@ -95,7 +145,442 @@ services:
       - "9001:9001"
     volumes:
       - ./services/farmer/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.farmer.rule=PathPrefix(`/api/v1/farmers`) || PathPrefix(`/api/v1/farms`) || PathPrefix(`/api/v1/kyc`) || PathPrefix(`/api/v1/crop-planning`)"
+      - "traefik.http.routers.farmer.entrypoints=web"
+      - "traefik.http.services.farmer.loadbalancer.server.port=9001"
+      - "traefik.http.routers.farmer.middlewares=strip-prefix-farmer"
+      - "traefik.http.middlewares.strip-prefix-farmer.stripprefix.prefixes=/api/v1"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:9001/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     command: uvicorn app.main:app --host 0.0.0.0 --port 9001 --reload
+
+  gis-service:
+    build:
+      context: ./services/gis
+      dockerfile: Dockerfile
+    container_name: agrischeme-gis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/agrischeme_gis
+      REDIS_URL: redis://redis:6379/2
+      DEBUG: "true"
+    ports:
+      - "9003:8000"
+    volumes:
+      - ./services/gis/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gis.rule=PathPrefix(`/api/v1/gis`)"
+      - "traefik.http.routers.gis.entrypoints=web"
+      - "traefik.http.services.gis.loadbalancer.server.port=8000"
+      - "traefik.http.routers.gis.middlewares=strip-prefix-gis"
+      - "traefik.http.middlewares.strip-prefix-gis.stripprefix.prefixes=/api/v1"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  financial-service:
+    build:
+      context: ./services/financial
+      dockerfile: Dockerfile
+    container_name: agrischeme-financial
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/agrischeme_financial
+      REDIS_URL: redis://redis:6379/3
+      DEBUG: "true"
+    ports:
+      - "9004:8000"
+    volumes:
+      - ./services/financial/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.financial.rule=PathPrefix(`/api/v1/financial`)"
+      - "traefik.http.routers.financial.entrypoints=web"
+      - "traefik.http.services.financial.loadbalancer.server.port=8000"
+      - "traefik.http.routers.financial.middlewares=strip-prefix-financial"
+      - "traefik.http.middlewares.strip-prefix-financial.stripprefix.prefixes=/api/v1"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  market-service:
+    build:
+      context: ./services/market
+      dockerfile: Dockerfile
+    container_name: agrischeme-market
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/agrischeme_market
+      REDIS_URL: redis://redis:6379/4
+      DEBUG: "true"
+    ports:
+      - "9005:8000"
+    volumes:
+      - ./services/market/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.market.rule=PathPrefix(`/api/v1/market`)"
+      - "traefik.http.routers.market.entrypoints=web"
+      - "traefik.http.services.market.loadbalancer.server.port=8000"
+      - "traefik.http.routers.market.middlewares=strip-prefix-market"
+      - "traefik.http.middlewares.strip-prefix-market.stripprefix.prefixes=/api/v1"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  ai-service:
+    build:
+      context: ./services/ai
+      dockerfile: Dockerfile
+    container_name: agrischeme-ai
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/agrischeme_ai
+      REDIS_URL: redis://redis:6379/5
+      DEBUG: "true"
+    ports:
+      - "9006:8000"
+    volumes:
+      - ./services/ai/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ai.rule=PathPrefix(`/api/v1/ai`)"
+      - "traefik.http.routers.ai.entrypoints=web"
+      - "traefik.http.services.ai.loadbalancer.server.port=8000"
+      - "traefik.http.routers.ai.middlewares=strip-prefix-ai"
+      - "traefik.http.middlewares.strip-prefix-ai.stripprefix.prefixes=/api/v1"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  iot-service:
+    build:
+      context: ./services/iot
+      dockerfile: Dockerfile
+    container_name: agrischeme-iot
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/agrischeme_iot
+      REDIS_URL: redis://redis:6379/6
+      DEBUG: "true"
+    ports:
+      - "9007:8000"
+    volumes:
+      - ./services/iot/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.iot.rule=PathPrefix(`/api/v1/iot`)"
+      - "traefik.http.routers.iot.entrypoints=web"
+      - "traefik.http.services.iot.loadbalancer.server.port=8000"
+      - "traefik.http.routers.iot.middlewares=strip-prefix-iot"
+      - "traefik.http.middlewares.strip-prefix-iot.stripprefix.prefixes=/api/v1"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  livestock-service:
+    build:
+      context: ./services/livestock
+      dockerfile: Dockerfile
+    container_name: agrischeme-livestock
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/agrischeme_livestock
+      REDIS_URL: redis://redis:6379/7
+      DEBUG: "true"
+    ports:
+      - "9008:8000"
+    volumes:
+      - ./services/livestock/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.livestock.rule=PathPrefix(`/api/v1/livestock`)"
+      - "traefik.http.routers.livestock.entrypoints=web"
+      - "traefik.http.services.livestock.loadbalancer.server.port=8000"
+      - "traefik.http.routers.livestock.middlewares=strip-prefix-livestock"
+      - "traefik.http.middlewares.strip-prefix-livestock.stripprefix.prefixes=/api/v1"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  task-service:
+    build:
+      context: ./services/task
+      dockerfile: Dockerfile
+    container_name: agrischeme-task
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/agrischeme_task
+      REDIS_URL: redis://redis:6379/8
+      DEBUG: "true"
+    ports:
+      - "9009:8000"
+    volumes:
+      - ./services/task/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.task.rule=PathPrefix(`/api/v1/tasks`)"
+      - "traefik.http.routers.task.entrypoints=web"
+      - "traefik.http.services.task.loadbalancer.server.port=8000"
+      - "traefik.http.routers.task.middlewares=strip-prefix-task"
+      - "traefik.http.middlewares.strip-prefix-task.stripprefix.prefixes=/api/v1"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  inventory-service:
+    build:
+      context: ./services/inventory
+      dockerfile: Dockerfile
+    container_name: agrischeme-inventory
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/agrischeme_inventory
+      REDIS_URL: redis://redis:6379/9
+      DEBUG: "true"
+    ports:
+      - "9010:8000"
+    volumes:
+      - ./services/inventory/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.inventory.rule=PathPrefix(`/api/v1/inventory`)"
+      - "traefik.http.routers.inventory.entrypoints=web"
+      - "traefik.http.services.inventory.loadbalancer.server.port=8000"
+      - "traefik.http.routers.inventory.middlewares=strip-prefix-inventory"
+      - "traefik.http.middlewares.strip-prefix-inventory.stripprefix.prefixes=/api/v1"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  notification-service:
+    build:
+      context: ./services/notification
+      dockerfile: Dockerfile
+    container_name: agrischeme-notification
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/agrischeme_notification
+      REDIS_URL: redis://redis:6379/10
+      DEBUG: "true"
+    ports:
+      - "9011:8000"
+    volumes:
+      - ./services/notification/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.notification.rule=PathPrefix(`/api/v1/notifications`)"
+      - "traefik.http.routers.notification.entrypoints=web"
+      - "traefik.http.services.notification.loadbalancer.server.port=8000"
+      - "traefik.http.routers.notification.middlewares=strip-prefix-notification"
+      - "traefik.http.middlewares.strip-prefix-notification.stripprefix.prefixes=/api/v1"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  traceability-service:
+    build:
+      context: ./services/traceability
+      dockerfile: Dockerfile
+    container_name: agrischeme-traceability
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/agrischeme_traceability
+      REDIS_URL: redis://redis:6379/11
+      DEBUG: "true"
+    ports:
+      - "9012:8000"
+    volumes:
+      - ./services/traceability/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traceability.rule=PathPrefix(`/api/v1/traceability`)"
+      - "traefik.http.routers.traceability.entrypoints=web"
+      - "traefik.http.services.traceability.loadbalancer.server.port=8000"
+      - "traefik.http.routers.traceability.middlewares=strip-prefix-traceability"
+      - "traefik.http.middlewares.strip-prefix-traceability.stripprefix.prefixes=/api/v1"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  compliance-service:
+    build:
+      context: ./services/compliance
+      dockerfile: Dockerfile
+    container_name: agrischeme-compliance
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/agrischeme_compliance
+      REDIS_URL: redis://redis:6379/12
+      DEBUG: "true"
+    ports:
+      - "9013:8000"
+    volumes:
+      - ./services/compliance/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.compliance.rule=PathPrefix(`/api/v1/compliance`)"
+      - "traefik.http.routers.compliance.entrypoints=web"
+      - "traefik.http.services.compliance.loadbalancer.server.port=8000"
+      - "traefik.http.routers.compliance.middlewares=strip-prefix-compliance"
+      - "traefik.http.middlewares.strip-prefix-compliance.stripprefix.prefixes=/api/v1"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  integration-service:
+    build:
+      context: ./services/integration
+      dockerfile: Dockerfile
+    container_name: agrischeme-integration
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/agrischeme_integration
+      REDIS_URL: redis://redis:6379/13
+      DEBUG: "true"
+    ports:
+      - "9014:8000"
+    volumes:
+      - ./services/integration/app:/app/app
+    networks:
+      - agrischeme-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.integration.rule=PathPrefix(`/api/v1/integration`)"
+      - "traefik.http.routers.integration.entrypoints=web"
+      - "traefik.http.services.integration.loadbalancer.server.port=8000"
+      - "traefik.http.routers.integration.middlewares=strip-prefix-integration"
+      - "traefik.http.middlewares.strip-prefix-integration.stripprefix.prefixes=/api/v1"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   # Observability
   prometheus:
@@ -106,6 +591,8 @@ services:
       - prometheus_data:/prometheus
     ports:
       - "9190:9090"
+    networks:
+      - agrischeme-network
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -122,6 +609,8 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_USERS_ALLOW_SIGN_UP: "false"
+    networks:
+      - agrischeme-network
 
 volumes:
   postgres_data:
@@ -130,5 +619,6 @@ volumes:
   grafana_data:
 
 networks:
-  default:
+  agrischeme-network:
+    driver: bridge
     name: agrischeme-network

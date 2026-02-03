@@ -25,46 +25,91 @@ const getDevServerHost = (): string => {
   return 'localhost';
 };
 
-// Build API URLs dynamically based on environment
-const buildApiUrl = (port: number): string => {
-  // Use environment variables if set (for production)
-  if (process.env.EXPO_PUBLIC_API_HOST) {
-    return `http://${process.env.EXPO_PUBLIC_API_HOST}:${port}/api/v1`;
+// Build unified API Gateway URL
+const buildApiGatewayUrl = (): string => {
+  // Use environment variable if set (for production)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
   }
 
-  // In development, detect host automatically
+  // In development, use Traefik gateway on port 80
   const host = getDevServerHost();
-  return `http://${host}:${port}/api/v1`;
+  return `http://${host}/api/v1`;
 };
 
-const AUTH_API_URL = process.env.EXPO_PUBLIC_AUTH_API_URL || buildApiUrl(9001);
-const FARMER_API_URL = process.env.EXPO_PUBLIC_FARMER_API_URL || buildApiUrl(9002);
+const API_GATEWAY_URL = buildApiGatewayUrl();
 
-// Debug logging for API URLs
+// Debug logging for API URL
 console.log('API Configuration:', {
-  AUTH_API_URL,
-  FARMER_API_URL,
+  API_GATEWAY_URL,
+  developmentMode: isDevelopmentMode,
   debuggerHost: Constants.expoConfig?.hostUri ?? Constants.manifest2?.extra?.expoGo?.debuggerHost,
   platform: Platform.OS,
+  note: isDevelopmentMode ? 'Using direct service ports (gateway bypass)' : 'Using unified API gateway',
 });
 
-// Auth service client
+// Service port mapping for local development (when gateway isn't available)
+const SERVICE_PORTS: Record<string, number> = {
+  '/auth': 9000,
+  '/farmers': 9001,
+  '/farms': 9001,
+  '/kyc': 9001,
+  '/documents': 9001,
+  '/farm-registration': 9001,
+  '/gis': 9003,
+  '/financial': 8000,
+  '/market': 8000,
+  '/ai': 8000,
+  '/iot': 8000,
+  '/livestock': 8000,
+  '/tasks': 8000,
+  '/inventory': 8000,
+  '/notifications': 8000,
+  '/traceability': 8000,
+  '/compliance': 8000,
+  '/integration': 8000,
+};
+
+// Check if we're in development mode (no production API URL set)
+const isDevelopmentMode = !process.env.EXPO_PUBLIC_API_URL;
+
+// Unified API client (all requests go through Traefik gateway)
 export const apiClient = axios.create({
-  baseURL: AUTH_API_URL,
+  baseURL: API_GATEWAY_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Farmer service client
-export const farmerClient = axios.create({
-  baseURL: FARMER_API_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
+// Legacy alias for backward compatibility (points to same client)
+export const farmerClient = apiClient;
+
+// Development mode interceptor - route to direct service ports
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    if (isDevelopmentMode && config.url) {
+      // Extract the service path (e.g., "/auth" from "/auth/login")
+      const urlParts = config.url.split('/').filter(Boolean);
+      if (urlParts.length > 0) {
+        const servicePath = '/' + urlParts[0];
+        const servicePort = SERVICE_PORTS[servicePath];
+
+        if (servicePort) {
+          const host = getDevServerHost();
+          // Update baseURL to point directly to the service port
+          config.baseURL = `http://${host}:${servicePort}`;
+          // Prepend /api/v1 to the URL
+          // Transform /auth/login -> /api/v1/auth/login
+          config.url = '/api/v1' + config.url;
+          console.log(`[DEV MODE] Routing ${servicePath} to ${config.baseURL}${config.url}`);
+        }
+      }
+    }
+    return config;
   },
-});
+  (error) => Promise.reject(error)
+);
 
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
@@ -93,41 +138,7 @@ apiClient.interceptors.response.use(
         }
         return apiClient(originalRequest);
       } catch {
-        getAuthStore().getState().logout();
-      }
-    }
-
-    return Promise.reject(error);
-  }
-);
-
-// Farmer client interceptors
-farmerClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = getAuthStore().getState().accessToken;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-farmerClient.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config;
-
-    if (error.response?.status === 401 && originalRequest) {
-      try {
-        await getAuthStore().getState().refreshTokens();
-        const token = getAuthStore().getState().accessToken;
-        if (token && originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-        }
-        return farmerClient(originalRequest);
-      } catch {
-        getAuthStore().getState().logout();
+        await getAuthStore().getState().logout();
       }
     }
 
@@ -430,20 +441,10 @@ export const farmRegistrationApi = {
   },
 };
 
-// GIS API (connects to GIS service)
-const GIS_API_URL = process.env.EXPO_PUBLIC_GIS_API_URL || buildApiUrl(9003);
-
-const gisClient = axios.create({
-  baseURL: GIS_API_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
+// GIS API (uses unified gateway client)
 export const gisApi = {
   reverseGeocode: async (latitude: number, longitude: number) => {
-    const response = await gisClient.post('/gis/reverse-geocode', {
+    const response = await apiClient.post('/gis/reverse-geocode', {
       latitude,
       longitude,
     });
@@ -451,7 +452,7 @@ export const gisApi = {
   },
 
   validateCoordinates: async (latitude: number, longitude: number) => {
-    const response = await gisClient.post('/gis/validate-coordinates', {
+    const response = await apiClient.post('/gis/validate-coordinates', {
       latitude,
       longitude,
     });
@@ -459,14 +460,14 @@ export const gisApi = {
   },
 
   validatePolygon: async (geojson: any) => {
-    const response = await gisClient.post('/gis/validate-polygon', {
+    const response = await apiClient.post('/gis/validate-polygon', {
       geojson,
     });
     return response.data;
   },
 
   calculateArea: async (geojson: any) => {
-    const response = await gisClient.post('/gis/calculate-area', {
+    const response = await apiClient.post('/gis/calculate-area', {
       geojson,
     });
     return response.data;
@@ -477,7 +478,7 @@ export const gisApi = {
     longitude: number,
     boundary: any
   ) => {
-    const response = await gisClient.post('/gis/point-in-boundary', {
+    const response = await apiClient.post('/gis/point-in-boundary', {
       latitude,
       longitude,
       boundary,
@@ -486,7 +487,7 @@ export const gisApi = {
   },
 
   checkOverlap: async (boundary1: any, boundary2: any) => {
-    const response = await gisClient.post('/gis/check-overlap', {
+    const response = await apiClient.post('/gis/check-overlap', {
       boundary1,
       boundary2,
     });
@@ -494,7 +495,7 @@ export const gisApi = {
   },
 
   simplifyPolygon: async (geojson: any, tolerance: number = 0.0001) => {
-    const response = await gisClient.post('/gis/simplify-polygon', {
+    const response = await apiClient.post('/gis/simplify-polygon', {
       geojson,
       tolerance,
     });

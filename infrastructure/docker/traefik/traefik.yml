@@ -1,0 +1,30 @@
+api:
+  dashboard: true
+  insecure: true  # For development only
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: agrischeme-network
+    watch: true
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: admin@agrischeme.com
+      storage: /acme.json
+      httpChallenge:
+        entryPoint: web
+
+log:
+  level: INFO
+
+accessLog:
+  enabled: true
