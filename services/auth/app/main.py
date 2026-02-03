@@ -13,8 +13,6 @@ from app.middleware.tenant import TenantMiddleware
 
 # Import all models to ensure they're registered with Base.metadata
 import app.models.user  # noqa: F401
-import app.models.audit  # noqa: F401
-import app.models.login_attempt  # noqa: F401
 
 
 @asynccontextmanager
