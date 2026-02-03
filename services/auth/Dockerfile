@@ -30,5 +30,6 @@ USER appuser
 
 EXPOSE 8000
 
-# Run migrations then start the application
-CMD ["/bin/sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Start the application
+# Note: Run migrations separately using: docker exec <container> alembic upgrade head
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
