@@ -25,9 +25,28 @@ const getDevServerHost = (): string => {
   return 'localhost';
 };
 
-// Build unified API Gateway URL
+// Production service URLs (individual FQDNs)
+const PRODUCTION_SERVICE_URLS = {
+  auth: process.env.EXPO_PUBLIC_AUTH_URL,
+  farmer: process.env.EXPO_PUBLIC_FARMER_URL,
+  farm: process.env.EXPO_PUBLIC_FARM_URL,
+  gis: process.env.EXPO_PUBLIC_GIS_URL,
+  financial: process.env.EXPO_PUBLIC_FINANCIAL_URL,
+  market: process.env.EXPO_PUBLIC_MARKET_URL,
+  ai: process.env.EXPO_PUBLIC_AI_URL,
+  iot: process.env.EXPO_PUBLIC_IOT_URL,
+  livestock: process.env.EXPO_PUBLIC_LIVESTOCK_URL,
+  task: process.env.EXPO_PUBLIC_TASK_URL,
+  inventory: process.env.EXPO_PUBLIC_INVENTORY_URL,
+  notification: process.env.EXPO_PUBLIC_NOTIFICATION_URL,
+  traceability: process.env.EXPO_PUBLIC_TRACEABILITY_URL,
+  compliance: process.env.EXPO_PUBLIC_COMPLIANCE_URL,
+  integration: process.env.EXPO_PUBLIC_INTEGRATION_URL,
+};
+
+// Build unified API Gateway URL (fallback for development)
 const buildApiGatewayUrl = (): string => {
-  // Use environment variable if set (for production)
+  // Use environment variable if set (for unified gateway)
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
@@ -39,13 +58,19 @@ const buildApiGatewayUrl = (): string => {
 
 const API_GATEWAY_URL = buildApiGatewayUrl();
 
+// Check if we're using production individual service URLs
+const isProductionMode = !!PRODUCTION_SERVICE_URLS.auth;
+
+// Check if we're in development mode (no production URLs set)
+const isDevelopmentMode = !process.env.EXPO_PUBLIC_API_URL && !isProductionMode;
+
 // Debug logging for API URL
 console.log('API Configuration:', {
+  mode: isProductionMode ? 'PRODUCTION (individual services)' : isDevelopmentMode ? 'DEVELOPMENT (direct ports)' : 'UNIFIED GATEWAY',
   API_GATEWAY_URL,
-  developmentMode: isDevelopmentMode,
+  productionServices: isProductionMode ? Object.keys(PRODUCTION_SERVICE_URLS).filter(k => PRODUCTION_SERVICE_URLS[k as keyof typeof PRODUCTION_SERVICE_URLS]).length : 0,
   debuggerHost: Constants.expoConfig?.hostUri ?? Constants.manifest2?.extra?.expoGo?.debuggerHost,
   platform: Platform.OS,
-  note: isDevelopmentMode ? 'Using direct service ports (gateway bypass)' : 'Using unified API gateway',
 });
 
 // Service port mapping for local development (when gateway isn't available)
@@ -70,10 +95,7 @@ const SERVICE_PORTS: Record<string, number> = {
   '/integration': 8000,
 };
 
-// Check if we're in development mode (no production API URL set)
-const isDevelopmentMode = !process.env.EXPO_PUBLIC_API_URL;
-
-// Unified API client (all requests go through Traefik gateway)
+// Unified API client (production uses individual services, dev uses direct ports)
 export const apiClient = axios.create({
   baseURL: API_GATEWAY_URL,
   timeout: 30000,
@@ -85,25 +107,95 @@ export const apiClient = axios.create({
 // Legacy alias for backward compatibility (points to same client)
 export const farmerClient = apiClient;
 
-// Development mode interceptor - route to direct service ports
+// Request interceptor - route to appropriate service
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    if (isDevelopmentMode && config.url) {
+    if (config.url) {
       // Extract the service path (e.g., "/auth" from "/auth/login")
       const urlParts = config.url.split('/').filter(Boolean);
       if (urlParts.length > 0) {
         const servicePath = '/' + urlParts[0];
-        const servicePort = SERVICE_PORTS[servicePath];
+        const serviceName = urlParts[0]; // e.g., "auth", "farmers", etc.
 
-        if (servicePort) {
-          const host = getDevServerHost();
-          // Update baseURL to point directly to the service port
-          config.baseURL = `http://${host}:${servicePort}`;
-          // Prepend /api/v1 to the URL
-          // Transform /auth/login -> /api/v1/auth/login
-          config.url = '/api/v1' + config.url;
-          console.log(`[DEV MODE] Routing ${servicePath} to ${config.baseURL}${config.url}`);
+        // Production mode - use individual service URLs
+        if (isProductionMode) {
+          let serviceUrl: string | undefined;
+
+          // Map service paths to service URLs
+          switch (serviceName) {
+            case 'auth':
+              serviceUrl = PRODUCTION_SERVICE_URLS.auth;
+              break;
+            case 'farmers':
+            case 'farms':
+            case 'kyc':
+            case 'documents':
+            case 'farm-registration':
+              // All these use the farmer service
+              serviceUrl = PRODUCTION_SERVICE_URLS.farmer;
+              break;
+            case 'gis':
+              serviceUrl = PRODUCTION_SERVICE_URLS.gis;
+              break;
+            case 'financial':
+              serviceUrl = PRODUCTION_SERVICE_URLS.financial;
+              break;
+            case 'market':
+              serviceUrl = PRODUCTION_SERVICE_URLS.market;
+              break;
+            case 'ai':
+              serviceUrl = PRODUCTION_SERVICE_URLS.ai;
+              break;
+            case 'iot':
+              serviceUrl = PRODUCTION_SERVICE_URLS.iot;
+              break;
+            case 'livestock':
+              serviceUrl = PRODUCTION_SERVICE_URLS.livestock;
+              break;
+            case 'tasks':
+              serviceUrl = PRODUCTION_SERVICE_URLS.task;
+              break;
+            case 'inventory':
+              serviceUrl = PRODUCTION_SERVICE_URLS.inventory;
+              break;
+            case 'notifications':
+              serviceUrl = PRODUCTION_SERVICE_URLS.notification;
+              break;
+            case 'traceability':
+              serviceUrl = PRODUCTION_SERVICE_URLS.traceability;
+              break;
+            case 'compliance':
+              serviceUrl = PRODUCTION_SERVICE_URLS.compliance;
+              break;
+            case 'integration':
+              serviceUrl = PRODUCTION_SERVICE_URLS.integration;
+              break;
+          }
+
+          if (serviceUrl) {
+            config.baseURL = serviceUrl;
+            // Remove service prefix and prepend /api/v1
+            // e.g., /auth/register -> /api/v1/register
+            const urlWithoutServicePrefix = config.url.replace(servicePath, '');
+            config.url = '/api/v1' + urlWithoutServicePrefix;
+            console.log(`[PRODUCTION] Routing ${servicePath} to ${config.baseURL}${config.url}`);
+          }
         }
+        // Development mode - use direct service ports
+        else if (isDevelopmentMode) {
+          const servicePort = SERVICE_PORTS[servicePath];
+
+          if (servicePort) {
+            const host = getDevServerHost();
+            // Update baseURL to point directly to the service port
+            config.baseURL = `http://${host}:${servicePort}`;
+            // Remove service prefix and prepend /api/v1
+            const urlWithoutServicePrefix = config.url.replace(servicePath, '');
+            config.url = '/api/v1' + urlWithoutServicePrefix;
+            console.log(`[DEV MODE] Routing ${servicePath} to ${config.baseURL}${config.url}`);
+          }
+        }
+        // Otherwise use unified gateway (config.baseURL already set)
       }
     }
     return config;
