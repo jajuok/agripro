@@ -58,16 +58,22 @@ const buildApiGatewayUrl = (): string => {
 
 const API_GATEWAY_URL = buildApiGatewayUrl();
 
-// Check if we're using production individual service URLs
-const isProductionMode = !!PRODUCTION_SERVICE_URLS.auth;
+// Check if we're using unified gateway (highest priority)
+const isUnifiedGatewayMode = !!process.env.EXPO_PUBLIC_API_URL;
 
-// Check if we're in development mode (no production URLs set)
-const isDevelopmentMode = !process.env.EXPO_PUBLIC_API_URL && !isProductionMode;
+// Check if we're using production individual service URLs (only if no unified gateway)
+const isProductionMode = !isUnifiedGatewayMode && !!PRODUCTION_SERVICE_URLS.auth;
+
+// Check if we're in development mode (no production URLs and no unified gateway)
+const isDevelopmentMode = !isUnifiedGatewayMode && !isProductionMode;
 
 // Debug logging for API URL
 console.log('API Configuration:', {
-  mode: isProductionMode ? 'PRODUCTION (individual services)' : isDevelopmentMode ? 'DEVELOPMENT (direct ports)' : 'UNIFIED GATEWAY',
+  mode: isUnifiedGatewayMode ? 'UNIFIED GATEWAY' : isProductionMode ? 'PRODUCTION (individual services)' : 'DEVELOPMENT (direct ports)',
   API_GATEWAY_URL,
+  isUnifiedGatewayMode,
+  isProductionMode,
+  isDevelopmentMode,
   productionServices: isProductionMode ? Object.keys(PRODUCTION_SERVICE_URLS).filter(k => PRODUCTION_SERVICE_URLS[k as keyof typeof PRODUCTION_SERVICE_URLS]).length : 0,
   debuggerHost: Constants.expoConfig?.hostUri ?? Constants.manifest2?.extra?.expoGo?.debuggerHost,
   platform: Platform.OS,
