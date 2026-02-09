@@ -358,6 +358,66 @@ export const documentApi = {
   },
 };
 
+// KYC API
+export const kycApi = {
+  startKYC: async (farmerId: string, requiredDocuments?: string[], requiredBiometrics?: string[]) => {
+    const response = await apiClient.post(`/kyc/${farmerId}/start`, {
+      required_documents: requiredDocuments,
+      required_biometrics: requiredBiometrics,
+    });
+    return response.data;
+  },
+
+  getStatus: async (farmerId: string) => {
+    const response = await apiClient.get(`/kyc/${farmerId}/status`);
+    return response.data;
+  },
+
+  completeStep: async (farmerId: string, step: string, data?: any) => {
+    const response = await apiClient.post(`/kyc/${farmerId}/step/complete`, {
+      step,
+      data,
+    });
+    return response.data;
+  },
+
+  uploadDocument: async (
+    farmerId: string,
+    file: any,
+    documentType: string,
+    documentNumber?: string
+  ) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('document_type', documentType);
+    if (documentNumber) {
+      formData.append('document_number', documentNumber);
+    }
+
+    const response = await apiClient.post(`/kyc/${farmerId}/documents`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  submitForReview: async (farmerId: string) => {
+    const response = await apiClient.post(`/kyc/${farmerId}/submit`);
+    return response.data;
+  },
+
+  runExternalVerifications: async (farmerId: string) => {
+    const response = await apiClient.post(`/kyc/${farmerId}/verify/external`);
+    return response.data;
+  },
+
+  getVerificationStatus: async (farmerId: string) => {
+    const response = await apiClient.get(`/kyc/${farmerId}/verify/status`);
+    return response.data;
+  },
+};
+
 // Farm Registration API (uses farmer service)
 export const farmRegistrationApi = {
   start: async (data: {
