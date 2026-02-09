@@ -11,7 +11,7 @@ echo "=================================="
 echo ""
 
 # Set production environment variables - Unified API Gateway
-export EXPO_PUBLIC_API_URL="http://213.32.19.116/api/v1"
+export EXPO_PUBLIC_API_URL="http://213.32.19.116:8888/api/v1"
 
 echo "✓ Environment variables set for production"
 echo "  - API Gateway: $EXPO_PUBLIC_API_URL"
