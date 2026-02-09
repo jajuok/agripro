@@ -13,6 +13,11 @@ RUN uv pip install --system --no-cache -r pyproject.toml
 
 FROM python:3.11-slim
 
+
+# Install curl for healthchecks
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Copy installed packages from builder
