@@ -94,7 +94,7 @@ export default function PersonalInfoScreen() {
         </View>
 
         {/* Form */}
-        <View style={styles.form}>
+        <View style={styles.form} testID="personal-info-form">
           {/* National ID */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
@@ -108,6 +108,7 @@ export default function PersonalInfoScreen() {
               placeholderTextColor={COLORS.gray[400]}
               keyboardType="numeric"
               maxLength={10}
+              testID="national-id-input"
             />
           </View>
 
@@ -119,6 +120,7 @@ export default function PersonalInfoScreen() {
             <TouchableOpacity
               style={styles.dateInput}
               onPress={() => setShowDatePicker(true)}
+              testID="dob-input"
             >
               <Text style={styles.dateText}>{dateOfBirth.toLocaleDateString()}</Text>
               <Text style={styles.dateIcon}>📅</Text>
@@ -145,6 +147,7 @@ export default function PersonalInfoScreen() {
               <TouchableOpacity
                 style={[styles.radioButton, gender === 'male' && styles.radioButtonSelected]}
                 onPress={() => setGender('male')}
+                testID="gender-male-button"
               >
                 <View style={styles.radioCircle}>
                   {gender === 'male' && <View style={styles.radioInner} />}
@@ -155,6 +158,7 @@ export default function PersonalInfoScreen() {
               <TouchableOpacity
                 style={[styles.radioButton, gender === 'female' && styles.radioButtonSelected]}
                 onPress={() => setGender('female')}
+                testID="gender-female-button"
               >
                 <View style={styles.radioCircle}>
                   {gender === 'female' && <View style={styles.radioInner} />}
@@ -165,6 +169,7 @@ export default function PersonalInfoScreen() {
               <TouchableOpacity
                 style={[styles.radioButton, gender === 'other' && styles.radioButtonSelected]}
                 onPress={() => setGender('other')}
+                testID="gender-other-button"
               >
                 <View style={styles.radioCircle}>
                   {gender === 'other' && <View style={styles.radioInner} />}
@@ -187,6 +192,7 @@ export default function PersonalInfoScreen() {
               placeholderTextColor={COLORS.gray[400]}
               keyboardType="phone-pad"
               maxLength={15}
+              testID="phone-input"
             />
           </View>
 
@@ -204,6 +210,7 @@ export default function PersonalInfoScreen() {
               multiline
               numberOfLines={3}
               textAlignVertical="top"
+              testID="address-input"
             />
           </View>
 
@@ -239,6 +246,7 @@ export default function PersonalInfoScreen() {
             onPress={handleSubmit}
             loading={isLoading}
             disabled={isLoading}
+            testID="personal-info-submit-button"
           />
 
           <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>

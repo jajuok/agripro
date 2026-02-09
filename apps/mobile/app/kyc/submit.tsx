@@ -71,7 +71,7 @@ export default function SubmitKYCScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="submit-screen">
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
@@ -159,6 +159,7 @@ export default function SubmitKYCScreen() {
             onPress={handleSubmit}
             loading={isLoading}
             disabled={isLoading}
+            testID="submit-for-review-button"
           />
         ) : (
           <View style={styles.warningBox}>

@@ -105,7 +105,7 @@ export default function KYCDashboard() {
   // No KYC application yet
   if (!status) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} testID="kyc-dashboard">
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateIcon}>🔐</Text>
@@ -134,7 +134,11 @@ export default function KYCDashboard() {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.startButton} onPress={handleStartKYC}>
+            <TouchableOpacity
+              style={styles.startButton}
+              onPress={handleStartKYC}
+              testID="kyc-start-button"
+            >
               <Text style={styles.startButtonText}>Start KYC Verification</Text>
             </TouchableOpacity>
           </View>
@@ -145,7 +149,7 @@ export default function KYCDashboard() {
 
   // KYC application exists
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="kyc-dashboard">
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
@@ -179,6 +183,7 @@ export default function KYCDashboard() {
             ]}
             onPress={() => !status.personal_info_complete && handleContinueStep('personal_info')}
             disabled={status.personal_info_complete}
+            testID="personal-info-step"
           >
             <View style={styles.stepHeader}>
               <Text
@@ -203,6 +208,7 @@ export default function KYCDashboard() {
             style={[styles.stepCard, status.documents_complete && styles.stepCardComplete]}
             onPress={() => !status.documents_complete && handleContinueStep('documents')}
             disabled={status.documents_complete}
+            testID="documents-step"
           >
             <View style={styles.stepHeader}>
               <Text
@@ -261,6 +267,7 @@ export default function KYCDashboard() {
             style={[styles.stepCard, status.bank_info_complete && styles.stepCardComplete]}
             onPress={() => !status.bank_info_complete && handleContinueStep('bank_info')}
             disabled={status.bank_info_complete}
+            testID="bank-info-step"
           >
             <View style={styles.stepHeader}>
               <Text
@@ -346,6 +353,7 @@ export default function KYCDashboard() {
             <TouchableOpacity
               style={styles.submitButton}
               onPress={() => router.push('/kyc/submit')}
+              testID="kyc-submit-button"
             >
               <Text style={styles.submitButtonText}>Submit for Review</Text>
             </TouchableOpacity>

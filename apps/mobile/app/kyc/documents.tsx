@@ -208,7 +208,7 @@ export default function DocumentsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="documents-screen">
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
@@ -234,6 +234,7 @@ export default function DocumentsScreen() {
                 ]}
                 onPress={() => !isSubmitted && handleSelectDocument(doc)}
                 disabled={isSubmitted}
+                testID={`document-card-${doc.type}`}
               >
                 <View style={styles.documentHeader}>
                   <Text style={styles.documentIcon}>{doc.icon}</Text>
@@ -279,6 +280,7 @@ export default function DocumentsScreen() {
                 onChangeText={setDocumentNumber}
                 placeholder={`Enter ${selectedDocument.label.toLowerCase()} number`}
                 placeholderTextColor={COLORS.gray[400]}
+                testID="document-number-input"
               />
             </View>
 
@@ -298,12 +300,20 @@ export default function DocumentsScreen() {
             {/* Capture Buttons */}
             {!selectedImage && (
               <View style={styles.captureButtons}>
-                <TouchableOpacity style={styles.captureButton} onPress={handleTakePhoto}>
+                <TouchableOpacity
+                  style={styles.captureButton}
+                  onPress={handleTakePhoto}
+                  testID="take-photo-button"
+                >
                   <Text style={styles.captureButtonIcon}>📷</Text>
                   <Text style={styles.captureButtonText}>Take Photo</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.captureButton} onPress={handlePickImage}>
+                <TouchableOpacity
+                  style={styles.captureButton}
+                  onPress={handlePickImage}
+                  testID="choose-gallery-button"
+                >
                   <Text style={styles.captureButtonIcon}>🖼️</Text>
                   <Text style={styles.captureButtonText}>Choose from Gallery</Text>
                 </TouchableOpacity>
@@ -317,6 +327,7 @@ export default function DocumentsScreen() {
                 onPress={handleUpload}
                 loading={uploadingDoc}
                 disabled={uploadingDoc}
+                testID="upload-document-button"
               />
             )}
 

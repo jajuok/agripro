@@ -16,6 +16,7 @@ type ButtonProps = {
   loading?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  testID?: string;
 };
 
 export function Button({
@@ -27,6 +28,7 @@ export function Button({
   loading = false,
   style,
   textStyle,
+  testID,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
 
@@ -41,6 +43,7 @@ export function Button({
       ]}
       onPress={onPress}
       disabled={isDisabled}
+      testID={testID}
     >
       {loading ? (
         <ActivityIndicator

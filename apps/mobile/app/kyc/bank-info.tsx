@@ -106,7 +106,7 @@ export default function BankInfoScreen() {
         </View>
 
         {/* Form */}
-        <View style={styles.form}>
+        <View style={styles.form} testID="bank-info-form">
           {/* Bank Name */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
@@ -115,6 +115,7 @@ export default function BankInfoScreen() {
             <TouchableOpacity
               style={styles.selectInput}
               onPress={() => setShowBankList(!showBankList)}
+              testID="bank-name-select"
             >
               <Text style={[styles.selectText, !bankName && styles.selectPlaceholder]}>
                 {bankName || 'Select your bank'}
@@ -152,6 +153,7 @@ export default function BankInfoScreen() {
               placeholderTextColor={COLORS.gray[400]}
               keyboardType="numeric"
               maxLength={20}
+              testID="account-number-input"
             />
           </View>
 
@@ -167,6 +169,7 @@ export default function BankInfoScreen() {
               placeholder="Enter account holder name"
               placeholderTextColor={COLORS.gray[400]}
               autoCapitalize="words"
+              testID="account-name-input"
             />
             <Text style={styles.hint}>Must match the name on your National ID</Text>
           </View>
@@ -181,6 +184,7 @@ export default function BankInfoScreen() {
               placeholder="Enter branch name"
               placeholderTextColor={COLORS.gray[400]}
               autoCapitalize="words"
+              testID="branch-name-input"
             />
           </View>
 
@@ -198,6 +202,7 @@ export default function BankInfoScreen() {
             onPress={handleSubmit}
             loading={isLoading}
             disabled={isLoading}
+            testID="bank-info-submit-button"
           />
 
           <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
