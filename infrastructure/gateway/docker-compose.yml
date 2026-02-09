@@ -20,6 +20,10 @@ services:
       # Entrypoints
       - "--entrypoints.web.address=:80"
 
+      # Ping endpoint for healthchecks
+      - "--ping=true"
+      - "--ping.entryPoint=web"
+
       # Logging
       - "--log.level=INFO"
       - "--accesslog=true"
@@ -45,13 +49,6 @@ services:
       - "traefik.http.routers.dashboard.rule=Host(`traefik.213.32.19.116.sslip.io`)"
       - "traefik.http.routers.dashboard.entrypoints=web"
       - "traefik.http.routers.dashboard.service=api@internal"
-
-    healthcheck:
-      test: ["CMD", "traefik", "healthcheck", "--ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
 
 volumes:
   traefik-logs:
