@@ -22,6 +22,28 @@ async def create_farm(
     return await service.create_farm(data)
 
 
+# Specific routes with literals must come before generic path parameter routes
+@router.get("/farmer/{farmer_id}", response_model=list[FarmResponse])
+async def list_farmer_farms(
+    farmer_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> list[FarmResponse]:
+    """List all farms for a farmer."""
+    service = FarmService(db)
+    return await service.list_farmer_farms(farmer_id)
+
+
+@router.get("/user/{user_id}", response_model=list[FarmResponse])
+async def list_farms_by_user_id(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> list[FarmResponse]:
+    """List all farms for a user (via farmer lookup)."""
+    service = FarmService(db)
+    return await service.list_farms_by_user_id(user_id)
+
+
+# Generic routes with path parameters come last
 @router.get("/{farm_id}", response_model=FarmResponse)
 async def get_farm(
     farm_id: UUID,
@@ -47,23 +69,3 @@ async def update_farm(
     if not farm:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Farm not found")
     return farm
-
-
-@router.get("/farmer/{farmer_id}", response_model=list[FarmResponse])
-async def list_farmer_farms(
-    farmer_id: UUID,
-    db: AsyncSession = Depends(get_db),
-) -> list[FarmResponse]:
-    """List all farms for a farmer."""
-    service = FarmService(db)
-    return await service.list_farmer_farms(farmer_id)
-
-
-@router.get("/user/{user_id}", response_model=list[FarmResponse])
-async def list_farms_by_user_id(
-    user_id: UUID,
-    db: AsyncSession = Depends(get_db),
-) -> list[FarmResponse]:
-    """List all farms for a user (via farmer lookup)."""
-    service = FarmService(db)
-    return await service.list_farms_by_user_id(user_id)
