@@ -27,6 +27,14 @@ from app.models.eligibility import (
     SchemeWaitlist,
     EligibilityNotification,
 )
+from app.models.crop_planning import (
+    CropCalendarTemplate,
+    CropPlan,
+    PlannedActivity,
+    InputRequirement,
+    IrrigationSchedule,
+    CropPlanAlert,
+)
 
 __all__ = [
     # Farmer models
@@ -54,4 +62,11 @@ __all__ = [
     "EligibilityReviewQueue",
     "SchemeWaitlist",
     "EligibilityNotification",
+    # Crop Planning models
+    "CropCalendarTemplate",
+    "CropPlan",
+    "PlannedActivity",
+    "InputRequirement",
+    "IrrigationSchedule",
+    "CropPlanAlert",
 ]

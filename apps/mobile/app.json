@@ -44,12 +44,6 @@
       "expo-router",
       "expo-secure-store",
       [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow AgriScheme Pro to access your camera for document scanning."
-        }
-      ],
-      [
         "expo-location",
         {
           "locationWhenInUsePermission": "Allow AgriScheme Pro to access your location to record farm coordinates."

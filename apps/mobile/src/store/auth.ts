@@ -19,7 +19,7 @@ type AuthState = {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshTokens: () => Promise<void>;
 };
 
@@ -98,11 +98,20 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: () => {
+      logout: async () => {
         const { refreshToken } = get();
+        // Revoke the refresh token on the server first (with timeout to prevent hanging)
         if (refreshToken) {
-          authApi.logout(refreshToken).catch(() => {});
+          try {
+            await Promise.race([
+              authApi.logout(refreshToken),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Logout timeout')), 5000))
+            ]);
+          } catch {
+            // Ignore logout errors - we'll clear state regardless
+          }
         }
+        // Clear state after API call completes (or times out)
         set({
           user: null,
           accessToken: null,
@@ -122,7 +131,7 @@ export const useAuthStore = create<AuthState>()(
             refreshToken: response.refresh_token,
           });
         } catch {
-          get().logout();
+          await get().logout();
         }
       },
     }),

@@ -17,7 +17,7 @@ const marketPrices: PriceItem[] = [
 
 export default function MarketScreen() {
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView testID="market-screen" style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Market Prices</Text>
         <Text style={styles.headerSubtitle}>Updated 2 hours ago</Text>

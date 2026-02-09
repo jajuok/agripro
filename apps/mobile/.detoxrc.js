@@ -49,6 +49,10 @@ module.exports = {
       device: 'attached',
       app: 'android.debug',
     },
+    'android.att.release': {
+      device: 'attached',
+      app: 'android.release',
+    },
   },
   behavior: {
     init: {

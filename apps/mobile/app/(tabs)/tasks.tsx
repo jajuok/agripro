@@ -57,7 +57,7 @@ export default function TasksScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View testID="tasks-screen" style={styles.container}>
       <SectionList
         sections={sections}
         renderItem={renderTask}

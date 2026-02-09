@@ -1,0 +1,49 @@
+{
+  "cli": {
+    "version": ">= 5.9.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "gradleCommand": ":app:assembleDebug"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_AUTH_API_URL": "http://eswo8kkw0owo8ckk00cgsc0g.213.32.19.116.sslip.io/api/v1",
+        "EXPO_PUBLIC_FARMER_API_URL": "http://fswk00skcko8wgkcs840o4ok.213.32.19.116.sslip.io/api/v1",
+        "EXPO_PUBLIC_GIS_API_URL": "http://ckscgcwgcckgk40g4sgkocsw.213.32.19.116.sslip.io/api/v1"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_AUTH_API_URL": "http://eswo8kkw0owo8ckk00cgsc0g.213.32.19.116.sslip.io/api/v1",
+        "EXPO_PUBLIC_FARMER_API_URL": "http://fswk00skcko8wgkcs840o4ok.213.32.19.116.sslip.io/api/v1",
+        "EXPO_PUBLIC_GIS_API_URL": "http://ckscgcwgcckgk40g4sgkocsw.213.32.19.116.sslip.io/api/v1"
+      }
+    },
+    "local-production": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "EXPO_PUBLIC_AUTH_API_URL": "http://eswo8kkw0owo8ckk00cgsc0g.213.32.19.116.sslip.io/api/v1",
+        "EXPO_PUBLIC_FARMER_API_URL": "http://fswk00skcko8wgkcs840o4ok.213.32.19.116.sslip.io/api/v1",
+        "EXPO_PUBLIC_GIS_API_URL": "http://ckscgcwgcckgk40g4sgkocsw.213.32.19.116.sslip.io/api/v1"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

@@ -81,11 +81,11 @@ export default function RegisterScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView testID="register-screen" contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Create Account</Text>
         <Text style={styles.subtitle}>Join AgriScheme Pro</Text>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={styles.error} testID="register-error">{error}</Text> : null}
 
         <TextInput
           testID="firstname-input"

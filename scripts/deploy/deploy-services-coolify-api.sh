@@ -17,6 +17,12 @@ load_secrets "${SCRIPT_DIR}/.secrets/deployment.secrets"
 SERVER_IP="${1}"
 COOLIFY_API_TOKEN="${2}"
 SERVER_UUID="${3:-0}"  # Default server ID
+PROJECT_UUID="${4:-}"  # Optional project UUID
+
+# Strip the numeric prefix if present (e.g., "3|token" -> "token")
+if [[ "$COOLIFY_API_TOKEN" == *"|"* ]]; then
+    COOLIFY_API_TOKEN="${COOLIFY_API_TOKEN#*|}"
+fi
 
 COOLIFY_URL="http://${SERVER_IP}:8000"
 GITHUB_REPO="jajuok/agripro"
@@ -65,6 +71,82 @@ log_info "API Token: ${COOLIFY_API_TOKEN:0:20}..."
 echo ""
 
 # =============================================================================
+# GET SERVER UUID
+# =============================================================================
+
+if [ "$SERVER_UUID" = "0" ]; then
+    log_step "Finding Coolify server"
+
+    response=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
+        --connect-timeout 10 \
+        --max-time 30 \
+        -X GET \
+        "${COOLIFY_URL}/api/v1/servers" \
+        -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
+        -H "Accept: application/json")
+
+    http_code=$(echo "$response" | grep "HTTP_CODE:" | cut -d: -f2)
+    body=$(echo "$response" | sed '/HTTP_CODE:/d')
+
+    if [ "$http_code" = "200" ]; then
+        # Get first (localhost) server
+        SERVER_UUID=$(echo "$body" | jq -r '.[0].uuid' 2>/dev/null || echo "")
+
+        if [ -n "$SERVER_UUID" ] && [ "$SERVER_UUID" != "null" ]; then
+            log_success "Found server: $SERVER_UUID"
+        else
+            log_error "No servers found"
+            exit 1
+        fi
+    else
+        log_error "Failed to list servers (HTTP $http_code)"
+        exit 1
+    fi
+else
+    log_info "Using provided server UUID: $SERVER_UUID"
+fi
+
+# =============================================================================
+# GET OR CREATE PROJECT
+# =============================================================================
+
+if [ -z "$PROJECT_UUID" ]; then
+    log_step "Finding agrischeme-infra project"
+
+    response=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
+        --connect-timeout 10 \
+        --max-time 30 \
+        -X GET \
+        "${COOLIFY_URL}/api/v1/projects" \
+        -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
+        -H "Accept: application/json")
+
+    http_code=$(echo "$response" | grep "HTTP_CODE:" | cut -d: -f2)
+    body=$(echo "$response" | sed '/HTTP_CODE:/d')
+
+    if [ "$http_code" = "200" ]; then
+        # Find agrischeme-infra project
+        PROJECT_UUID=$(echo "$body" | jq -r '.[] | select(.name == "agrischeme-infra") | .uuid' 2>/dev/null || echo "")
+
+        if [ -n "$PROJECT_UUID" ] && [ "$PROJECT_UUID" != "null" ]; then
+            log_success "Found project: $PROJECT_UUID"
+        else
+            log_error "Project 'agrischeme-infra' not found"
+            log_info "Please create the project in Coolify UI first:"
+            log_info "  Projects → + New Project → Name: agrischeme-infra"
+            exit 1
+        fi
+    else
+        log_error "Failed to list projects (HTTP $http_code)"
+        exit 1
+    fi
+else
+    log_info "Using provided project UUID: $PROJECT_UUID"
+fi
+
+echo ""
+
+# =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
 
@@ -84,10 +166,10 @@ create_application() {
     local payload=$(cat <<EOF
 {
     "server_uuid": "${SERVER_UUID}",
-    "project_uuid": "0",
+    "project_uuid": "${PROJECT_UUID}",
     "environment_name": "production",
-    "repository_url": "https://github.com/${GITHUB_REPO}",
-    "branch": "${GITHUB_BRANCH}",
+    "git_repository": "https://github.com/${GITHUB_REPO}",
+    "git_branch": "${GITHUB_BRANCH}",
     "build_pack": "dockerfile",
     "base_directory": "${base_dir}",
     "dockerfile_location": "Dockerfile",
@@ -106,7 +188,7 @@ EOF
         --max-time 30 \
         -X POST \
         "${COOLIFY_URL}/api/v1/applications/public" \
-        -H "Authorization: ${COOLIFY_API_TOKEN}" \
+        -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
         -d "$payload")
@@ -143,80 +225,86 @@ set_environment_variables() {
 
     local db_container="agrischeme-${service_name}-db"
     local database_url="postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${db_container}:5432/${db_name}"
+    local redis_url="redis://:${REDIS_PASSWORD}@agrischeme-redis:6379/0"
 
-    # Build environment variables array
-    local env_vars='[
-        {
-            "key": "DATABASE_URL",
-            "value": "'"${database_url}"'",
-            "is_preview": false,
-            "is_build_time": false,
-            "is_literal": true,
-            "is_multiline": false,
-            "is_shown_once": false
-        },
-        {
-            "key": "REDIS_URL",
-            "value": "redis://:'"${REDIS_PASSWORD}"'@agrischeme-redis:6379/0",
-            "is_preview": false,
-            "is_build_time": false,
-            "is_literal": true,
-            "is_multiline": false,
-            "is_shown_once": false
-        },
-        {
-            "key": "KAFKA_BOOTSTRAP_SERVERS",
-            "value": "agrischeme-kafka:9092",
-            "is_preview": false,
-            "is_build_time": false,
-            "is_literal": true,
-            "is_multiline": false,
-            "is_shown_once": false
-        },
-        {
-            "key": "ENVIRONMENT",
-            "value": "production",
-            "is_preview": false,
-            "is_build_time": false,
-            "is_literal": true,
-            "is_multiline": false,
-            "is_shown_once": false
-        },
-        {
-            "key": "LOG_LEVEL",
-            "value": "INFO",
-            "is_preview": false,
-            "is_build_time": false,
-            "is_literal": true,
-            "is_multiline": false,
-            "is_shown_once": false
-        },
-        {
-            "key": "DEBUG",
-            "value": "false",
-            "is_preview": false,
-            "is_build_time": false,
-            "is_literal": true,
-            "is_multiline": false,
-            "is_shown_once": false
-        },
-        {
-            "key": "CORS_ORIGINS",
-            "value": "[\"*\"]",
-            "is_preview": false,
-            "is_build_time": false,
-            "is_literal": true,
-            "is_multiline": false,
-            "is_shown_once": false
-        }
-    ]'
+    # Build environment variables array using jq to properly escape values
+    local env_vars=$(jq -n \
+        --arg db_url "$database_url" \
+        --arg redis_url "$redis_url" \
+        '[
+            {
+                "key": "DATABASE_URL",
+                "value": $db_url,
+                "is_preview": false,
+                "is_build_time": false,
+                "is_literal": true,
+                "is_multiline": false,
+                "is_shown_once": false
+            },
+            {
+                "key": "REDIS_URL",
+                "value": $redis_url,
+                "is_preview": false,
+                "is_build_time": false,
+                "is_literal": true,
+                "is_multiline": false,
+                "is_shown_once": false
+            },
+            {
+                "key": "KAFKA_BOOTSTRAP_SERVERS",
+                "value": "agrischeme-kafka:9092",
+                "is_preview": false,
+                "is_build_time": false,
+                "is_literal": true,
+                "is_multiline": false,
+                "is_shown_once": false
+            },
+            {
+                "key": "ENVIRONMENT",
+                "value": "production",
+                "is_preview": false,
+                "is_build_time": false,
+                "is_literal": true,
+                "is_multiline": false,
+                "is_shown_once": false
+            },
+            {
+                "key": "LOG_LEVEL",
+                "value": "INFO",
+                "is_preview": false,
+                "is_build_time": false,
+                "is_literal": true,
+                "is_multiline": false,
+                "is_shown_once": false
+            },
+            {
+                "key": "DEBUG",
+                "value": "false",
+                "is_preview": false,
+                "is_build_time": false,
+                "is_literal": true,
+                "is_multiline": false,
+                "is_shown_once": false
+            },
+            {
+                "key": "CORS_ORIGINS",
+                "value": "[\"*\"]",
+                "is_preview": false,
+                "is_build_time": false,
+                "is_literal": true,
+                "is_multiline": false,
+                "is_shown_once": false
+            }
+        ]')
 
     # Add JWT variables for auth service
     if [ "$service_name" = "auth" ]; then
-        env_vars=$(echo "$env_vars" | jq '. += [
+        env_vars=$(echo "$env_vars" | jq \
+            --arg jwt_key "$JWT_SECRET_KEY" \
+            '. += [
             {
                 "key": "JWT_SECRET_KEY",
-                "value": "'"${JWT_SECRET_KEY}"'",
+                "value": $jwt_key,
                 "is_preview": false,
                 "is_build_time": false,
                 "is_literal": true,
@@ -257,7 +345,7 @@ set_environment_variables() {
     response=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
         -X PATCH \
         "${COOLIFY_URL}/api/v1/applications/${app_uuid}/envs/bulk" \
-        -H "Authorization: ${COOLIFY_API_TOKEN}" \
+        -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
         -H "Content-Type: application/json" \
         -d "{\"data\": ${env_vars}}")
 
@@ -281,7 +369,7 @@ deploy_application() {
     response=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
         -X POST \
         "${COOLIFY_URL}/api/v1/deploy" \
-        -H "Authorization: ${COOLIFY_API_TOKEN}" \
+        -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
         -H "Content-Type: application/json" \
         -d "{\"uuid\": \"${app_uuid}\"}")
 

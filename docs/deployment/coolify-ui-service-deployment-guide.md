@@ -5,6 +5,7 @@ Complete guide for deploying AgriScheme Pro microservices through the Coolify we
 ## Prerequisites
 
 Before starting:
+
 - ✅ Coolify is installed and accessible at `http://YOUR_IP:8000`
 - ✅ PostgreSQL databases are deployed (10 containers)
 - ✅ Redis and Kafka are running
@@ -34,6 +35,7 @@ Before starting:
 ### Step 3: Verify Connection
 
 Back in Coolify:
+
 - You should see your GitHub connection listed
 - Status should show as **Connected**
 
@@ -96,6 +98,7 @@ You'll deploy 15 services. Here's the detailed process for each:
 #### Step 2: Configure Repository
 
 **Repository Settings:**
+
 - **Repository:** `jajuok/agripro`
 - **Branch:** `main`
 - **Build Pack:** Dockerfile
@@ -105,6 +108,7 @@ You'll deploy 15 services. Here's the detailed process for each:
 #### Step 3: Basic Configuration
 
 **Application Settings:**
+
 - **Name:** `auth-service`
 - **Description:** `Authentication and authorization service`
 - **Port:** `8000`
@@ -232,6 +236,7 @@ KAFKA_BOOTSTRAP_SERVERS=agrischeme-kafka:9092
 For each of the 15 services, follow this checklist:
 
 ### ✅ Auth Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/auth`
 - [ ] Configure DATABASE_URL for `agrischeme_auth`
@@ -239,84 +244,98 @@ For each of the 15 services, follow this checklist:
 - [ ] Deploy and verify
 
 ### ✅ Farmer Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/farmer`
 - [ ] Configure DATABASE_URL for `agrischeme_farmer`
 - [ ] Deploy and verify
 
 ### ✅ Farm Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/farm`
 - [ ] Configure DATABASE_URL for `agrischeme_farm`
 - [ ] Deploy and verify
 
 ### ✅ Financial Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/financial`
 - [ ] Configure DATABASE_URL for `agrischeme_financial`
 - [ ] Deploy and verify
 
 ### ✅ GIS Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/gis`
 - [ ] Configure DATABASE_URL for `agrischeme_gis`
 - [ ] Deploy and verify
 
 ### ✅ Market Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/market`
 - [ ] Configure DATABASE_URL for `agrischeme_market`
 - [ ] Deploy and verify
 
 ### ✅ AI Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/ai`
 - [ ] Configure DATABASE_URL for `agrischeme_ai`
 - [ ] Deploy and verify
 
 ### ✅ IoT Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/iot`
 - [ ] Configure DATABASE_URL for `agrischeme_iot`
 - [ ] Deploy and verify
 
 ### ✅ Livestock Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/livestock`
 - [ ] Configure DATABASE_URL for `agrischeme_livestock`
 - [ ] Deploy and verify
 
 ### ✅ Task Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/task`
 - [ ] Configure DATABASE_URL for `agrischeme_task`
 - [ ] Deploy and verify
 
 ### ✅ Inventory Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/inventory`
 - [ ] Configure DATABASE_URL for `agrischeme_inventory`
 - [ ] Deploy and verify
 
 ### ✅ Notification Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/notification`
 - [ ] Configure DATABASE_URL for `agrischeme_notification`
 - [ ] Deploy and verify
 
 ### ✅ Traceability Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/traceability`
 - [ ] Configure DATABASE_URL for `agrischeme_traceability`
 - [ ] Deploy and verify
 
 ### ✅ Compliance Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/compliance`
 - [ ] Configure DATABASE_URL for `agrischeme_compliance`
 - [ ] Deploy and verify
 
 ### ✅ Integration Service
+
 - [ ] Create application
 - [ ] Set base directory: `services/integration`
 - [ ] Configure DATABASE_URL for `agrischeme_integration`
@@ -353,10 +372,12 @@ After deploying each service:
 ### Issue: Build Failed
 
 **Symptoms:**
+
 - Build logs show errors
 - Status shows "Failed"
 
 **Solutions:**
+
 1. Check the build logs for specific errors
 2. Verify the base directory is correct
 3. Ensure Dockerfile exists in the service directory
@@ -365,10 +386,12 @@ After deploying each service:
 ### Issue: Container Exits Immediately
 
 **Symptoms:**
+
 - Service starts but immediately stops
 - Status cycles between "Starting" and "Exited"
 
 **Solutions:**
+
 1. Check application logs for errors
 2. Verify DATABASE_URL is correct
 3. Ensure database container is running
@@ -377,10 +400,12 @@ After deploying each service:
 ### Issue: Database Connection Failed
 
 **Symptoms:**
+
 - Logs show "Connection refused" or "No route to host"
 - Service can't connect to database
 
 **Solutions:**
+
 1. Verify database container name is correct
 2. Check if database is on the same Docker network
 3. Ensure database is healthy: `docker ps | grep agrischeme-*-db`
@@ -389,9 +414,11 @@ After deploying each service:
 ### Issue: Port Already in Use
 
 **Symptoms:**
+
 - Error: "Port is already allocated"
 
 **Solutions:**
+
 1. Coolify auto-assigns ports, this shouldn't happen
 2. If it does, go to service settings and clear the port field
 3. Let Coolify auto-assign a new port
@@ -410,6 +437,7 @@ docker exec -it <service-container> alembic upgrade head
 ```
 
 Example:
+
 ```bash
 docker exec -it auth-service alembic upgrade head
 docker exec -it farmer-service alembic upgrade head
@@ -435,11 +463,11 @@ Update mobile app with service URLs:
 
 ```typescript
 // apps/mobile/src/services/api.ts
-const API_BASE_URL = 'http://213.32.19.116';
+const API_BASE_URL = "http://213.32.19.116";
 
 // Service ports (check in Coolify UI for actual ports)
-const AUTH_SERVICE_PORT = '<from Coolify>';
-const FARMER_SERVICE_PORT = '<from Coolify>';
+const AUTH_SERVICE_PORT = "<from Coolify>";
+const FARMER_SERVICE_PORT = "<from Coolify>";
 ```
 
 ---
@@ -449,6 +477,7 @@ const FARMER_SERVICE_PORT = '<from Coolify>';
 ### View All Services
 
 In Coolify UI:
+
 1. Go to **Projects** → **agrischeme-infra**
 2. You should see all 15 services listed
 3. All should show green "Running" status
@@ -463,11 +492,13 @@ docker stats
 ### View Service Logs
 
 In Coolify UI:
+
 1. Click on any service
 2. Go to **Logs** tab
 3. Real-time logs will stream
 
 Or via command line:
+
 ```bash
 docker logs -f <service-name>
 ```
@@ -475,6 +506,7 @@ docker logs -f <service-name>
 ### Restart a Service
 
 In Coolify UI:
+
 1. Click on the service
 2. Click **Restart** button
 3. Wait for health check to pass
@@ -512,6 +544,7 @@ After all services are deployed:
 ## Support
 
 For issues:
+
 - Check Coolify logs: **Service** → **Logs**
 - Check container status: `docker ps`
 - Check service health: `http://IP:PORT/health`

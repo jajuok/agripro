@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,25 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
+
+// Safely import expo-camera - it may not be available on all platforms
+let CameraView: React.ComponentType<any> | null = null;
+let useCameraPermissions: (() => [any, () => Promise<any>]) | null = null;
+let cameraAvailable = false;
+
+try {
+  const cameraModule = require('expo-camera');
+  CameraView = cameraModule.CameraView;
+  useCameraPermissions = cameraModule.useCameraPermissions;
+  cameraAvailable = true;
+} catch {
+  // expo-camera not available - will use gallery-only mode
+  cameraAvailable = false;
+}
+
+type CameraFacing = 'back' | 'front';
 import { COLORS, SPACING, FONT_SIZES } from '@/utils/constants';
 
 type PhotoData = {
@@ -28,17 +44,153 @@ type PhotoCaptureProps = {
   title?: string;
 };
 
+// Gallery-only fallback when camera is not available
+const GalleryOnlyCapture: React.FC<PhotoCaptureProps> = ({
+  onPhotoCapture,
+  onCancel,
+  title = 'Select Photo',
+}) => {
+  const [previewPhoto, setPreviewPhoto] = useState<PhotoData | null>(null);
+
+  const getCurrentLocation = async (): Promise<{ latitude: number | null; longitude: number | null }> => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        return { latitude: null, longitude: null };
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      return {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+    } catch {
+      return { latitude: null, longitude: null };
+    }
+  };
+
+  const pickFromGallery = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const location = await getCurrentLocation();
+        const photoData: PhotoData = {
+          uri: result.assets[0].uri,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          timestamp: new Date().toISOString(),
+        };
+        setPreviewPhoto(photoData);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick image from gallery.');
+    }
+  };
+
+  const confirmPhoto = () => {
+    if (previewPhoto) {
+      onPhotoCapture(previewPhoto);
+      setPreviewPhoto(null);
+    }
+  };
+
+  const retakePhoto = () => {
+    setPreviewPhoto(null);
+  };
+
+  // Preview mode
+  if (previewPhoto) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Preview</Text>
+        </View>
+
+        <Image source={{ uri: previewPhoto.uri }} style={styles.previewImage} />
+
+        {/* GPS info */}
+        <View style={styles.gpsInfo}>
+          {previewPhoto.latitude && previewPhoto.longitude ? (
+            <Text style={styles.gpsText}>
+              {previewPhoto.latitude.toFixed(6)}, {previewPhoto.longitude.toFixed(6)}
+            </Text>
+          ) : (
+            <Text style={styles.gpsTextWarning}>No GPS data available</Text>
+          )}
+        </View>
+
+        <View style={styles.previewActions}>
+          <TouchableOpacity style={styles.retakeButton} onPress={retakePhoto}>
+            <Text style={styles.retakeButtonText}>Choose Another</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.confirmButton} onPress={confirmPhoto}>
+            <Text style={styles.confirmButtonText}>Use Photo</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Gallery selection mode
+  return (
+    <View style={styles.galleryOnlyContainer}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
+          <Text style={styles.closeButtonText}>X</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{title}</Text>
+        <View style={styles.placeholder} />
+      </View>
+
+      <View style={styles.galleryOnlyContent}>
+        <Text style={styles.galleryOnlyText}>
+          Camera is not available on this device.{'\n'}
+          Please select a photo from your gallery.
+        </Text>
+        <TouchableOpacity style={styles.galleryOnlyButton} onPress={pickFromGallery}>
+          <Text style={styles.galleryOnlyButtonText}>Open Gallery</Text>
+        </TouchableOpacity>
+        {onCancel && (
+          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+};
+
 export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   onPhotoCapture,
   onCancel,
   showGalleryOption = true,
   title = 'Take Photo',
 }) => {
-  const [permission, requestPermission] = useCameraPermissions();
-  const [facing, setFacing] = useState<CameraType>('back');
+  // Use camera permissions hook if available, otherwise use a dummy state
+  const cameraPermissionResult = useCameraPermissions ? useCameraPermissions() : [null, async () => ({ granted: false })];
+  const [permission, requestPermission] = cameraPermissionResult;
+  const [facing, setFacing] = useState<CameraFacing>('back');
   const [isCapturing, setIsCapturing] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<PhotoData | null>(null);
-  const cameraRef = useRef<CameraView>(null);
+  const cameraRef = useRef<any>(null);
+
+  // If camera is not available, show gallery-only mode
+  if (!cameraAvailable) {
+    return (
+      <GalleryOnlyCapture
+        onPhotoCapture={onPhotoCapture}
+        onCancel={onCancel}
+        title={title}
+      />
+    );
+  }
 
   // Request permissions
   if (!permission) {
@@ -195,7 +347,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         <View style={styles.placeholder} />
       </View>
 
-      <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
+      {CameraView && <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
         {/* Overlay grid */}
         <View style={styles.gridOverlay}>
           <View style={styles.gridRow}>
@@ -214,7 +366,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <View style={styles.gridCell} />
           </View>
         </View>
-      </CameraView>
+      </CameraView>}
 
       <View style={styles.controls}>
         {showGalleryOption && (
@@ -534,6 +686,36 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
     fontSize: FONT_SIZES.sm,
     color: COLORS.gray[600],
+  },
+  // Gallery-only mode styles
+  galleryOnlyContainer: {
+    flex: 1,
+    backgroundColor: COLORS.gray[100],
+  },
+  galleryOnlyContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.xl,
+  },
+  galleryOnlyText: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.gray[700],
+    textAlign: 'center',
+    marginBottom: SPACING.xl,
+    lineHeight: 24,
+  },
+  galleryOnlyButton: {
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.xl,
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    marginBottom: SPACING.md,
+  },
+  galleryOnlyButtonText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZES.md,
+    fontWeight: '600',
   },
 });
 
