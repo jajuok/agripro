@@ -16,11 +16,14 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
-// 3. Force resolving these modules from the monorepo root
+// 3. Force resolving these modules correctly
+// 'expo' must resolve to the mobile workspace version (SDK 50) to match the native build,
+// not the root monorepo version (SDK 54) which requires native modules not present in SDK 50.
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
+  'expo': path.resolve(projectRoot, 'node_modules/expo'),
+  'expo-asset': path.resolve(monorepoRoot, 'node_modules/expo-asset'),
   'expo-router': path.resolve(monorepoRoot, 'node_modules/expo-router'),
-  'expo': path.resolve(monorepoRoot, 'node_modules/expo'),
   'react': path.resolve(monorepoRoot, 'node_modules/react'),
   'react-native': path.resolve(monorepoRoot, 'node_modules/react-native'),
 };
