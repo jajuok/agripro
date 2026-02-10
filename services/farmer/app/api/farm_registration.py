@@ -1,9 +1,12 @@
 """Farm registration workflow API endpoints."""
 
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 from app.core.database import get_db
 from app.schemas.farm_registration import (
@@ -58,6 +61,12 @@ async def start_registration(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.exception("Failed to start farm registration")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to start registration: {type(e).__name__}: {str(e)}",
+        )
 
 
 @router.get("/{farm_id}/status", response_model=FarmRegistrationStatus)

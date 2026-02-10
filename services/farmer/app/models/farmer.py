@@ -204,7 +204,9 @@ class FarmProfile(Base):
 
     # Verification
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    verification_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    verification_date: Mapped[datetime | None] = mapped_column(
+        "verified_at", DateTime(timezone=True)
+    )
     verified_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
 
     # Registration workflow tracking
@@ -418,14 +420,14 @@ class FarmDocument(Base):
 
     document_type: Mapped[str] = mapped_column(String(50))
     document_number: Mapped[str | None] = mapped_column(String(100))
-    file_url: Mapped[str] = mapped_column(String(500))
+    file_url: Mapped[str] = mapped_column("file_path", String(500))
     file_name: Mapped[str] = mapped_column(String(255))
     mime_type: Mapped[str | None] = mapped_column(String(100))
     file_size: Mapped[int | None] = mapped_column()
 
     # GPS metadata for tagged photos
-    gps_latitude: Mapped[float | None] = mapped_column(Float)
-    gps_longitude: Mapped[float | None] = mapped_column(Float)
+    gps_latitude: Mapped[float | None] = mapped_column("latitude", Float)
+    gps_longitude: Mapped[float | None] = mapped_column("longitude", Float)
     captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Description/notes
@@ -438,7 +440,9 @@ class FarmDocument(Base):
     verified_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     verification_notes: Mapped[str | None] = mapped_column(Text)
 
-    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    uploaded_at: Mapped[datetime] = mapped_column(
+        "created_at", DateTime(timezone=True), server_default=func.now()
+    )
 
     farm: Mapped["FarmProfile"] = relationship("FarmProfile", back_populates="documents")
 
@@ -453,7 +457,7 @@ class FarmAsset(Base):
         UUID(as_uuid=True), ForeignKey("farm_profiles.id", ondelete="CASCADE")
     )
 
-    asset_type: Mapped[str] = mapped_column(String(50))
+    asset_type: Mapped[str] = mapped_column("category", String(50))
     name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str | None] = mapped_column(Text)
 
@@ -495,7 +499,7 @@ class CropRecord(Base):
 
     # Crop details
     crop_name: Mapped[str] = mapped_column(String(100))
-    variety: Mapped[str | None] = mapped_column(String(100))
+    variety: Mapped[str | None] = mapped_column("crop_variety", String(100))
 
     # Season and year
     season: Mapped[str] = mapped_column(String(50))  # long_rains, short_rains, irrigated
@@ -504,11 +508,11 @@ class CropRecord(Base):
     harvest_date: Mapped[datetime | None] = mapped_column(DateTime)
 
     # Area
-    planted_acreage: Mapped[float | None] = mapped_column(Float)
+    planted_acreage: Mapped[float | None] = mapped_column("area_planted", Float)
 
     # Yield
-    expected_yield_kg: Mapped[float | None] = mapped_column(Float)
-    actual_yield_kg: Mapped[float | None] = mapped_column(Float)
+    expected_yield_kg: Mapped[float | None] = mapped_column("expected_yield", Float)
+    actual_yield_kg: Mapped[float | None] = mapped_column("actual_yield", Float)
 
     # Is this the current crop?
     is_current: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -544,7 +548,7 @@ class SoilTestReport(Base):
     # Test metadata
     test_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     tested_by: Mapped[str | None] = mapped_column(String(200))
-    lab_name: Mapped[str | None] = mapped_column(String(200))
+    lab_name: Mapped[str | None] = mapped_column("laboratory_name", String(200))
     sample_id: Mapped[str | None] = mapped_column(String(100))
 
     # Sample location
@@ -553,14 +557,14 @@ class SoilTestReport(Base):
     sample_depth_cm: Mapped[float | None] = mapped_column(Float)
 
     # Core results
-    texture: Mapped[str | None] = mapped_column(String(100))
-    ph_level: Mapped[float | None] = mapped_column(Float)
+    texture: Mapped[str | None] = mapped_column("soil_texture", String(100))
+    ph_level: Mapped[float | None] = mapped_column("ph_value", Float)
     organic_matter_percent: Mapped[float | None] = mapped_column(Float)
 
     # Macronutrients (in ppm)
-    nitrogen_ppm: Mapped[float | None] = mapped_column(Float)
-    phosphorus_ppm: Mapped[float | None] = mapped_column(Float)
-    potassium_ppm: Mapped[float | None] = mapped_column(Float)
+    nitrogen_ppm: Mapped[float | None] = mapped_column("nitrogen", Float)
+    phosphorus_ppm: Mapped[float | None] = mapped_column("phosphorus", Float)
+    potassium_ppm: Mapped[float | None] = mapped_column("potassium", Float)
 
     # Secondary nutrients
     calcium: Mapped[float | None] = mapped_column(Float)
@@ -574,10 +578,10 @@ class SoilTestReport(Base):
     full_report_data: Mapped[dict | None] = mapped_column(JSONBCompatible)
 
     # Document reference
-    report_file_url: Mapped[str | None] = mapped_column(String(500))
+    report_file_url: Mapped[str | None] = mapped_column("report_file_path", String(500))
 
-    # Recommendations
-    recommendations: Mapped[str | None] = mapped_column(Text)
+    # Recommendations (stored as JSONB in DB)
+    recommendations: Mapped[dict | None] = mapped_column(JSONBCompatible)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -595,23 +599,29 @@ class FieldVisit(Base):
     )
 
     # Visit details
-    visit_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    purpose: Mapped[str] = mapped_column(String(50))  # verification, inspection, extension, follow_up
+    visit_date: Mapped[datetime] = mapped_column(
+        "scheduled_date", DateTime(timezone=True)
+    )
+    purpose: Mapped[str] = mapped_column(
+        "visit_type", String(50)
+    )  # verification, inspection, extension, follow_up
 
     # Visitor info
     visitor_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))  # Extension officer/verifier user ID
     visitor_name: Mapped[str] = mapped_column(String(200))
 
     # Visit location verification
-    gps_latitude: Mapped[float | None] = mapped_column(Float)
-    gps_longitude: Mapped[float | None] = mapped_column(Float)
+    gps_latitude: Mapped[float | None] = mapped_column("check_in_latitude", Float)
+    gps_longitude: Mapped[float | None] = mapped_column("check_in_longitude", Float)
 
     # Status
-    verification_status: Mapped[str] = mapped_column(String(50), default="pending")  # pending, verified, rejected
+    verification_status: Mapped[str] = mapped_column(
+        "status", String(50), default="pending"
+    )  # pending, verified, rejected
 
-    # Findings
-    findings: Mapped[str | None] = mapped_column(Text)
-    recommendations: Mapped[str | None] = mapped_column(Text)
+    # Findings (stored as JSONB in DB)
+    findings: Mapped[dict | None] = mapped_column(JSONBCompatible)
+    recommendations: Mapped[str | None] = mapped_column("notes", Text)
     photos: Mapped[list | None] = mapped_column(JSONBCompatible)  # List of photo paths
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
