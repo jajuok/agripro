@@ -10,10 +10,10 @@ type QuickAction = {
 };
 
 const quickActions: QuickAction[] = [
-  { icon: '➕', label: 'Add Farm', route: '/farms/add', color: '#4CAF50', testID: 'home-action-add-farm' },
-  { icon: '📋', label: 'Check Eligibility', route: '/eligibility', color: '#2196F3', testID: 'home-action-check-eligibility' },
-  { icon: '📍', label: 'Record Location', route: '/farms/location', color: '#FF9800', testID: 'home-action-record-location' },
-  { icon: '📊', label: 'View Reports', route: '/reports', color: '#9C27B0', testID: 'home-action-view-reports' },
+  { icon: '🌱', label: 'Crop Plans', route: '/crop-planning', color: '#4CAF50', testID: 'home-action-crop-planning' },
+  { icon: '➕', label: 'Add Farm', route: '/farms/add', color: '#2196F3', testID: 'home-action-add-farm' },
+  { icon: '📋', label: 'Eligibility', route: '/eligibility', color: '#FF9800', testID: 'home-action-check-eligibility' },
+  { icon: '📊', label: 'Reports', route: '/reports', color: '#9C27B0', testID: 'home-action-view-reports' },
 ];
 
 export default function HomeScreen() {

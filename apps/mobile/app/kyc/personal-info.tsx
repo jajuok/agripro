@@ -30,7 +30,7 @@ export default function PersonalInfoScreen() {
   const [postalAddress, setPostalAddress] = useState('');
   const [postalCode, setPostalCode] = useState('');
 
-  const farmerId = user?.id;
+  const farmerId = user?.farmerId;
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');

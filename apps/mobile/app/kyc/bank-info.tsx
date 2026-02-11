@@ -43,7 +43,7 @@ export default function BankInfoScreen() {
   const [branchName, setBranchName] = useState('');
   const [showBankList, setShowBankList] = useState(false);
 
-  const farmerId = user?.id;
+  const farmerId = user?.farmerId;
 
   const handleSelectBank = (bank: string) => {
     setBankName(bank);

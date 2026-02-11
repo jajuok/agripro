@@ -7,17 +7,12 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import MapView, {
-  Marker,
-  Polygon,
-  PROVIDER_GOOGLE,
-  MapPressEvent,
-  Region,
-  LatLng,
-} from 'react-native-maps';
+import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { COLORS, SPACING, FONT_SIZES } from '@/utils/constants';
 import { gisApi } from '@/services/api';
+
+type LatLng = { latitude: number; longitude: number };
 
 type GeoJSONPolygon = {
   type: 'Polygon';
@@ -36,6 +31,146 @@ type BoundaryMapProps = {
   showControls?: boolean;
 };
 
+const buildLeafletHTML = (lat: number, lng: number) => {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body, #map { width: 100%; height: 100%; overflow: hidden; }
+#loading { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex;
+  align-items: center; justify-content: center; background: #f5f5f5; z-index: 9999;
+  font-family: sans-serif; color: #666; flex-direction: column; }
+#loading.hidden { display: none; }
+.marker-label { background: transparent !important; border: none !important;
+  box-shadow: none !important; color: #fff !important; font-weight: bold !important;
+  font-size: 11px !important; }
+</style>
+</head>
+<body>
+<div id="loading"><div style="font-size:32px;margin-bottom:8px">&#x1F5FA;&#xFE0F;</div><div>Loading map...</div></div>
+<div id="map"></div>
+<script>
+// Message handler defined BEFORE Leaflet loads so injectJavaScript always works
+var messageQueue = [];
+var mapReady = false;
+var drawingEnabled = false;
+var map, osmLayer, satelliteLayer, currentLayer, markers, polygon, currentLocMarker;
+
+function handleMessage(data) {
+  try {
+    var msg = typeof data === 'string' ? JSON.parse(data) : data;
+    if (!mapReady) { messageQueue.push(msg); return; }
+    processMessage(msg);
+  } catch(e) {
+    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: 'handleMessage: ' + e.message }));
+  }
+}
+
+function processMessage(msg) {
+  switch(msg.type) {
+    case 'setCenter':
+      map.setView([msg.lat, msg.lng], msg.zoom || 17);
+      break;
+    case 'setPoints':
+      updateMap(msg.points);
+      break;
+    case 'setDrawingEnabled':
+      drawingEnabled = msg.enabled;
+      break;
+    case 'showCurrentLocation':
+      showCurrentLocation(msg.lat, msg.lng);
+      break;
+    case 'toggleSatellite':
+      if (currentLayer === 'street') {
+        map.removeLayer(osmLayer); satelliteLayer.addTo(map); currentLayer = 'satellite';
+      } else {
+        map.removeLayer(satelliteLayer); osmLayer.addTo(map); currentLayer = 'street';
+      }
+      break;
+  }
+}
+
+function updateMap(pts) {
+  markers.forEach(function(m) { map.removeLayer(m); });
+  markers = [];
+  if (polygon) { map.removeLayer(polygon); polygon = null; }
+  pts.forEach(function(p, i) {
+    var color = '#2E7D32';
+    if (i === 0) color = '#4CAF50';
+    else if (i === pts.length - 1) color = '#FF9800';
+    var m = L.circleMarker([p.lat, p.lng], {
+      radius: 14, fillColor: color, color: '#fff', weight: 2, fillOpacity: 1
+    }).addTo(map);
+    m.bindTooltip(String(i + 1), { permanent: true, direction: 'center', className: 'marker-label' });
+    markers.push(m);
+  });
+  if (pts.length >= 3) {
+    polygon = L.polygon(pts.map(function(p) { return [p.lat, p.lng]; }), {
+      color: '#2E7D32', fillColor: 'rgba(76, 175, 80, 0.3)', weight: 2
+    }).addTo(map);
+  }
+}
+
+function showCurrentLocation(lat, lng) {
+  if (currentLocMarker) map.removeLayer(currentLocMarker);
+  currentLocMarker = L.circleMarker([lat, lng], {
+    radius: 8, fillColor: '#2196F3', color: '#fff', weight: 3, fillOpacity: 1
+  }).addTo(map);
+}
+
+function initMap() {
+  try {
+    markers = [];
+    polygon = null;
+    currentLocMarker = null;
+    currentLayer = 'street';
+
+    map = L.map('map', { zoomControl: false, attributionControl: false }).setView([${lat}, ${lng}], 17);
+    osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20 }).addTo(map);
+    satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 20 });
+
+    map.on('click', function(e) {
+      if (!drawingEnabled) return;
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'mapClick', lat: e.latlng.lat, lng: e.latlng.lng
+      }));
+    });
+
+    document.getElementById('loading').className = 'hidden';
+    mapReady = true;
+
+    // Process queued messages
+    messageQueue.forEach(function(msg) { processMessage(msg); });
+    messageQueue = [];
+
+    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready' }));
+  } catch(e) {
+    document.getElementById('loading').innerHTML = '<div>Map failed to load</div><div style="font-size:12px;color:#999;margin-top:4px">' + e.message + '</div>';
+    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: 'initMap: ' + e.message }));
+  }
+}
+
+// Load Leaflet dynamically
+var link = document.createElement('link');
+link.rel = 'stylesheet';
+link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+document.head.appendChild(link);
+
+var script = document.createElement('script');
+script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+script.onload = function() { initMap(); };
+script.onerror = function() {
+  document.getElementById('loading').innerHTML = '<div>Failed to load map library</div><div style="font-size:12px;color:#999;margin-top:4px">Check internet connection</div>';
+  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: 'Failed to load Leaflet from CDN' }));
+};
+document.head.appendChild(script);
+</script>
+</body>
+</html>`;
+};
+
 export const BoundaryMap: React.FC<BoundaryMapProps> = ({
   initialLocation,
   initialBoundary,
@@ -44,27 +179,50 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
   editable = true,
   showControls = true,
 }) => {
-  const mapRef = useRef<MapView>(null);
+  const webViewRef = useRef<WebView>(null);
   const [points, setPoints] = useState<LatLng[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isWalking, setIsWalking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
   const [areaAcres, setAreaAcres] = useState<number | null>(null);
-  const [currentLocation, setCurrentLocation] = useState<LatLng | null>(null);
-  const [region, setRegion] = useState<Region>({
-    latitude: initialLocation?.latitude || -1.286389,
-    longitude: initialLocation?.longitude || 36.817223,
-    latitudeDelta: 0.005,
-    longitudeDelta: 0.005,
-  });
 
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
 
-  // Convert GeoJSON to points
+  // Store callbacks in refs to avoid them triggering effects
+  const onBoundaryChangeRef = useRef(onBoundaryChange);
+  const onAreaCalculatedRef = useRef(onAreaCalculated);
+  onBoundaryChangeRef.current = onBoundaryChange;
+  onAreaCalculatedRef.current = onAreaCalculated;
+
+  const centerLat = initialLocation?.latitude || -1.286389;
+  const centerLng = initialLocation?.longitude || 36.817223;
+
+  const sendToMap = useCallback((msg: object) => {
+    if (!webViewRef.current) return;
+    const json = JSON.stringify(msg);
+    const escaped = json.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    webViewRef.current.injectJavaScript(`handleMessage('${escaped}'); true;`);
+  }, []);
+
+  // Send points to WebView whenever they change
+  useEffect(() => {
+    sendToMap({
+      type: 'setPoints',
+      points: points.map((p) => ({ lat: p.latitude, lng: p.longitude })),
+    });
+  }, [points, sendToMap]);
+
+  // Sync drawing mode to WebView
+  useEffect(() => {
+    sendToMap({ type: 'setDrawingEnabled', enabled: isDrawing && editable });
+  }, [isDrawing, editable, sendToMap]);
+
+  // Load initial boundary
   useEffect(() => {
     if (initialBoundary?.coordinates?.[0]) {
       const coords = initialBoundary.coordinates[0];
-      // Remove closing point if it's the same as the first
       const pts = coords.slice(0, -1).map((coord) => ({
         latitude: coord[1],
         longitude: coord[0],
@@ -73,58 +231,49 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
     }
   }, [initialBoundary]);
 
-  // Convert points to GeoJSON
+  // Convert points to GeoJSON (pure function, no deps)
   const toGeoJSON = useCallback((pts: LatLng[]): GeoJSONPolygon | null => {
     if (pts.length < 3) return null;
-
-    // Close the polygon
     const coordinates = [
       ...pts.map((p) => [p.longitude, p.latitude]),
       [pts[0].longitude, pts[0].latitude],
     ];
-
-    return {
-      type: 'Polygon',
-      coordinates: [coordinates],
-    };
+    return { type: 'Polygon', coordinates: [coordinates] };
   }, []);
 
-  // Calculate area when points change
-  const calculateArea = useCallback(async (pts: LatLng[]) => {
-    if (pts.length < 3) {
-      setAreaAcres(null);
-      onAreaCalculated?.(0);
-      return;
-    }
-
-    const geojson = toGeoJSON(pts);
-    if (!geojson) return;
-
-    try {
-      const result = await gisApi.calculateArea(geojson);
-      setAreaAcres(result.area_acres);
-      onAreaCalculated?.(result.area_acres);
-    } catch (error) {
-      console.error('Failed to calculate area:', error);
-    }
-  }, [toGeoJSON, onAreaCalculated]);
-
-  // Notify parent of boundary changes
+  // Notify parent and calculate area when points change
+  // Uses refs for callbacks to avoid infinite re-render loops
   useEffect(() => {
     const geojson = toGeoJSON(points);
-    onBoundaryChange?.(geojson);
-    if (points.length >= 3) {
-      calculateArea(points);
+    onBoundaryChangeRef.current?.(geojson);
+
+    if (points.length >= 3 && geojson) {
+      gisApi.calculateArea(geojson).then((result) => {
+        setAreaAcres(result.area_acres);
+        onAreaCalculatedRef.current?.(result.area_acres);
+      }).catch((error) => {
+        console.error('Failed to calculate area:', error);
+      });
+    } else {
+      setAreaAcres(null);
     }
-  }, [points, toGeoJSON, onBoundaryChange, calculateArea]);
+  }, [points, toGeoJSON]);
 
-  // Handle map press to add point
-  const handleMapPress = (event: MapPressEvent) => {
-    if (!editable || !isDrawing) return;
-
-    const { coordinate } = event.nativeEvent;
-    setPoints((prev) => [...prev, coordinate]);
-  };
+  // Handle messages from WebView
+  const handleWebViewMessage = useCallback((event: { nativeEvent: { data: string } }) => {
+    try {
+      const msg = JSON.parse(event.nativeEvent.data);
+      if (msg.type === 'ready') {
+        setMapReady(true);
+        setMapError(null);
+      } else if (msg.type === 'mapClick') {
+        setPoints((prev) => [...prev, { latitude: msg.lat, longitude: msg.lng }]);
+      } else if (msg.type === 'error') {
+        console.warn('BoundaryMap WebView error:', msg.message);
+        setMapError(msg.message);
+      }
+    } catch {}
+  }, []);
 
   // Start walk-the-boundary mode
   const startWalking = async () => {
@@ -133,35 +282,23 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
       Alert.alert('Permission Denied', 'Location permission is required to walk the boundary.');
       return;
     }
-
     setIsWalking(true);
     setPoints([]);
 
-    // Watch position and add points
     locationSubscription.current = await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.BestForNavigation,
-        distanceInterval: 5, // Add point every 5 meters
-      },
+      { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 5 },
       (location) => {
         const newPoint = {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         };
-        setCurrentLocation(newPoint);
         setPoints((prev) => [...prev, newPoint]);
-
-        // Center map on current location
-        mapRef.current?.animateToRegion({
-          ...newPoint,
-          latitudeDelta: 0.002,
-          longitudeDelta: 0.002,
-        });
+        sendToMap({ type: 'showCurrentLocation', lat: newPoint.latitude, lng: newPoint.longitude });
+        sendToMap({ type: 'setCenter', lat: newPoint.latitude, lng: newPoint.longitude, zoom: 18 });
       }
     );
   };
 
-  // Stop walk-the-boundary mode
   const stopWalking = () => {
     if (locationSubscription.current) {
       locationSubscription.current.remove();
@@ -170,34 +307,27 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
     setIsWalking(false);
   };
 
-  // Clear all points
   const clearBoundary = () => {
-    Alert.alert(
-      'Clear Boundary',
-      'Are you sure you want to clear the boundary?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: () => {
-            setPoints([]);
-            setAreaAcres(null);
-            onBoundaryChange?.(null);
-          },
+    Alert.alert('Clear Boundary', 'Are you sure you want to clear the boundary?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: () => {
+          setPoints([]);
+          setAreaAcres(null);
+          onBoundaryChange?.(null);
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  // Undo last point
   const undoLastPoint = () => {
     if (points.length > 0) {
       setPoints((prev) => prev.slice(0, -1));
     }
   };
 
-  // Get current location
   const goToCurrentLocation = async () => {
     setIsLoading(true);
     try {
@@ -206,21 +336,16 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
         Alert.alert('Permission Denied', 'Location permission is required.');
         return;
       }
-
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
-
-      const newRegion = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      };
-
-      setRegion(newRegion);
-      mapRef.current?.animateToRegion(newRegion);
-    } catch (error) {
+      sendToMap({
+        type: 'setCenter',
+        lat: location.coords.latitude,
+        lng: location.coords.longitude,
+        zoom: 17,
+      });
+    } catch {
       Alert.alert('Error', 'Failed to get current location.');
     } finally {
       setIsLoading(false);
@@ -238,59 +363,33 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
+      <WebView
+        ref={webViewRef}
+        source={{ html: buildLeafletHTML(centerLat, centerLng), baseUrl: 'https://unpkg.com' }}
         style={styles.map}
-        provider={PROVIDER_GOOGLE}
-        initialRegion={region}
-        onPress={handleMapPress}
-        showsUserLocation
-        showsMyLocationButton={false}
-        mapType="hybrid"
-      >
-        {/* Polygon */}
-        {points.length >= 3 && (
-          <Polygon
-            coordinates={points}
-            fillColor="rgba(76, 175, 80, 0.3)"
-            strokeColor={COLORS.primary}
-            strokeWidth={2}
-          />
-        )}
+        onMessage={handleWebViewMessage}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        mixedContentMode="always"
+        allowFileAccess={true}
+        originWhitelist={['*']}
+        scrollEnabled={false}
+        bounces={false}
+        overScrollMode="never"
+        startInLoadingState={false}
+        cacheEnabled={true}
+        onError={(e) => {
+          console.warn('WebView error:', e.nativeEvent);
+          setMapError('WebView failed to load');
+        }}
+      />
 
-        {/* Markers for each point */}
-        {editable &&
-          points.map((point, index) => (
-            <Marker
-              key={index}
-              coordinate={point}
-              anchor={{ x: 0.5, y: 0.5 }}
-              draggable={editable && !isWalking}
-              onDragEnd={(e) => {
-                const newPoints = [...points];
-                newPoints[index] = e.nativeEvent.coordinate;
-                setPoints(newPoints);
-              }}
-            >
-              <View
-                style={[
-                  styles.marker,
-                  index === 0 && styles.markerStart,
-                  index === points.length - 1 && styles.markerEnd,
-                ]}
-              >
-                <Text style={styles.markerText}>{index + 1}</Text>
-              </View>
-            </Marker>
-          ))}
-
-        {/* Current location marker when walking */}
-        {isWalking && currentLocation && (
-          <Marker coordinate={currentLocation}>
-            <View style={styles.currentLocationMarker} />
-          </Marker>
-        )}
-      </MapView>
+      {/* Error overlay */}
+      {mapError && (
+        <View style={styles.errorOverlay}>
+          <Text style={styles.errorText}>{mapError}</Text>
+        </View>
+      )}
 
       {/* Area display */}
       {areaAcres !== null && (
@@ -318,7 +417,7 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
                 style={[styles.controlButton, styles.controlButtonSecondary]}
                 onPress={startWalking}
               >
-                <Text style={styles.controlText}>Walk Boundary</Text>
+                <Text style={[styles.controlText, styles.controlTextActive]}>Walk Boundary</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -351,6 +450,13 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
               Clear
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.controlButtonSmall}
+            onPress={() => sendToMap({ type: 'toggleSatellite' })}
+          >
+            <Text style={styles.controlTextSmall}>Satellite</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -382,6 +488,22 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  errorOverlay: {
+    position: 'absolute',
+    top: SPACING.md,
+    left: SPACING.md,
+    right: SPACING.md,
+    backgroundColor: '#FFF3E0',
+    padding: SPACING.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFB74D',
+  },
+  errorText: {
+    fontSize: FONT_SIZES.xs,
+    color: '#E65100',
+    textAlign: 'center',
   },
   areaContainer: {
     position: 'absolute',
@@ -478,35 +600,6 @@ const styles = StyleSheet.create({
   },
   locationButtonText: {
     fontSize: 20,
-  },
-  marker: {
-    backgroundColor: COLORS.primary,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.white,
-  },
-  markerStart: {
-    backgroundColor: COLORS.success,
-  },
-  markerEnd: {
-    backgroundColor: COLORS.secondary,
-  },
-  markerText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZES.xs,
-    fontWeight: 'bold',
-  },
-  currentLocationMarker: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: COLORS.info,
-    borderWidth: 3,
-    borderColor: COLORS.white,
   },
   instructions: {
     position: 'absolute',

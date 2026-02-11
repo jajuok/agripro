@@ -22,18 +22,18 @@ export default function FarmsScreen() {
   // Fetch farms on mount and when screen is focused
   useFocusEffect(
     useCallback(() => {
-      if (user?.id) {
-        fetchFarms(user.id);
+      if (user?.farmerId) {
+        fetchFarms(user.farmerId);
       }
-    }, [user?.id, fetchFarms])
+    }, [user?.farmerId, fetchFarms])
   );
 
   const onRefresh = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.farmerId) return;
     setRefreshing(true);
-    await fetchFarms(user.id);
+    await fetchFarms(user.farmerId);
     setRefreshing(false);
-  }, [fetchFarms, user?.id]);
+  }, [fetchFarms, user?.farmerId]);
 
   const getLocation = (farm: Farm): string => {
     if (farm.county) {

@@ -60,13 +60,25 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await authApi.loginPhone(phoneNumber, pin);
 
-          // Resolve farmer profile
+          // Resolve farmer profile, auto-create if missing
           let farmerId: string | null = null;
           try {
             const farmer = await farmerApi.getByUserId(response.user_id);
             farmerId = farmer.id;
           } catch {
-            // Farmer profile may not exist yet
+            // Farmer profile doesn't exist yet - auto-create it
+            try {
+              const farmer = await farmerApi.create({
+                user_id: response.user_id,
+                tenant_id: '00000000-0000-0000-0000-000000000001',
+                first_name: response.first_name || '',
+                last_name: response.last_name || '',
+                phone_number: response.phone_number || phoneNumber,
+              });
+              farmerId = farmer.id;
+            } catch {
+              console.warn('Failed to create farmer profile during login');
+            }
           }
 
           set({

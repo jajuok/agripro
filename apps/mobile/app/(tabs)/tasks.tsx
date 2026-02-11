@@ -1,26 +1,10 @@
-import { View, Text, StyleSheet, SectionList, TouchableOpacity } from 'react-native';
-// Using Text-based icons instead of Ionicons to avoid font loading issues
-
-type Task = {
-  id: string;
-  title: string;
-  farm: string;
-  dueDate: string;
-  priority: 'high' | 'medium' | 'low';
-  completed: boolean;
-};
-
-const tasks = {
-  today: [
-    { id: '1', title: 'Irrigation - Plot A', farm: 'Main Farm', dueDate: 'Today', priority: 'high', completed: false },
-    { id: '2', title: 'Check pest traps', farm: 'Main Farm', dueDate: 'Today', priority: 'medium', completed: true },
-  ] as Task[],
-  upcoming: [
-    { id: '3', title: 'Fertilizer Application', farm: 'Hill Farm', dueDate: 'Tomorrow', priority: 'high', completed: false },
-    { id: '4', title: 'Soil testing', farm: 'Riverside Plot', dueDate: 'In 3 days', priority: 'low', completed: false },
-    { id: '5', title: 'Harvest preparation', farm: 'Main Farm', dueDate: 'Next week', priority: 'medium', completed: false },
-  ] as Task[],
-};
+import { useCallback } from 'react';
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCropPlanningStore } from '@/store/crop-planning';
+import { useAuthStore } from '@/store/auth';
+import { ACTIVITY_TYPE_ICONS, COLORS } from '@/utils/constants';
+import type { UpcomingActivity } from '@/types/crop-planning';
 
 const priorityColors = {
   high: '#D32F2F',
@@ -28,50 +12,104 @@ const priorityColors = {
   low: '#4CAF50',
 };
 
-export default function TasksScreen() {
-  const sections = [
-    { title: 'Today', data: tasks.today },
-    { title: 'Upcoming', data: tasks.upcoming },
-  ];
+function getPriorityLevel(priority: number): 'high' | 'medium' | 'low' {
+  if (priority <= 3) return 'high';
+  if (priority <= 6) return 'medium';
+  return 'low';
+}
 
-  const renderTask = ({ item }: { item: Task }) => (
-    <TouchableOpacity style={styles.taskCard}>
-      <TouchableOpacity style={styles.checkbox}>
-        {item.completed ? (
-          <Text style={{ fontSize: 24 }}>✅</Text>
-        ) : (
-          <Text style={{ fontSize: 24, color: '#ccc' }}>☐</Text>
-        )}
-      </TouchableOpacity>
-      <View style={styles.taskContent}>
-        <Text style={[styles.taskTitle, item.completed && styles.completedTask]}>
-          {item.title}
-        </Text>
-        <Text style={styles.taskFarm}>{item.farm}</Text>
-      </View>
-      <View style={styles.taskMeta}>
-        <View style={[styles.priorityDot, { backgroundColor: priorityColors[item.priority] }]} />
-        <Text style={styles.taskDue}>{item.dueDate}</Text>
-      </View>
-    </TouchableOpacity>
+function getDueLabel(daysUntil: number): string {
+  if (daysUntil < 0) return `${Math.abs(daysUntil)}d overdue`;
+  if (daysUntil === 0) return 'Today';
+  if (daysUntil === 1) return 'Tomorrow';
+  if (daysUntil <= 7) return `In ${daysUntil} days`;
+  return `In ${Math.ceil(daysUntil / 7)} weeks`;
+}
+
+export default function TasksScreen() {
+  const user = useAuthStore((s) => s.user);
+  const { upcomingActivities, fetchUpcomingActivities, isLoading } = useCropPlanningStore();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.farmerId) fetchUpcomingActivities(user.farmerId, 14);
+    }, [user?.farmerId])
   );
+
+  const todayItems = upcomingActivities.filter((a) => a.daysUntil <= 0);
+  const upcomingItems = upcomingActivities.filter((a) => a.daysUntil > 0);
+
+  const sections = [
+    { title: 'Today', data: todayItems },
+    { title: 'Upcoming', data: upcomingItems },
+  ].filter((s) => s.data.length > 0);
+
+  const renderTask = ({ item }: { item: UpcomingActivity }) => {
+    const icon = ACTIVITY_TYPE_ICONS[item.activity.activityType] || '📋';
+    const priority = getPriorityLevel(item.activity.priority);
+    const isCompleted = item.activity.status === 'completed';
+
+    return (
+      <TouchableOpacity
+        style={styles.taskCard}
+        onPress={() =>
+          router.push({
+            pathname: `/crop-planning/${item.planId}/activity-complete`,
+            params: { activityId: item.activity.id },
+          } as any)
+        }
+        testID={`tasks-item-${item.activity.id}`}
+      >
+        <View style={styles.iconContainer}>
+          <Text style={{ fontSize: 24 }}>{icon}</Text>
+        </View>
+        <View style={styles.taskContent}>
+          <Text style={[styles.taskTitle, isCompleted && styles.completedTask]} numberOfLines={1}>
+            {item.activity.title}
+          </Text>
+          <Text style={styles.taskFarm}>{item.cropName} - {item.farmName}</Text>
+        </View>
+        <View style={styles.taskMeta}>
+          <View style={[styles.priorityDot, { backgroundColor: priorityColors[priority] }]} />
+          <Text style={[styles.taskDue, item.isOverdue && styles.taskOverdue]}>
+            {getDueLabel(item.daysUntil)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View testID="tasks-screen" style={styles.container}>
-      <SectionList
-        sections={sections}
-        renderItem={renderTask}
-        renderSectionHeader={({ section }) => (
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <Text style={styles.sectionCount}>{section.data.length} tasks</Text>
-          </View>
-        )}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        stickySectionHeadersEnabled={false}
-      />
-      <TouchableOpacity style={styles.fab}>
+      {isLoading ? (
+        <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
+      ) : (
+        <SectionList
+          sections={sections}
+          renderItem={renderTask}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+              <Text style={styles.sectionCount}>{section.data.length} tasks</Text>
+            </View>
+          )}
+          keyExtractor={(item) => item.activity.id}
+          contentContainerStyle={styles.list}
+          stickySectionHeadersEnabled={false}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>✅</Text>
+              <Text style={styles.emptyText}>No tasks</Text>
+              <Text style={styles.emptySubtext}>Create a crop plan to generate farming tasks</Text>
+            </View>
+          }
+        />
+      )}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/crop-planning/create')}
+        testID="tasks-fab-create"
+      >
         <Text style={{ fontSize: 28, color: '#fff' }}>+</Text>
       </TouchableOpacity>
     </View>
@@ -83,6 +121,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  loader: { marginTop: 48 },
   list: {
     padding: 16,
   },
@@ -114,7 +153,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  checkbox: {
+  iconContainer: {
     marginRight: 12,
   },
   taskContent: {
@@ -147,6 +186,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
   },
+  taskOverdue: {
+    color: '#D32F2F',
+    fontWeight: '600',
+  },
   fab: {
     position: 'absolute',
     right: 16,
@@ -163,4 +206,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 6,
   },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyText: { fontSize: 16, fontWeight: '600', color: '#333' },
+  emptySubtext: { fontSize: 13, color: '#666', marginTop: 4 },
 });

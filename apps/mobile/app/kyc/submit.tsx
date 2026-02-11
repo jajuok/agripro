@@ -18,7 +18,7 @@ export default function SubmitKYCScreen() {
   const { user } = useAuthStore();
   const { status, isLoading, submitForReview } = useKYCStore();
 
-  const farmerId = user?.id;
+  const farmerId = user?.farmerId;
 
   const handleSubmit = async () => {
     if (!farmerId) {

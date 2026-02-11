@@ -66,3 +66,162 @@ export const OWNERSHIP_TYPES = {
   COMMUNAL: 'communal',
   FAMILY: 'family',
 } as const;
+
+// =============================================================================
+// Crop Planning Constants
+// =============================================================================
+
+export const SEASONS = {
+  LONG_RAINS: 'long_rains',
+  SHORT_RAINS: 'short_rains',
+  IRRIGATED: 'irrigated',
+  DRY_SEASON: 'dry_season',
+} as const;
+
+export const SEASON_LABELS: Record<string, string> = {
+  long_rains: 'Long Rains',
+  short_rains: 'Short Rains',
+  irrigated: 'Irrigated',
+  dry_season: 'Dry Season',
+};
+
+export const CROP_PLAN_STATUS = {
+  DRAFT: 'draft',
+  ACTIVE: 'active',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+} as const;
+
+export const CROP_PLAN_STATUS_COLORS: Record<string, string> = {
+  draft: '#9E9E9E',
+  active: '#4CAF50',
+  completed: '#2196F3',
+  cancelled: '#D32F2F',
+};
+
+export const ACTIVITY_TYPES = {
+  LAND_PREPARATION: 'land_preparation',
+  PLANTING: 'planting',
+  FERTILIZER_APPLICATION: 'fertilizer_application',
+  PESTICIDE_APPLICATION: 'pesticide_application',
+  WEEDING: 'weeding',
+  IRRIGATION: 'irrigation',
+  PRUNING: 'pruning',
+  THINNING: 'thinning',
+  STAKING: 'staking',
+  HARVESTING: 'harvesting',
+  POST_HARVEST: 'post_harvest',
+  SOIL_TESTING: 'soil_testing',
+  SCOUTING: 'scouting',
+  OTHER: 'other',
+} as const;
+
+export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
+  land_preparation: 'Land Preparation',
+  planting: 'Planting',
+  fertilizer_application: 'Fertilizer',
+  pesticide_application: 'Pesticide',
+  weeding: 'Weeding',
+  irrigation: 'Irrigation',
+  pruning: 'Pruning',
+  thinning: 'Thinning',
+  staking: 'Staking',
+  harvesting: 'Harvesting',
+  post_harvest: 'Post Harvest',
+  soil_testing: 'Soil Testing',
+  scouting: 'Scouting',
+  other: 'Other',
+};
+
+export const ACTIVITY_TYPE_ICONS: Record<string, string> = {
+  land_preparation: '🚜',
+  planting: '🌱',
+  fertilizer_application: '🧪',
+  pesticide_application: '🛡️',
+  weeding: '🌿',
+  irrigation: '💧',
+  pruning: '✂️',
+  thinning: '🌾',
+  staking: '🪵',
+  harvesting: '🌽',
+  post_harvest: '📦',
+  soil_testing: '🔬',
+  scouting: '👀',
+  other: '📋',
+};
+
+export const ACTIVITY_STATUS = {
+  SCHEDULED: 'scheduled',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  SKIPPED: 'skipped',
+  OVERDUE: 'overdue',
+} as const;
+
+export const ACTIVITY_STATUS_COLORS: Record<string, string> = {
+  scheduled: '#2196F3',
+  in_progress: '#FF9800',
+  completed: '#4CAF50',
+  skipped: '#9E9E9E',
+  overdue: '#D32F2F',
+};
+
+export const INPUT_CATEGORIES = {
+  SEED: 'seed',
+  FERTILIZER: 'fertilizer',
+  PESTICIDE: 'pesticide',
+  HERBICIDE: 'herbicide',
+  FUNGICIDE: 'fungicide',
+  GROWTH_REGULATOR: 'growth_regulator',
+  OTHER: 'other',
+} as const;
+
+export const INPUT_CATEGORY_LABELS: Record<string, string> = {
+  seed: 'Seeds',
+  fertilizer: 'Fertilizer',
+  pesticide: 'Pesticide',
+  herbicide: 'Herbicide',
+  fungicide: 'Fungicide',
+  growth_regulator: 'Growth Regulator',
+  other: 'Other',
+};
+
+export const PROCUREMENT_STATUS = {
+  PLANNED: 'planned',
+  ORDERED: 'ordered',
+  RECEIVED: 'received',
+  APPLIED: 'applied',
+} as const;
+
+export const PROCUREMENT_STATUS_COLORS: Record<string, string> = {
+  planned: '#9E9E9E',
+  ordered: '#FF9800',
+  received: '#2196F3',
+  applied: '#4CAF50',
+};
+
+export const IRRIGATION_METHODS = {
+  DRIP: 'drip',
+  SPRINKLER: 'sprinkler',
+  FURROW: 'furrow',
+  FLOOD: 'flood',
+  MANUAL: 'manual',
+  PIVOT: 'pivot',
+  SUBSURFACE: 'subsurface',
+} as const;
+
+export const IRRIGATION_METHOD_LABELS: Record<string, string> = {
+  drip: 'Drip',
+  sprinkler: 'Sprinkler',
+  furrow: 'Furrow',
+  flood: 'Flood',
+  manual: 'Manual',
+  pivot: 'Pivot',
+  subsurface: 'Subsurface',
+};
+
+export const ALERT_SEVERITY_COLORS: Record<string, string> = {
+  info: '#2196F3',
+  warning: '#FF9800',
+  critical: '#D32F2F',
+};

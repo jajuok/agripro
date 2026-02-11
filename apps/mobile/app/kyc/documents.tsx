@@ -73,7 +73,7 @@ export default function DocumentsScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
 
-  const farmerId = user?.id;
+  const farmerId = user?.farmerId;
 
   useEffect(() => {
     if (farmerId && !status) {

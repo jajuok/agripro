@@ -139,6 +139,7 @@ apiClient.interceptors.request.use(
             case 'documents':
             case 'farm-registration':
             case 'crop-planning':
+            case 'eligibility':
               // All these use the farmer service
               serviceUrl = PRODUCTION_SERVICE_URLS.farmer;
               break;
@@ -182,11 +183,11 @@ apiClient.interceptors.request.use(
 
           if (serviceUrl) {
             config.baseURL = serviceUrl;
-            // Remove service prefix and prepend /api/v1
-            // e.g., /auth/register -> /api/v1/register
-            const urlWithoutServicePrefix = config.url.replace(servicePath, '');
-            config.url = '/api/v1' + urlWithoutServicePrefix;
-            console.log(`[PRODUCTION] Routing ${servicePath} to ${config.baseURL}${config.url}`);
+            // Keep the full path including service prefix, prepend /api/v1
+            // e.g., /auth/register/phone -> /api/v1/auth/register/phone
+            // Backend services expect the service prefix in the route path
+            config.url = '/api/v1' + config.url;
+            console.log(`[PRODUCTION] Routing to ${config.baseURL}${config.url}`);
           }
         }
         // Development mode - use direct service ports
@@ -195,12 +196,10 @@ apiClient.interceptors.request.use(
 
           if (servicePort) {
             const host = getDevServerHost();
-            // Update baseURL to point directly to the service port
             config.baseURL = `http://${host}:${servicePort}`;
-            // Remove service prefix and prepend /api/v1
-            const urlWithoutServicePrefix = config.url.replace(servicePath, '');
-            config.url = '/api/v1' + urlWithoutServicePrefix;
-            console.log(`[DEV MODE] Routing ${servicePath} to ${config.baseURL}${config.url}`);
+            // Keep the full path including service prefix, prepend /api/v1
+            config.url = '/api/v1' + config.url;
+            console.log(`[DEV MODE] Routing to ${config.baseURL}${config.url}`);
           }
         }
         // Otherwise use unified gateway (config.baseURL already set)

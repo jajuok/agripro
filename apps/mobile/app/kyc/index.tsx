@@ -18,9 +18,7 @@ export default function KYCDashboard() {
   const { user } = useAuthStore();
   const { status, isLoading, error, getStatus, startKYC } = useKYCStore();
 
-  // Get farmer_id from user (this would come from farmer profile)
-  // For now, we'll use a placeholder
-  const farmerId = user?.id; // In production, get actual farmer_id from farmer profile
+  const farmerId = user?.farmerId;
 
   useEffect(() => {
     if (farmerId) {

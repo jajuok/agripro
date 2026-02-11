@@ -92,13 +92,13 @@ export default function AddFarmScreen() {
       return;
     }
 
-    if (!user?.id) {
-      Alert.alert('Error', 'User not authenticated.');
+    if (!user?.farmerId) {
+      Alert.alert('Error', 'Farmer profile not found. Please log out and log in again.');
       return;
     }
 
     try {
-      const farmId = await startRegistration(user.id, name.trim(), latitude, longitude);
+      const farmId = await startRegistration(user.farmerId, name.trim(), latitude, longitude);
       router.replace(`/farms/${farmId}/boundary`);
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to start registration.');
