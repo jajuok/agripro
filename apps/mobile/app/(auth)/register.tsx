@@ -17,10 +17,9 @@ export default function RegisterScreen() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
+    phone: '+254',
+    pin: '',
+    confirmPin: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,20 +27,25 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     // Validate required fields
-    if (!formData.firstName.trim() || !formData.lastName.trim() ||
-        !formData.email.trim() || !formData.phone.trim() || !formData.password) {
-      setError('All fields are required');
+    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.phone.trim()) {
+      setError('Name and phone number are required');
       return;
     }
 
-    // Validate password length (backend requires at least 8 characters)
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+    // Validate Kenyan phone number format
+    const phoneRegex = /^\+254[17]\d{8}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      setError('Enter a valid phone number (e.g. +254712345678)');
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+    if (formData.pin.length !== 4 || !/^\d{4}$/.test(formData.pin)) {
+      setError('PIN must be exactly 4 digits');
+      return;
+    }
+
+    if (formData.pin !== formData.confirmPin) {
+      setError('PINs do not match');
       return;
     }
 
@@ -52,15 +56,10 @@ export default function RegisterScreen() {
       await register(formData);
       router.replace('/(tabs)/home');
     } catch (err: any) {
-      console.error('Registration error:', err);
-      console.error('Error response:', err?.response?.data);
-
-      // Parse validation errors from backend
       const detail = err?.response?.data?.detail;
       let errorMessage = 'Registration failed. Please try again.';
 
       if (Array.isArray(detail) && detail.length > 0) {
-        // Handle Pydantic validation errors
         const firstError = detail[0];
         const field = firstError.loc?.slice(-1)[0] || 'field';
         errorMessage = `${field}: ${firstError.msg}`;
@@ -93,6 +92,7 @@ export default function RegisterScreen() {
           placeholder="First Name"
           value={formData.firstName}
           onChangeText={(text) => setFormData({ ...formData, firstName: text })}
+          autoCapitalize="words"
         />
 
         <TextInput
@@ -101,47 +101,38 @@ export default function RegisterScreen() {
           placeholder="Last Name"
           value={formData.lastName}
           onChangeText={(text) => setFormData({ ...formData, lastName: text })}
-        />
-
-        <TextInput
-          testID="email-input"
-          style={styles.input}
-          placeholder="Email"
-          value={formData.email}
-          onChangeText={(text) => setFormData({ ...formData, email: text })}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          textContentType="none"
-          autoComplete="off"
+          autoCapitalize="words"
         />
 
         <TextInput
           testID="phone-input"
           style={styles.input}
-          placeholder="Phone Number"
+          placeholder="Phone Number (+254...)"
           value={formData.phone}
           onChangeText={(text) => setFormData({ ...formData, phone: text })}
           keyboardType="phone-pad"
         />
 
         <TextInput
-          testID="password-input"
+          testID="pin-input"
           style={styles.input}
-          placeholder="Password"
-          value={formData.password}
-          onChangeText={(text) => setFormData({ ...formData, password: text })}
-          autoCapitalize="none"
-          autoCorrect={false}
+          placeholder="4-Digit PIN"
+          value={formData.pin}
+          onChangeText={(text) => setFormData({ ...formData, pin: text.replace(/[^0-9]/g, '') })}
+          secureTextEntry
+          maxLength={4}
+          keyboardType="number-pad"
         />
 
         <TextInput
-          testID="confirm-password-input"
+          testID="confirm-pin-input"
           style={styles.input}
-          placeholder="Confirm Password"
-          value={formData.confirmPassword}
-          onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
-          autoCapitalize="none"
-          autoCorrect={false}
+          placeholder="Confirm PIN"
+          value={formData.confirmPin}
+          onChangeText={(text) => setFormData({ ...formData, confirmPin: text.replace(/[^0-9]/g, '') })}
+          secureTextEntry
+          maxLength={4}
+          keyboardType="number-pad"
         />
 
         <TouchableOpacity
@@ -160,7 +151,7 @@ export default function RegisterScreen() {
         <View style={styles.loginContainer}>
           <Text style={styles.loginText}>Already have an account? </Text>
           <Link href="/(auth)/login" asChild>
-            <TouchableOpacity>
+            <TouchableOpacity testID="login-link">
               <Text style={styles.loginLink}>Login</Text>
             </TouchableOpacity>
           </Link>

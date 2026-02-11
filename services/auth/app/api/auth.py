@@ -13,6 +13,8 @@ from app.schemas.auth import (
     PasswordChangeRequest,
     PasswordResetConfirm,
     PasswordResetRequest,
+    PhoneLoginRequest,
+    PhoneRegisterRequest,
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
@@ -72,6 +74,45 @@ async def register(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Registration error: {type(e).__name__}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {type(e).__name__}"
+        )
+
+
+@router.post("/register/phone", response_model=LoginResponse, status_code=status.HTTP_201_CREATED)
+async def register_phone(
+    request_data: PhoneRegisterRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> LoginResponse:
+    """Register a new farmer account using phone number and PIN."""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    service = AuthService(db)
+    audit = AuditService(db)
+
+    try:
+        result = await service.register_phone(request_data)
+
+        try:
+            await audit.log(
+                action=AuditAction.REGISTER,
+                resource_type=ResourceType.USER,
+                resource_id=result.user_id,
+                details={"phone_number": request_data.phone_number, "method": "phone_pin"},
+                ip_address=get_client_ip(request),
+                user_agent=request.headers.get("User-Agent"),
+            )
+        except Exception as audit_error:
+            logger.warning(f"Audit logging failed: {audit_error}")
+
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"Phone registration error: {type(e).__name__}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Registration failed: {type(e).__name__}"
@@ -139,6 +180,78 @@ async def login(
     # Successful login
     await tracker.record_attempt(
         email=request_data.email,
+        ip_address=ip_address,
+        success=True,
+        user_agent=user_agent,
+    )
+    await audit.log(
+        action=AuditAction.LOGIN_SUCCESS,
+        resource_type=ResourceType.USER,
+        resource_id=result.user_id,
+        user_id=result.user_id,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
+    return result
+
+
+@router.post("/login/phone", response_model=LoginResponse)
+async def login_phone(
+    request_data: PhoneLoginRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> LoginResponse:
+    """Authenticate farmer with phone number and PIN."""
+    service = AuthService(db)
+    tracker = LoginTracker(db)
+    audit = AuditService(db)
+
+    ip_address = get_client_ip(request)
+    user_agent = request.headers.get("User-Agent")
+
+    # Check for lockout using phone number as identifier
+    if await tracker.is_locked_out(request_data.phone_number, ip_address):
+        await tracker.record_attempt(
+            email=request_data.phone_number,
+            ip_address=ip_address,
+            success=False,
+            user_agent=user_agent,
+            failure_reason="account_locked",
+        )
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts. Please try again later.",
+        )
+
+    result = await service.login_phone(request_data.phone_number, request_data.pin)
+
+    if result is None:
+        await tracker.record_attempt(
+            email=request_data.phone_number,
+            ip_address=ip_address,
+            success=False,
+            user_agent=user_agent,
+            failure_reason="invalid_credentials",
+        )
+        await audit.log(
+            action=AuditAction.LOGIN_FAILED,
+            resource_type=ResourceType.USER,
+            details={"phone_number": request_data.phone_number, "reason": "invalid_credentials"},
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid phone number or PIN",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Successful login
+    await tracker.record_attempt(
+        email=request_data.phone_number,
         ip_address=ip_address,
         success=True,
         user_agent=user_agent,

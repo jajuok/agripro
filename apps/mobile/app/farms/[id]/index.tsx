@@ -12,6 +12,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS, SPACING, FONT_SIZES } from '@/utils/constants';
 import { useFarmStore, Farm } from '@/store/farm';
+import { useAuthStore } from '@/store/auth';
 
 const OWNERSHIP_LABELS: Record<string, string> = {
   freehold: 'Freehold',
@@ -25,6 +26,7 @@ const OWNERSHIP_LABELS: Record<string, string> = {
 export default function FarmDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuthStore();
   const { farms, fetchFarms, isLoading } = useFarmStore();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -38,14 +40,15 @@ export default function FarmDetailScreen() {
   }, [id, farms]);
 
   useEffect(() => {
-    if (!farm && id) {
-      fetchFarms();
+    if (!farm && id && user?.farmerId) {
+      fetchFarms(user.farmerId);
     }
   }, []);
 
   const onRefresh = async () => {
+    if (!user?.farmerId) return;
     setRefreshing(true);
-    await fetchFarms();
+    await fetchFarms(user.farmerId);
     setRefreshing(false);
   };
 

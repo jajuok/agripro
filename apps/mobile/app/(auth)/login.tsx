@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,15 +13,28 @@ import { Link, router } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { login, cachedPhoneNumber } = useAuthStore();
+  const [phoneNumber, setPhoneNumber] = useState('+254');
+  const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuthStore();
+  const [showPhoneField, setShowPhoneField] = useState(true);
+
+  useEffect(() => {
+    if (cachedPhoneNumber) {
+      setPhoneNumber(cachedPhoneNumber);
+      setShowPhoneField(false);
+    }
+  }, [cachedPhoneNumber]);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Please enter email and password');
+    if (!phoneNumber) {
+      setError('Please enter your phone number');
+      return;
+    }
+
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      setError('PIN must be exactly 4 digits');
       return;
     }
 
@@ -29,13 +42,20 @@ export default function LoginScreen() {
     setError('');
 
     try {
-      await login(email, password);
+      await login(phoneNumber, pin);
       router.replace('/(tabs)/home');
     } catch (err) {
-      setError('Invalid email or password');
+      setError('Invalid phone number or PIN');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleChangePhone = () => {
+    setShowPhoneField(true);
+    setPhoneNumber('+254');
+    setPin('');
+    setError('');
   };
 
   return (
@@ -52,25 +72,41 @@ export default function LoginScreen() {
           <Text style={styles.error} testID="login-error">{error}</Text>
         ) : null}
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          testID="login-email-input"
-          accessibilityLabel="Email input"
-        />
+        {/* Returning user: show cached phone and "Not you?" link */}
+        {!showPhoneField && cachedPhoneNumber ? (
+          <View style={styles.welcomeSection}>
+            <Text style={styles.welcomeBack}>Welcome back</Text>
+            <Text style={styles.phoneDisplay}>{cachedPhoneNumber}</Text>
+            <TouchableOpacity onPress={handleChangePhone} testID="login-change-phone">
+              <Text style={styles.changePhone}>Not you? Change number</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
+        {/* Phone input: shown for new users or when "change number" is tapped */}
+        {showPhoneField ? (
+          <TextInput
+            style={styles.input}
+            placeholder="Phone Number (+254...)"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            keyboardType="phone-pad"
+            testID="login-phone-input"
+            accessibilityLabel="Phone number input"
+          />
+        ) : null}
+
+        {/* PIN input: always shown */}
         <TextInput
           style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
+          placeholder="4-Digit PIN"
+          value={pin}
+          onChangeText={(text) => setPin(text.replace(/[^0-9]/g, ''))}
           secureTextEntry
-          testID="login-password-input"
-          accessibilityLabel="Password input"
+          maxLength={4}
+          keyboardType="number-pad"
+          testID="login-pin-input"
+          accessibilityLabel="PIN input"
         />
 
         <TouchableOpacity
@@ -86,11 +122,9 @@ export default function LoginScreen() {
           )}
         </TouchableOpacity>
 
-        <Link href="/(auth)/forgot-password" asChild>
-          <TouchableOpacity testID="login-forgot-password-link">
-            <Text style={styles.link}>Forgot Password?</Text>
-          </TouchableOpacity>
-        </Link>
+        <TouchableOpacity testID="login-forgot-pin-link">
+          <Text style={styles.link}>Forgot PIN?</Text>
+        </TouchableOpacity>
 
         <View style={styles.registerContainer} testID="login-register-container">
           <Text style={styles.registerText}>Don't have an account? </Text>
@@ -132,6 +166,26 @@ const styles = StyleSheet.create({
     color: '#D32F2F',
     textAlign: 'center',
     marginBottom: 16,
+  },
+  welcomeSection: {
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  welcomeBack: {
+    fontSize: 18,
+    color: '#333',
+    marginBottom: 4,
+  },
+  phoneDisplay: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1B5E20',
+    marginBottom: 8,
+  },
+  changePhone: {
+    color: '#1B5E20',
+    textDecorationLine: 'underline',
+    fontSize: 14,
   },
   input: {
     borderWidth: 1,

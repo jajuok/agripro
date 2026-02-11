@@ -87,6 +87,7 @@ const SERVICE_PORTS: Record<string, number> = {
   '/kyc': 9001,
   '/documents': 9001,
   '/farm-registration': 9001,
+  '/crop-planning': 9001,
   '/gis': 9003,
   '/financial': 8000,
   '/market': 8000,
@@ -137,6 +138,7 @@ apiClient.interceptors.request.use(
             case 'kyc':
             case 'documents':
             case 'farm-registration':
+            case 'crop-planning':
               // All these use the farmer service
               serviceUrl = PRODUCTION_SERVICE_URLS.farmer;
               break;
@@ -289,12 +291,52 @@ export const authApi = {
   logout: async (refreshToken: string) => {
     await apiClient.post('/auth/logout', { refresh_token: refreshToken });
   },
+
+  loginPhone: async (phoneNumber: string, pin: string) => {
+    const response = await apiClient.post('/auth/login/phone', {
+      phone_number: phoneNumber,
+      pin,
+    });
+    return response.data;
+  },
+
+  registerPhone: async (data: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    pin: string;
+  }) => {
+    const response = await apiClient.post('/auth/register/phone', {
+      first_name: data.firstName,
+      last_name: data.lastName,
+      phone_number: data.phone,
+      pin: data.pin,
+    });
+    return response.data;
+  },
 };
 
 // Farmer API
 export const farmerApi = {
   getProfile: async (farmerId: string) => {
     const response = await farmerClient.get(`/farmers/${farmerId}`);
+    return response.data;
+  },
+
+  getByUserId: async (userId: string) => {
+    const response = await farmerClient.get(`/farmers/by-user/${userId}`);
+    return response.data;
+  },
+
+  create: async (data: {
+    user_id: string;
+    tenant_id: string;
+    first_name: string;
+    last_name: string;
+    phone_number: string;
+    email?: string;
+  }) => {
+    const response = await farmerClient.post('/farmers', data);
     return response.data;
   },
 
@@ -311,9 +353,8 @@ export const farmerApi = {
 
 // Farm API
 export const farmApi = {
-  list: async (userId: string) => {
-    // Use user_id endpoint which internally looks up farmer_id
-    const response = await farmerClient.get(`/farms/user/${userId}`);
+  list: async (farmerId: string) => {
+    const response = await farmerClient.get(`/farms/farmer/${farmerId}`);
     return response.data;
   },
 
@@ -657,6 +698,227 @@ export const gisApi = {
       geojson,
       tolerance,
     });
+    return response.data;
+  },
+};
+
+// Crop Planning API (uses farmer service)
+export const cropPlanningApi = {
+  // Dashboard
+  getDashboard: async (farmerId: string) => {
+    const response = await apiClient.get(`/crop-planning/dashboard?farmer_id=${farmerId}`);
+    return response.data;
+  },
+
+  // Templates
+  listTemplates: async (tenantId: string, params?: { cropName?: string; region?: string; season?: string; page?: number; pageSize?: number }) => {
+    const queryParams = new URLSearchParams({ tenant_id: tenantId });
+    if (params?.cropName) queryParams.append('crop_name', params.cropName);
+    if (params?.region) queryParams.append('region', params.region);
+    if (params?.season) queryParams.append('season', params.season);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.pageSize) queryParams.append('page_size', params.pageSize.toString());
+    const response = await apiClient.get(`/crop-planning/templates?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  getTemplate: async (templateId: string) => {
+    const response = await apiClient.get(`/crop-planning/templates/${templateId}`);
+    return response.data;
+  },
+
+  getTemplateRecommendations: async (tenantId: string, farmId: string, cropName: string, plannedDate: string) => {
+    const queryParams = new URLSearchParams({
+      tenant_id: tenantId,
+      farm_id: farmId,
+      crop_name: cropName,
+      planned_date: plannedDate,
+    });
+    const response = await apiClient.get(`/crop-planning/templates/recommend?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  // Plans
+  listPlans: async (params?: { farmerId?: string; farmId?: string; status?: string; season?: string; year?: number; page?: number; pageSize?: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.farmerId) queryParams.append('farmer_id', params.farmerId);
+    if (params?.farmId) queryParams.append('farm_id', params.farmId);
+    if (params?.status) queryParams.append('plan_status', params.status);
+    if (params?.season) queryParams.append('season', params.season);
+    if (params?.year) queryParams.append('year', params.year.toString());
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.pageSize) queryParams.append('page_size', params.pageSize.toString());
+    const response = await apiClient.get(`/crop-planning/plans?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  createPlan: async (data: {
+    farmer_id: string;
+    farm_id: string;
+    template_id?: string | null;
+    name: string;
+    crop_name: string;
+    variety?: string | null;
+    season: string;
+    year: number;
+    planned_planting_date: string;
+    planned_acreage: number;
+    expected_harvest_date?: string | null;
+    expected_yield_kg?: number | null;
+    notes?: string | null;
+    generate_activities?: boolean;
+  }) => {
+    const response = await apiClient.post('/crop-planning/plans', data);
+    return response.data;
+  },
+
+  getPlan: async (planId: string) => {
+    const response = await apiClient.get(`/crop-planning/plans/${planId}`);
+    return response.data;
+  },
+
+  updatePlan: async (planId: string, data: Record<string, any>) => {
+    const response = await apiClient.patch(`/crop-planning/plans/${planId}`, data);
+    return response.data;
+  },
+
+  deletePlan: async (planId: string) => {
+    await apiClient.delete(`/crop-planning/plans/${planId}`);
+  },
+
+  activatePlan: async (planId: string, data?: { actual_planting_date?: string; actual_planted_acreage?: number }) => {
+    const response = await apiClient.post(`/crop-planning/plans/${planId}/activate`, data || {});
+    return response.data;
+  },
+
+  advanceStage: async (planId: string, data: { new_stage: string; notes?: string }) => {
+    const response = await apiClient.post(`/crop-planning/plans/${planId}/advance-stage`, data);
+    return response.data;
+  },
+
+  completePlan: async (planId: string, data: { actual_harvest_date: string; actual_yield_kg: number; notes?: string }) => {
+    const response = await apiClient.post(`/crop-planning/plans/${planId}/complete`, data);
+    return response.data;
+  },
+
+  getPlanStatistics: async (planId: string) => {
+    const response = await apiClient.get(`/crop-planning/plans/${planId}/statistics`);
+    return response.data;
+  },
+
+  // Activities
+  listActivities: async (planId: string, params?: { status?: string; fromDate?: string; toDate?: string; page?: number; pageSize?: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.status) queryParams.append('activity_status', params.status);
+    if (params?.fromDate) queryParams.append('from_date', params.fromDate);
+    if (params?.toDate) queryParams.append('to_date', params.toDate);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.pageSize) queryParams.append('page_size', params.pageSize.toString());
+    const response = await apiClient.get(`/crop-planning/plans/${planId}/activities?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  getActivity: async (activityId: string) => {
+    const response = await apiClient.get(`/crop-planning/activities/${activityId}`);
+    return response.data;
+  },
+
+  completeActivity: async (activityId: string, data: Record<string, any>) => {
+    const response = await apiClient.post(`/crop-planning/activities/${activityId}/complete`, data);
+    return response.data;
+  },
+
+  skipActivity: async (activityId: string, reason: string) => {
+    const response = await apiClient.post(`/crop-planning/activities/${activityId}/skip`, { reason });
+    return response.data;
+  },
+
+  getUpcomingActivities: async (farmerId: string, daysAhead: number = 7) => {
+    const response = await apiClient.get(`/crop-planning/activities/upcoming?farmer_id=${farmerId}&days_ahead=${daysAhead}`);
+    return response.data;
+  },
+
+  // Inputs
+  listInputs: async (planId: string) => {
+    const response = await apiClient.get(`/crop-planning/plans/${planId}/inputs`);
+    return response.data;
+  },
+
+  createInput: async (planId: string, data: Record<string, any>) => {
+    const response = await apiClient.post(`/crop-planning/plans/${planId}/inputs`, { ...data, crop_plan_id: planId });
+    return response.data;
+  },
+
+  getInput: async (inputId: string) => {
+    const response = await apiClient.get(`/crop-planning/inputs/${inputId}`);
+    return response.data;
+  },
+
+  updateInput: async (inputId: string, data: Record<string, any>) => {
+    const response = await apiClient.patch(`/crop-planning/inputs/${inputId}`, data);
+    return response.data;
+  },
+
+  verifyInputQr: async (inputId: string, qrCodeData: Record<string, any>) => {
+    const response = await apiClient.post(`/crop-planning/inputs/${inputId}/verify-qr`, { qr_code_data: qrCodeData });
+    return response.data;
+  },
+
+  calculateInputs: async (tenantId: string, cropName: string, acreage: number, variety?: string) => {
+    const queryParams = new URLSearchParams({ tenant_id: tenantId, crop_name: cropName, acreage: acreage.toString() });
+    if (variety) queryParams.append('variety', variety);
+    const response = await apiClient.get(`/crop-planning/calculate-inputs?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  // Irrigation
+  listIrrigation: async (planId: string) => {
+    const response = await apiClient.get(`/crop-planning/plans/${planId}/irrigation`);
+    return response.data;
+  },
+
+  createIrrigation: async (planId: string, data: Record<string, any>) => {
+    const response = await apiClient.post(`/crop-planning/plans/${planId}/irrigation`, { ...data, crop_plan_id: planId });
+    return response.data;
+  },
+
+  generateIrrigation: async (planId: string, data: Record<string, any>) => {
+    const response = await apiClient.post(`/crop-planning/plans/${planId}/irrigation/generate`, data);
+    return response.data;
+  },
+
+  getIrrigation: async (scheduleId: string) => {
+    const response = await apiClient.get(`/crop-planning/irrigation/${scheduleId}`);
+    return response.data;
+  },
+
+  updateIrrigation: async (scheduleId: string, data: Record<string, any>) => {
+    const response = await apiClient.patch(`/crop-planning/irrigation/${scheduleId}`, data);
+    return response.data;
+  },
+
+  completeIrrigation: async (scheduleId: string, data: Record<string, any>) => {
+    const response = await apiClient.post(`/crop-planning/irrigation/${scheduleId}/complete`, data);
+    return response.data;
+  },
+
+  // Alerts
+  listAlerts: async (farmerId: string, params?: { unreadOnly?: boolean; page?: number; pageSize?: number }) => {
+    const queryParams = new URLSearchParams({ farmer_id: farmerId });
+    if (params?.unreadOnly) queryParams.append('unread_only', 'true');
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.pageSize) queryParams.append('page_size', params.pageSize.toString());
+    const response = await apiClient.get(`/crop-planning/alerts?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  markAlertRead: async (alertId: string) => {
+    const response = await apiClient.post(`/crop-planning/alerts/${alertId}/read`);
+    return response.data;
+  },
+
+  dismissAlert: async (alertId: string) => {
+    const response = await apiClient.post(`/crop-planning/alerts/${alertId}/dismiss`);
     return response.data;
   },
 };

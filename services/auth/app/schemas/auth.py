@@ -27,7 +27,10 @@ class LoginResponse(TokenResponse):
     """Login response with user info."""
 
     user_id: str
-    email: str
+    email: str | None = None
+    phone_number: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     roles: list[str]
     totp_required: bool = False
 
@@ -54,6 +57,22 @@ class RegisterRequest(BaseModel):
     last_name: str = Field(..., min_length=1, max_length=100)
     phone_number: str | None = Field(None, pattern=r"^\+?[1-9]\d{1,14}$")
     national_id: str | None = None
+
+
+class PhoneRegisterRequest(BaseModel):
+    """Phone+PIN registration for mobile farmers."""
+
+    first_name: str = Field(..., min_length=1, max_length=100)
+    last_name: str = Field(..., min_length=1, max_length=100)
+    phone_number: str = Field(..., pattern=r"^\+?[1-9]\d{1,14}$")
+    pin: str = Field(..., min_length=4, max_length=4, pattern=r"^\d{4}$")
+
+
+class PhoneLoginRequest(BaseModel):
+    """Phone+PIN login for mobile farmers."""
+
+    phone_number: str = Field(..., pattern=r"^\+?[1-9]\d{1,14}$")
+    pin: str = Field(..., min_length=4, max_length=4, pattern=r"^\d{4}$")
 
 
 # Two-Factor Authentication schemas

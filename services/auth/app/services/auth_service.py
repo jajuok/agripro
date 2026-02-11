@@ -16,7 +16,7 @@ from app.core.security import (
     verify_password,
 )
 from app.models.user import RefreshToken, User, UserRole
-from app.schemas.auth import LoginResponse, RegisterRequest, TokenResponse
+from app.schemas.auth import LoginResponse, PhoneRegisterRequest, RegisterRequest, TokenResponse
 
 
 class AuthService:
@@ -52,6 +52,29 @@ class AuthService:
         await self.db.flush()
 
         # Generate tokens
+        return await self._create_tokens_response(user)
+
+    async def register_phone(self, data: PhoneRegisterRequest) -> LoginResponse:
+        """Register a new user with phone number and PIN."""
+        # Check if phone already exists
+        result = await self.db.execute(
+            select(User).where(User.phone_number == data.phone_number)
+        )
+        if result.scalar_one_or_none():
+            raise ValueError("Phone number already registered")
+
+        # Create user with phone as primary identifier, no email
+        user = User(
+            email=None,
+            phone_number=data.phone_number,
+            hashed_password=hash_password(data.pin),
+            first_name=data.first_name,
+            last_name=data.last_name,
+            auth_method="phone_pin",
+        )
+        self.db.add(user)
+        await self.db.flush()
+
         return await self._create_tokens_response(user)
 
     async def login(
@@ -97,6 +120,29 @@ class AuthService:
 
         return await self._create_tokens_response(user, roles)
 
+    async def login_phone(
+        self, phone_number: str, pin: str
+    ) -> LoginResponse | None:
+        """Authenticate user with phone number and PIN."""
+        result = await self.db.execute(
+            select(User)
+            .options(selectinload(User.roles).selectinload(UserRole.role))
+            .where(User.phone_number == phone_number)
+        )
+        user = result.scalar_one_or_none()
+
+        if not user or not verify_password(pin, user.hashed_password):
+            return None
+
+        if not user.is_active:
+            return None
+
+        # Update last login
+        user.last_login = datetime.now(timezone.utc)
+
+        roles = [ur.role.name for ur in user.roles] if user.roles else []
+        return await self._create_tokens_response(user, roles)
+
     async def refresh_tokens(self, refresh_token: str) -> TokenResponse | None:
         """Refresh access token using refresh token."""
         payload = decode_token(refresh_token)
@@ -123,7 +169,10 @@ class AuthService:
 
         # Generate new tokens
         user = stored_token.user
-        access_token = create_access_token({"sub": str(user.id), "email": user.email})
+        token_data = {"sub": str(user.id)}
+        if user.email:
+            token_data["email"] = user.email
+        access_token = create_access_token(token_data)
         new_refresh_token = create_refresh_token({"sub": str(user.id)})
 
         # Store new refresh token
@@ -147,7 +196,11 @@ class AuthService:
 
     async def _create_tokens_response(self, user: User, roles: list[str] | None = None) -> LoginResponse:
         """Create token response for user."""
-        access_token = create_access_token({"sub": str(user.id), "email": user.email})
+        token_data = {"sub": str(user.id)}
+        if user.email:
+            token_data["email"] = user.email
+
+        access_token = create_access_token(token_data)
         refresh_token = create_refresh_token({"sub": str(user.id)})
 
         await self._store_refresh_token(user.id, refresh_token)
@@ -162,6 +215,9 @@ class AuthService:
             expires_in=settings.access_token_expire_minutes * 60,
             user_id=str(user.id),
             email=user.email,
+            phone_number=user.phone_number,
+            first_name=user.first_name,
+            last_name=user.last_name,
             roles=user_roles,
         )
 
