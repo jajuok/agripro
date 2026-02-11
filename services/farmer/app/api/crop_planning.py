@@ -528,18 +528,10 @@ async def update_input(
     service: Annotated[CropPlanningService, Depends(get_crop_planning_service)],
 ):
     """Update input requirement."""
-    import traceback, logging
-    logger = logging.getLogger(__name__)
-    try:
-        input_req = await service.update_input(input_id, data)
-        if not input_req:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Input not found")
-        return InputRequirementResponse.model_validate(input_req)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"update_input error: {e}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
+    input_req = await service.update_input(input_id, data)
+    if not input_req:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Input not found")
+    return InputRequirementResponse.model_validate(input_req)
 
 
 @router.post("/inputs/{input_id}/verify-qr", response_model=QrCodeVerificationResult, tags=["Inputs"])
@@ -621,18 +613,11 @@ async def generate_irrigation(
     service: Annotated[CropPlanningService, Depends(get_crop_planning_service)],
 ):
     """Auto-generate irrigation schedule for a crop plan."""
-    import traceback, logging
-    logger = logging.getLogger(__name__)
     try:
         schedules = await service.generate_irrigation_schedule(plan_id, data)
         return [IrrigationScheduleResponse.model_validate(s) for s in schedules]
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"generate_irrigation error: {e}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/irrigation/{schedule_id}", response_model=IrrigationScheduleResponse, tags=["Irrigation"])
@@ -667,18 +652,10 @@ async def complete_irrigation(
     service: Annotated[CropPlanningService, Depends(get_crop_planning_service)],
 ):
     """Mark irrigation as completed."""
-    import traceback, logging
-    logger = logging.getLogger(__name__)
-    try:
-        schedule = await service.complete_irrigation(schedule_id, data)
-        if not schedule:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Irrigation schedule not found")
-        return IrrigationScheduleResponse.model_validate(schedule)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"complete_irrigation error: {e}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
+    schedule = await service.complete_irrigation(schedule_id, data)
+    if not schedule:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Irrigation schedule not found")
+    return IrrigationScheduleResponse.model_validate(schedule)
 
 
 # =============================================================================

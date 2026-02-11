@@ -96,6 +96,7 @@ class CropPlanningService:
         )
         self.db.add(template)
         await self.db.flush()
+        await self.db.refresh(template)
         return template
 
     async def get_template(self, template_id: uuid.UUID) -> CropCalendarTemplate | None:
@@ -206,6 +207,7 @@ class CropPlanningService:
                 setattr(template, field, value)
 
         await self.db.flush()
+        await self.db.refresh(template)
         return template
 
     # =========================================================================
@@ -251,6 +253,7 @@ class CropPlanningService:
         if template:
             await self._calculate_input_requirements(plan, template)
 
+        await self.db.refresh(plan)
         return plan
 
     async def _generate_activities_from_template(
@@ -522,6 +525,7 @@ class CropPlanningService:
         )
         self.db.add(activity)
         await self.db.flush()
+        await self.db.refresh(activity)
         return activity
 
     async def get_activity(self, activity_id: uuid.UUID) -> PlannedActivity | None:
@@ -579,6 +583,7 @@ class CropPlanningService:
                 setattr(activity, field, value)
 
         await self.db.flush()
+        await self.db.refresh(activity)
         return activity
 
     async def complete_activity(
@@ -713,6 +718,7 @@ class CropPlanningService:
         )
         self.db.add(input_req)
         await self.db.flush()
+        await self.db.refresh(input_req)
         return input_req
 
     async def get_input(self, input_id: uuid.UUID) -> InputRequirement | None:
@@ -762,6 +768,7 @@ class CropPlanningService:
             input_req.quantity_remaining = input_req.quantity_required - input_req.quantity_used
 
         await self.db.flush()
+        await self.db.refresh(input_req)
         return input_req
 
     async def verify_input_qr(
@@ -873,6 +880,7 @@ class CropPlanningService:
         )
         self.db.add(schedule)
         await self.db.flush()
+        await self.db.refresh(schedule)
         return schedule
 
     async def get_irrigation(
@@ -916,6 +924,7 @@ class CropPlanningService:
                 setattr(schedule, field, value)
 
         await self.db.flush()
+        await self.db.refresh(schedule)
         return schedule
 
     async def complete_irrigation(
@@ -936,6 +945,7 @@ class CropPlanningService:
             schedule.notes = data.notes
 
         await self.db.flush()
+        await self.db.refresh(schedule)
         return schedule
 
     async def generate_irrigation_schedule(
@@ -961,6 +971,8 @@ class CropPlanningService:
             current_date += timedelta(days=data.frequency_days)
 
         await self.db.flush()
+        for s in schedules:
+            await self.db.refresh(s)
         return schedules
 
     # =========================================================================
@@ -992,6 +1004,7 @@ class CropPlanningService:
         )
         self.db.add(alert)
         await self.db.flush()
+        await self.db.refresh(alert)
         return alert
 
     async def list_alerts(
