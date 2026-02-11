@@ -58,11 +58,11 @@ export default function IrrigationScreen() {
     }
     try {
       await generateIrrigation(id!, {
-        start_date: new Date(genStartDate).toISOString(),
-        end_date: new Date(genEndDate).toISOString(),
+        startDate: new Date(genStartDate).toISOString(),
+        endDate: new Date(genEndDate).toISOString(),
         method: genMethod,
-        frequency_days: parseInt(genFrequency) || 7,
-        water_amount_per_event_liters: genWaterAmount ? parseFloat(genWaterAmount) : undefined,
+        frequencyDays: parseInt(genFrequency) || 7,
+        waterAmountPerEventLiters: genWaterAmount ? parseFloat(genWaterAmount) : undefined,
       });
       setShowGenerate(false);
       fetchIrrigation(id!);
@@ -74,10 +74,10 @@ export default function IrrigationScreen() {
   const handleComplete = async (scheduleId: string) => {
     try {
       await completeIrrigation(scheduleId, {
-        actual_duration_minutes: compDuration ? parseInt(compDuration) : undefined,
-        actual_water_used_liters: compWater ? parseFloat(compWater) : undefined,
-        soil_moisture_before: compMoistureBefore ? parseFloat(compMoistureBefore) : undefined,
-        soil_moisture_after: compMoistureAfter ? parseFloat(compMoistureAfter) : undefined,
+        actualDurationMinutes: compDuration ? parseInt(compDuration) : undefined,
+        actualWaterUsedLiters: compWater ? parseFloat(compWater) : undefined,
+        soilMoistureBefore: compMoistureBefore ? parseFloat(compMoistureBefore) : undefined,
+        soilMoistureAfter: compMoistureAfter ? parseFloat(compMoistureAfter) : undefined,
       });
       setCompletingId(null);
       setCompDuration('');
