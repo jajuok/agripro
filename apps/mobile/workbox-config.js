@@ -2,15 +2,17 @@ module.exports = {
   globDirectory: 'dist/',
   globPatterns: ['**/*.{html,js,css,json,png,jpg,svg,woff,woff2,ttf}'],
   swDest: 'dist/sw.js',
+  maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB — precache the main bundle
   skipWaiting: true,
   clientsClaim: true,
   runtimeCaching: [
     {
-      // JS, CSS, HTML — stale-while-revalidate
+      // JS, CSS, HTML — network-first so deploys are visible immediately
       urlPattern: /\.(?:js|css|html)$/,
-      handler: 'StaleWhileRevalidate',
+      handler: 'NetworkFirst',
       options: {
         cacheName: 'static-resources',
+        networkTimeoutSeconds: 3,
         expiration: {
           maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
         },

@@ -8,7 +8,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
         // Check for updates periodically
         setInterval(function () {
           registration.update();
-        }, 60 * 60 * 1000); // every hour
+        }, 5 * 60 * 1000); // every 5 minutes
 
         // Detect new service worker waiting
         registration.addEventListener('updatefound', function () {
