@@ -29,7 +29,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.services }}" ]; then
             # Manual trigger with explicit service list
-            SERVICES_JSON=$(echo "${{ inputs.services }}" | tr ',' '\n' | sed 's/ //g' | jq -R . | jq -s .)
+            SERVICES_JSON=$(echo "${{ inputs.services }}" | tr ',' '\n' | sed 's/ //g' | jq -R . | jq -sc .)
           else
             # Auto-detect from git diff
             CHANGED=$(git diff --name-only HEAD~1 HEAD -- services/ | cut -d/ -f2 | sort -u)
@@ -38,7 +38,7 @@ jobs:
               echo "has_changes=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            SERVICES_JSON=$(echo "$CHANGED" | jq -R . | jq -s .)
+            SERVICES_JSON=$(echo "$CHANGED" | jq -R . | jq -sc .)
           fi
 
           echo "services=$SERVICES_JSON" >> "$GITHUB_OUTPUT"
