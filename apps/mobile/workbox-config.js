@@ -7,16 +7,17 @@ module.exports = {
   maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB — precache the main bundle
   skipWaiting: true,
   clientsClaim: true,
-  // Offline fallback — serve cached index.html for navigation when offline
-  navigateFallback: '/index.html',
+  // No navigateFallback — navigation requests go straight to the network.
+  // This ensures the installed PWA always fetches fresh HTML from the server.
   runtimeCaching: [
     {
-      // HTML navigation — always network-first so deploys are visible immediately
-      urlPattern: /\.html$/,
+      // SPA navigation — network-first so the PWA always gets fresh HTML.
+      // Matches requests with mode: 'navigate' (page loads, link clicks, etc.)
+      urlPattern: ({request}) => request.mode === 'navigate',
       handler: 'NetworkFirst',
       options: {
-        cacheName: 'html-pages',
-        networkTimeoutSeconds: 3,
+        cacheName: 'html-navigation',
+        networkTimeoutSeconds: 5,
       },
     },
     {
