@@ -225,3 +225,45 @@ export const ALERT_SEVERITY_COLORS: Record<string, string> = {
   warning: '#FF9800',
   critical: '#D32F2F',
 };
+
+// =============================================================================
+// Task Management Constants
+// =============================================================================
+
+export const TASK_STATUS = {
+  PENDING: 'pending',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+} as const;
+
+export const TASK_STATUS_COLORS: Record<string, string> = {
+  pending: '#FF9800',
+  in_progress: '#2196F3',
+  completed: '#4CAF50',
+  cancelled: '#9E9E9E',
+};
+
+export const TASK_CATEGORY_LABELS: Record<string, string> = {
+  maintenance: 'Maintenance',
+  administrative: 'Administrative',
+  equipment: 'Equipment',
+  infrastructure: 'Infrastructure',
+  procurement: 'Procurement',
+  inspection: 'Inspection',
+  livestock: 'Livestock',
+  general: 'General',
+  other: 'Other',
+};
+
+export const TASK_CATEGORY_ICONS: Record<string, string> = {
+  maintenance: '🔧',
+  administrative: '📋',
+  equipment: '🚜',
+  infrastructure: '🏗️',
+  procurement: '🛒',
+  inspection: '🔍',
+  livestock: '🐄',
+  general: '📌',
+  other: '📝',
+};

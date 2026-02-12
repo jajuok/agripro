@@ -94,7 +94,7 @@ const SERVICE_PORTS: Record<string, number> = {
   '/ai': 8000,
   '/iot': 8000,
   '/livestock': 8000,
-  '/tasks': 8000,
+  '/tasks': 9009,
   '/inventory': 8000,
   '/notifications': 8000,
   '/traceability': 8000,
@@ -918,6 +918,58 @@ export const cropPlanningApi = {
 
   dismissAlert: async (alertId: string) => {
     const response = await apiClient.post(`/crop-planning/alerts/${alertId}/dismiss`);
+    return response.data;
+  },
+};
+
+// Task API (uses task service)
+export const taskApi = {
+  list: async (farmerId: string, params?: { status?: string; category?: string; limit?: number; offset?: number }) => {
+    const queryParams = new URLSearchParams({ farmer_id: farmerId });
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    const response = await apiClient.get(`/tasks/?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  create: async (data: Record<string, any>) => {
+    const response = await apiClient.post('/tasks/', data);
+    return response.data;
+  },
+
+  get: async (taskId: string) => {
+    const response = await apiClient.get(`/tasks/${taskId}`);
+    return response.data;
+  },
+
+  update: async (taskId: string, data: Record<string, any>) => {
+    const response = await apiClient.patch(`/tasks/${taskId}`, data);
+    return response.data;
+  },
+
+  delete: async (taskId: string) => {
+    await apiClient.delete(`/tasks/${taskId}`);
+  },
+
+  complete: async (taskId: string, notes?: string) => {
+    const response = await apiClient.post(`/tasks/${taskId}/complete`, notes ? { notes } : {});
+    return response.data;
+  },
+
+  listComments: async (taskId: string) => {
+    const response = await apiClient.get(`/tasks/${taskId}/comments`);
+    return response.data;
+  },
+
+  addComment: async (taskId: string, data: { content: string; author_id: string }) => {
+    const response = await apiClient.post(`/tasks/${taskId}/comments`, data);
+    return response.data;
+  },
+
+  getStats: async (farmerId: string) => {
+    const response = await apiClient.get(`/tasks/stats?farmer_id=${farmerId}`);
     return response.data;
   },
 };

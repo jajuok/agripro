@@ -1,27 +1,37 @@
-"""
-Service Main Application
-"""
+"""Task Service Main Application."""
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(
-    title="Service",
-    version="0.1.0",
-)
+from app.api import api_router
+from app.core.config import settings
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-@app.get("/")
-async def root():
-    return {"service": "service", "status": "operational"}
+def create_app() -> FastAPI:
+    application = FastAPI(
+        title="Task Service",
+        version="0.1.0",
+    )
 
-@app.get("/health")
-async def health():
-    return {"status": "healthy"}
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    application.include_router(api_router)
+
+    @application.get("/")
+    async def root():
+        return {"service": "task-service", "status": "operational"}
+
+    @application.get("/health")
+    async def health():
+        return {"status": "healthy"}
+
+    return application
+
+
+app = create_app()
