@@ -43,18 +43,19 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_PORT: ${{ secrets.VPS_PORT || '4491' }}
         run: |
           mkdir -p ~/.ssh
           echo "$VPS_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
           # Upload dist
-          scp -r dist/ "${VPS_USER}@${VPS_HOST}:/opt/agripro-pwa/dist/"
+          scp -P "$VPS_PORT" -r dist/ "${VPS_USER}@${VPS_HOST}:/opt/agripro-pwa/dist/"
 
           # Upload infrastructure files
-          scp ../../infrastructure/pwa/Caddyfile "${VPS_USER}@${VPS_HOST}:/opt/agripro-pwa/Caddyfile"
-          scp ../../infrastructure/pwa/assetlinks.json "${VPS_USER}@${VPS_HOST}:/opt/agripro-pwa/assetlinks.json"
+          scp -P "$VPS_PORT" ../../infrastructure/pwa/Caddyfile "${VPS_USER}@${VPS_HOST}:/opt/agripro-pwa/Caddyfile"
+          scp -P "$VPS_PORT" ../../infrastructure/pwa/assetlinks.json "${VPS_USER}@${VPS_HOST}:/opt/agripro-pwa/assetlinks.json"
 
           # Reload Caddy (graceful)
-          ssh "${VPS_USER}@${VPS_HOST}" "docker exec agripro-pwa caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || docker restart agripro-pwa"
+          ssh -p "$VPS_PORT" "${VPS_USER}@${VPS_HOST}" "docker exec agripro-pwa caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || docker restart agripro-pwa"

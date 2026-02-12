@@ -1,19 +1,22 @@
-version: "3.8"
-
 services:
   caddy:
     image: caddy:2-alpine
     container_name: agripro-pwa
     restart: unless-stopped
-    ports:
-      - "443:443"
-      - "80:80"
+    expose:
+      - "80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./dist:/srv:ro
-      - ./assetlinks.json:/srv/.well-known/assetlinks.json:ro
       - caddy_data:/data
       - caddy_config:/config
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.agripro-pwa.rule=Host(`app.213.32.19.116.sslip.io`)"
+      - "traefik.http.routers.agripro-pwa.entrypoints=https"
+      - "traefik.http.routers.agripro-pwa.tls=true"
+      - "traefik.http.routers.agripro-pwa.tls.certresolver=letsencrypt"
+      - "traefik.http.services.agripro-pwa.loadbalancer.server.port=80"
     networks:
       - coolify
 

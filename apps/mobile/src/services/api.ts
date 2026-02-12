@@ -51,9 +51,10 @@ const buildApiGatewayUrl = (): string => {
     return process.env.EXPO_PUBLIC_API_URL;
   }
 
-  // On web (PWA), default to the production gateway via sslip.io
+  // On web (PWA), use same-origin API proxy to avoid mixed content
+  // Caddy reverse-proxies /api/v1/* to the backend services over the Docker network
   if (Platform.OS === 'web') {
-    return process.env.EXPO_PUBLIC_WEB_API_URL || 'https://213.32.19.116.sslip.io/api/v1';
+    return process.env.EXPO_PUBLIC_WEB_API_URL || '/api/v1';
   }
 
   // In development, use Traefik gateway on port 80
@@ -64,7 +65,8 @@ const buildApiGatewayUrl = (): string => {
 const API_GATEWAY_URL = buildApiGatewayUrl();
 
 // Check if we're using unified gateway (highest priority)
-const isUnifiedGatewayMode = !!process.env.EXPO_PUBLIC_API_URL;
+// Web always uses the unified gateway to avoid mixed content (HTTPS page -> HTTP service URLs)
+const isUnifiedGatewayMode = !!process.env.EXPO_PUBLIC_API_URL || Platform.OS === 'web';
 
 // Check if we're using production individual service URLs (only if no unified gateway)
 const isProductionMode = !isUnifiedGatewayMode && !!PRODUCTION_SERVICE_URLS.auth;
