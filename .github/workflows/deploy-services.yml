@@ -1,0 +1,108 @@
+name: Deploy Services
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/**'
+  workflow_dispatch:
+    inputs:
+      services:
+        description: 'Comma-separated service names to deploy (e.g. auth,farmer). Leave empty to deploy all.'
+        required: false
+        type: string
+
+jobs:
+  detect-changes:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.changes.outputs.services }}
+      has_changes: ${{ steps.changes.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed services
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.services }}" ]; then
+            # Manual trigger with explicit service list
+            SERVICES_JSON=$(echo "${{ inputs.services }}" | tr ',' '\n' | sed 's/ //g' | jq -R . | jq -s .)
+          else
+            # Auto-detect from git diff
+            CHANGED=$(git diff --name-only HEAD~1 HEAD -- services/ | cut -d/ -f2 | sort -u)
+            if [ -z "$CHANGED" ]; then
+              echo "services=[]" >> "$GITHUB_OUTPUT"
+              echo "has_changes=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            SERVICES_JSON=$(echo "$CHANGED" | jq -R . | jq -s .)
+          fi
+
+          echo "services=$SERVICES_JSON" >> "$GITHUB_OUTPUT"
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          echo "Services to deploy: $SERVICES_JSON"
+
+  deploy:
+    name: Deploy ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+    steps:
+      - name: Find application UUID
+        id: find-app
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            --connect-timeout 10 \
+            --max-time 30 \
+            -X GET \
+            "${{ secrets.COOLIFY_URL }}/api/v1/applications" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+            -H "Accept: application/json")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Failed to list applications (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+
+          APP_UUID=$(echo "$BODY" | jq -r \
+            --arg name "${{ matrix.service }}-service" \
+            '.[] | select(.name == $name) | .uuid')
+
+          if [ -z "$APP_UUID" ] || [ "$APP_UUID" = "null" ]; then
+            echo "::error::Application '${{ matrix.service }}-service' not found in Coolify"
+            exit 1
+          fi
+
+          echo "uuid=$APP_UUID" >> "$GITHUB_OUTPUT"
+          echo "Found ${{ matrix.service }}-service: $APP_UUID"
+
+      - name: Trigger deployment
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            --connect-timeout 10 \
+            --max-time 30 \
+            -X POST \
+            "${{ secrets.COOLIFY_URL }}/api/v1/deploy" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"uuid": "${{ steps.find-app.outputs.uuid }}"}')
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "201" ]; then
+            echo "::error::Failed to deploy ${{ matrix.service }}-service (HTTP $HTTP_CODE): $BODY"
+            exit 1
+          fi
+
+          echo "Deployment triggered for ${{ matrix.service }}-service"
