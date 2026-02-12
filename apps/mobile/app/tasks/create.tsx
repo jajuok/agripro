@@ -1,15 +1,31 @@
 import { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
-  ActivityIndicator, Alert, Platform,
+  ActivityIndicator, Alert,
 } from 'react-native';
 import { router } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTaskStore } from '@/store/task';
 import { useAuthStore } from '@/store/auth';
-import { TASK_CATEGORY_LABELS, COLORS } from '@/utils/constants';
+import { TASK_CATEGORY_LABELS } from '@/utils/constants';
 
 const categories = Object.entries(TASK_CATEGORY_LABELS);
+
+// Quick date helpers
+const addDays = (days: number): Date => {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  d.setHours(12, 0, 0, 0);
+  return d;
+};
+
+const DATE_PRESETS = [
+  { label: 'Today', days: 0 },
+  { label: 'Tomorrow', days: 1 },
+  { label: 'In 3 days', days: 3 },
+  { label: 'In 1 week', days: 7 },
+  { label: 'In 2 weeks', days: 14 },
+  { label: 'In 1 month', days: 30 },
+];
 
 export default function CreateTaskScreen() {
   const user = useAuthStore((s) => s.user);
@@ -20,7 +36,6 @@ export default function CreateTaskScreen() {
   const [category, setCategory] = useState('general');
   const [priority, setPriority] = useState(5);
   const [dueDate, setDueDate] = useState<Date | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [notes, setNotes] = useState('');
 
   const handleCreate = async () => {
@@ -96,9 +111,6 @@ export default function CreateTaskScreen() {
             style={[
               styles.priorityBtn,
               priority === p && styles.priorityBtnActive,
-              p <= 3 && styles.priorityHigh,
-              p >= 4 && p <= 6 && styles.priorityMed,
-              p >= 7 && styles.priorityLow,
               priority === p && p <= 3 && styles.priorityHighActive,
               priority === p && p >= 4 && p <= 6 && styles.priorityMedActive,
               priority === p && p >= 7 && styles.priorityLowActive,
@@ -112,27 +124,27 @@ export default function CreateTaskScreen() {
 
       {/* Due Date */}
       <Text style={styles.label}>Due Date</Text>
-      <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker(true)}>
-        <Text style={styles.dateBtnText}>
-          {dueDate ? dueDate.toLocaleDateString() : 'Select due date (optional)'}
-        </Text>
-      </TouchableOpacity>
+      <View style={styles.chipContainer}>
+        {DATE_PRESETS.map((preset) => {
+          const presetDate = addDays(preset.days);
+          const isSelected = dueDate && dueDate.toDateString() === presetDate.toDateString();
+          return (
+            <TouchableOpacity
+              key={preset.days}
+              style={[styles.chip, isSelected && styles.chipActive]}
+              onPress={() => setDueDate(isSelected ? null : presetDate)}
+            >
+              <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>{preset.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
       {dueDate && (
-        <TouchableOpacity onPress={() => setDueDate(null)}>
-          <Text style={styles.clearDate}>Clear date</Text>
-        </TouchableOpacity>
-      )}
-      {showDatePicker && (
-        <DateTimePicker
-          value={dueDate || new Date()}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(_, date) => {
-            setShowDatePicker(Platform.OS === 'ios');
-            if (date) setDueDate(date);
-          }}
-          minimumDate={new Date()}
-        />
+        <Text style={styles.dateDisplay}>
+          Due: {dueDate.toLocaleDateString()}
+          {'  '}
+          <Text style={styles.clearDate} onPress={() => setDueDate(null)}>Clear</Text>
+        </Text>
       )}
 
       {/* Notes */}
@@ -173,17 +185,13 @@ const styles = StyleSheet.create({
   priorityRow: { flexDirection: 'row', gap: 4, justifyContent: 'space-between' },
   priorityBtn: { width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' },
   priorityBtnActive: { borderWidth: 2 },
-  priorityHigh: {},
-  priorityMed: {},
-  priorityLow: {},
   priorityHighActive: { borderColor: '#D32F2F', backgroundColor: '#FFEBEE' },
   priorityMedActive: { borderColor: '#FF9800', backgroundColor: '#FFF3E0' },
   priorityLowActive: { borderColor: '#4CAF50', backgroundColor: '#E8F5E9' },
   priorityText: { fontSize: 12, color: '#666', fontWeight: '500' },
   priorityTextActive: { fontWeight: '700' },
-  dateBtn: { backgroundColor: '#fff', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#ddd' },
-  dateBtnText: { fontSize: 15, color: '#555' },
-  clearDate: { color: '#D32F2F', fontSize: 13, marginTop: 4 },
+  dateDisplay: { fontSize: 14, color: '#333', marginTop: 8 },
+  clearDate: { color: '#D32F2F', fontSize: 13 },
   submitBtn: { backgroundColor: '#1B5E20', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 24 },
   submitText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });
