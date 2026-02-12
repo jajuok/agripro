@@ -6,11 +6,16 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
-import * as Location from 'expo-location';
 import { COLORS, SPACING, FONT_SIZES } from '@/utils/constants';
 import { gisApi } from '@/services/api';
+
+// Conditionally import WebView (not available on web)
+let WebView: any = null;
+if (Platform.OS !== 'web') {
+  WebView = require('react-native-webview').WebView;
+}
 
 type LatLng = { latitude: number; longitude: number };
 
@@ -52,11 +57,26 @@ html, body, #map { width: 100%; height: 100%; overflow: hidden; }
 <div id="loading"><div style="font-size:32px;margin-bottom:8px">&#x1F5FA;&#xFE0F;</div><div>Loading map...</div></div>
 <div id="map"></div>
 <script>
+// Unified postMessage: works in both WebView and iframe contexts
+function sendToParent(data) {
+  var json = JSON.stringify(data);
+  if (window.ReactNativeWebView) {
+    window.ReactNativeWebView.postMessage(json);
+  } else {
+    window.parent.postMessage(json, '*');
+  }
+}
+
 // Message handler defined BEFORE Leaflet loads so injectJavaScript always works
 var messageQueue = [];
 var mapReady = false;
 var drawingEnabled = false;
 var map, osmLayer, satelliteLayer, currentLayer, markers, polygon, currentLocMarker;
+
+// Listen for messages from parent (iframe mode)
+window.addEventListener('message', function(e) {
+  if (e.data) handleMessage(e.data);
+});
 
 function handleMessage(data) {
   try {
@@ -64,7 +84,7 @@ function handleMessage(data) {
     if (!mapReady) { messageQueue.push(msg); return; }
     processMessage(msg);
   } catch(e) {
-    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: 'handleMessage: ' + e.message }));
+    sendToParent({ type: 'error', message: 'handleMessage: ' + e.message });
   }
 }
 
@@ -133,9 +153,7 @@ function initMap() {
 
     map.on('click', function(e) {
       if (!drawingEnabled) return;
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'mapClick', lat: e.latlng.lat, lng: e.latlng.lng
-      }));
+      sendToParent({ type: 'mapClick', lat: e.latlng.lat, lng: e.latlng.lng });
     });
 
     document.getElementById('loading').className = 'hidden';
@@ -145,10 +163,10 @@ function initMap() {
     messageQueue.forEach(function(msg) { processMessage(msg); });
     messageQueue = [];
 
-    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready' }));
+    sendToParent({ type: 'ready' });
   } catch(e) {
     document.getElementById('loading').innerHTML = '<div>Map failed to load</div><div style="font-size:12px;color:#999;margin-top:4px">' + e.message + '</div>';
-    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: 'initMap: ' + e.message }));
+    sendToParent({ type: 'error', message: 'initMap: ' + e.message });
   }
 }
 
@@ -163,7 +181,7 @@ script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 script.onload = function() { initMap(); };
 script.onerror = function() {
   document.getElementById('loading').innerHTML = '<div>Failed to load map library</div><div style="font-size:12px;color:#999;margin-top:4px">Check internet connection</div>';
-  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: 'Failed to load Leaflet from CDN' }));
+  sendToParent({ type: 'error', message: 'Failed to load Leaflet from CDN' });
 };
 document.head.appendChild(script);
 </script>
@@ -179,7 +197,8 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
   editable = true,
   showControls = true,
 }) => {
-  const webViewRef = useRef<WebView>(null);
+  const webViewRef = useRef<any>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [points, setPoints] = useState<LatLng[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isWalking, setIsWalking] = useState(false);
@@ -188,7 +207,7 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
   const [mapError, setMapError] = useState<string | null>(null);
   const [areaAcres, setAreaAcres] = useState<number | null>(null);
 
-  const locationSubscription = useRef<Location.LocationSubscription | null>(null);
+  const locationSubscription = useRef<{ remove: () => void } | null>(null);
 
   // Store callbacks in refs to avoid them triggering effects
   const onBoundaryChangeRef = useRef(onBoundaryChange);
@@ -200,6 +219,10 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
   const centerLng = initialLocation?.longitude || 36.817223;
 
   const sendToMap = useCallback((msg: object) => {
+    if (Platform.OS === 'web') {
+      iframeRef.current?.contentWindow?.postMessage(JSON.stringify(msg), '*');
+      return;
+    }
     if (!webViewRef.current) return;
     const json = JSON.stringify(msg);
     const escaped = json.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -259,24 +282,65 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
     }
   }, [points, toGeoJSON]);
 
-  // Handle messages from WebView
-  const handleWebViewMessage = useCallback((event: { nativeEvent: { data: string } }) => {
+  // Handle messages from WebView or iframe
+  const handleMapMessage = useCallback((data: string) => {
     try {
-      const msg = JSON.parse(event.nativeEvent.data);
+      const msg = JSON.parse(data);
       if (msg.type === 'ready') {
         setMapReady(true);
         setMapError(null);
       } else if (msg.type === 'mapClick') {
         setPoints((prev) => [...prev, { latitude: msg.lat, longitude: msg.lng }]);
       } else if (msg.type === 'error') {
-        console.warn('BoundaryMap WebView error:', msg.message);
+        console.warn('BoundaryMap error:', msg.message);
         setMapError(msg.message);
       }
     } catch {}
   }, []);
 
+  const handleWebViewMessage = useCallback((event: { nativeEvent: { data: string } }) => {
+    handleMapMessage(event.nativeEvent.data);
+  }, [handleMapMessage]);
+
+  // Listen for iframe messages on web
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handler = (event: MessageEvent) => {
+      if (typeof event.data === 'string') {
+        handleMapMessage(event.data);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [handleMapMessage]);
+
   // Start walk-the-boundary mode
   const startWalking = async () => {
+    if (Platform.OS === 'web') {
+      if (!navigator.geolocation) {
+        Alert.alert('Error', 'Geolocation not supported in this browser.');
+        return;
+      }
+      setIsWalking(true);
+      setPoints([]);
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const newPoint = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          setPoints((prev) => [...prev, newPoint]);
+          sendToMap({ type: 'showCurrentLocation', lat: newPoint.latitude, lng: newPoint.longitude });
+          sendToMap({ type: 'setCenter', lat: newPoint.latitude, lng: newPoint.longitude, zoom: 18 });
+        },
+        () => Alert.alert('Error', 'Failed to get location'),
+        { enableHighAccuracy: true }
+      );
+      locationSubscription.current = { remove: () => navigator.geolocation.clearWatch(watchId) };
+      return;
+    }
+
+    const Location = require('expo-location');
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission Denied', 'Location permission is required to walk the boundary.');
@@ -287,7 +351,7 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
 
     locationSubscription.current = await Location.watchPositionAsync(
       { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 5 },
-      (location) => {
+      (location: any) => {
         const newPoint = {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
@@ -331,6 +395,31 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
   const goToCurrentLocation = async () => {
     setIsLoading(true);
     try {
+      if (Platform.OS === 'web') {
+        if (!navigator.geolocation) {
+          Alert.alert('Error', 'Geolocation not supported.');
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            sendToMap({
+              type: 'setCenter',
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              zoom: 17,
+            });
+            setIsLoading(false);
+          },
+          () => {
+            Alert.alert('Error', 'Failed to get current location.');
+            setIsLoading(false);
+          },
+          { enableHighAccuracy: true }
+        );
+        return;
+      }
+
+      const Location = require('expo-location');
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Denied', 'Location permission is required.');
@@ -361,28 +450,38 @@ export const BoundaryMap: React.FC<BoundaryMapProps> = ({
     };
   }, []);
 
+  const leafletHTML = buildLeafletHTML(centerLat, centerLng);
+
   return (
     <View style={styles.container}>
-      <WebView
-        ref={webViewRef}
-        source={{ html: buildLeafletHTML(centerLat, centerLng), baseUrl: 'https://unpkg.com' }}
-        style={styles.map}
-        onMessage={handleWebViewMessage}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        mixedContentMode="always"
-        allowFileAccess={true}
-        originWhitelist={['*']}
-        scrollEnabled={false}
-        bounces={false}
-        overScrollMode="never"
-        startInLoadingState={false}
-        cacheEnabled={true}
-        onError={(e) => {
-          console.warn('WebView error:', e.nativeEvent);
-          setMapError('WebView failed to load');
-        }}
-      />
+      {Platform.OS === 'web' ? (
+        <iframe
+          ref={iframeRef as any}
+          srcDoc={leafletHTML}
+          style={{ width: '100%', height: '100%', border: 'none' } as any}
+        />
+      ) : WebView ? (
+        <WebView
+          ref={webViewRef}
+          source={{ html: leafletHTML, baseUrl: 'https://unpkg.com' }}
+          style={styles.map}
+          onMessage={handleWebViewMessage}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          mixedContentMode="always"
+          allowFileAccess={true}
+          originWhitelist={['*']}
+          scrollEnabled={false}
+          bounces={false}
+          overScrollMode="never"
+          startInLoadingState={false}
+          cacheEnabled={true}
+          onError={(e: any) => {
+            console.warn('WebView error:', e.nativeEvent);
+            setMapError('WebView failed to load');
+          }}
+        />
+      ) : null}
 
       {/* Error overlay */}
       {mapError && (

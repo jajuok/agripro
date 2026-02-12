@@ -3,12 +3,14 @@ import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 
-// Prevent auto-hiding the splash screen
-SplashScreen.preventAutoHideAsync();
+// Prevent auto-hiding the splash screen (not available on web)
+try {
+  const SplashScreen = require('expo-splash-screen');
+  SplashScreen.preventAutoHideAsync();
+} catch {}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,7 +34,10 @@ export default function RootLayout() {
         console.warn(e);
       } finally {
         setAppIsReady(true);
-        await SplashScreen.hideAsync();
+        try {
+          const SplashScreen = require('expo-splash-screen');
+          await SplashScreen.hideAsync();
+        } catch {}
       }
     }
 

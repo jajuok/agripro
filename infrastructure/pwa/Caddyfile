@@ -1,0 +1,7 @@
+app.213.32.19.116.sslip.io {
+  root * /srv
+  file_server
+  try_files {path} /index.html
+  encode gzip
+  header /.well-known/assetlinks.json Content-Type application/json
+}

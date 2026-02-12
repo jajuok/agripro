@@ -10,11 +10,18 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS, SPACING, FONT_SIZES } from '@/utils/constants';
 import { useAuthStore } from '@/store/auth';
 import { useKYCStore } from '@/store/kyc';
 import { Button } from '@/components/Button';
+
+// Lazy-load DateTimePicker (not available on web)
+let DateTimePicker: any = null;
+if (Platform.OS !== 'web') {
+  try {
+    DateTimePicker = require('@react-native-community/datetimepicker').default;
+  } catch {}
+}
 
 export default function PersonalInfoScreen() {
   const router = useRouter();
@@ -117,24 +124,41 @@ export default function PersonalInfoScreen() {
             <Text style={styles.label}>
               Date of Birth <Text style={styles.required}>*</Text>
             </Text>
-            <TouchableOpacity
-              style={styles.dateInput}
-              onPress={() => setShowDatePicker(true)}
-              testID="dob-input"
-            >
-              <Text style={styles.dateText}>{dateOfBirth.toLocaleDateString()}</Text>
-              <Text style={styles.dateIcon}>📅</Text>
-            </TouchableOpacity>
-
-            {showDatePicker && (
-              <DateTimePicker
-                value={dateOfBirth}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={handleDateChange}
-                maximumDate={new Date()}
-                minimumDate={new Date(1920, 0, 1)}
+            {Platform.OS === 'web' ? (
+              <TextInput
+                style={styles.input}
+                value={dateOfBirth.toISOString().split('T')[0]}
+                onChangeText={(text: string) => {
+                  const parsed = new Date(text + 'T00:00:00');
+                  if (!isNaN(parsed.getTime())) setDateOfBirth(parsed);
+                }}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={COLORS.gray[400]}
+                testID="dob-input"
+                {...({ type: 'date' } as any)}
               />
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={styles.dateInput}
+                  onPress={() => setShowDatePicker(true)}
+                  testID="dob-input"
+                >
+                  <Text style={styles.dateText}>{dateOfBirth.toLocaleDateString()}</Text>
+                  <Text style={styles.dateIcon}>📅</Text>
+                </TouchableOpacity>
+
+                {showDatePicker && DateTimePicker && (
+                  <DateTimePicker
+                    value={dateOfBirth}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={handleDateChange}
+                    maximumDate={new Date()}
+                    minimumDate={new Date(1920, 0, 1)}
+                  />
+                )}
+              </>
             )}
           </View>
 

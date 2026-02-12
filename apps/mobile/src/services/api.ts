@@ -51,6 +51,11 @@ const buildApiGatewayUrl = (): string => {
     return process.env.EXPO_PUBLIC_API_URL;
   }
 
+  // On web (PWA), default to the production gateway via sslip.io
+  if (Platform.OS === 'web') {
+    return process.env.EXPO_PUBLIC_WEB_API_URL || 'https://213.32.19.116.sslip.io/api/v1';
+  }
+
   // In development, use Traefik gateway on port 80
   const host = getDevServerHost();
   return `http://${host}/api/v1`;

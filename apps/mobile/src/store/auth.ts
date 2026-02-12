@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { authApi, farmerApi } from '@/services/api';
 
 type User = {
@@ -35,12 +35,26 @@ type RegisterData = {
 
 const secureStorage = {
   getItem: async (name: string) => {
+    if (Platform.OS === 'web') {
+      return localStorage.getItem(name);
+    }
+    const SecureStore = require('expo-secure-store');
     return await SecureStore.getItemAsync(name);
   },
   setItem: async (name: string, value: string) => {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(name, value);
+      return;
+    }
+    const SecureStore = require('expo-secure-store');
     await SecureStore.setItemAsync(name, value);
   },
   removeItem: async (name: string) => {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem(name);
+      return;
+    }
+    const SecureStore = require('expo-secure-store');
     await SecureStore.deleteItemAsync(name);
   },
 };

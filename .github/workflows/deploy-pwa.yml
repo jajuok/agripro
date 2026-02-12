@@ -1,0 +1,60 @@
+name: Deploy PWA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web export
+        run: npx expo export --platform web
+
+      - name: Generate service worker
+        run: npx workbox-cli generateSW workbox-config.js
+
+      - name: Copy PWA assets to dist
+        run: |
+          cp public/manifest.json dist/
+          cp public/sw-register.js dist/
+          cp public/icon-192.png dist/
+          cp public/icon-512.png dist/
+
+      - name: Deploy to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$VPS_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Upload dist
+          scp -r dist/ "${VPS_USER}@${VPS_HOST}:/opt/agripro-pwa/dist/"
+
+          # Upload infrastructure files
+          scp ../../infrastructure/pwa/Caddyfile "${VPS_USER}@${VPS_HOST}:/opt/agripro-pwa/Caddyfile"
+          scp ../../infrastructure/pwa/assetlinks.json "${VPS_USER}@${VPS_HOST}:/opt/agripro-pwa/assetlinks.json"
+
+          # Reload Caddy (graceful)
+          ssh "${VPS_USER}@${VPS_HOST}" "docker exec agripro-pwa caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || docker restart agripro-pwa"

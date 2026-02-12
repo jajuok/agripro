@@ -1,0 +1,24 @@
+{
+  "packageId": "com.agrischeme.pro",
+  "host": "app.213.32.19.116.sslip.io",
+  "name": "AgriScheme Pro",
+  "launcherName": "AgriPro",
+  "display": "standalone",
+  "themeColor": "#1B5E20",
+  "navigationColor": "#1B5E20",
+  "backgroundColor": "#1B5E20",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://app.213.32.19.116.sslip.io/icon-512.png",
+  "maskableIconUrl": "https://app.213.32.19.116.sslip.io/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./agripro-twa.keystore",
+    "alias": "agripro"
+  },
+  "appVersionCode": 1,
+  "appVersionName": "1.0.0",
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://app.213.32.19.116.sslip.io/manifest.json"
+}

@@ -8,9 +8,8 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
+  Platform,
 } from 'react-native';
-import * as Location from 'expo-location';
-import * as ImagePicker from 'expo-image-picker';
 
 // Safely import expo-camera - it may not be available on all platforms
 let CameraView: React.ComponentType<any> | null = null;
@@ -44,6 +43,29 @@ type PhotoCaptureProps = {
   title?: string;
 };
 
+// Platform-aware location helper
+const getGpsLocation = async (): Promise<{ latitude: number | null; longitude: number | null }> => {
+  try {
+    if (Platform.OS === 'web') {
+      if (!navigator.geolocation) return { latitude: null, longitude: null };
+      return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+          () => resolve({ latitude: null, longitude: null }),
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      });
+    }
+    const Location = require('expo-location');
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return { latitude: null, longitude: null };
+    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    return { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+  } catch {
+    return { latitude: null, longitude: null };
+  }
+};
+
 // Gallery-only fallback when camera is not available
 const GalleryOnlyCapture: React.FC<PhotoCaptureProps> = ({
   onPhotoCapture,
@@ -51,36 +73,35 @@ const GalleryOnlyCapture: React.FC<PhotoCaptureProps> = ({
   title = 'Select Photo',
 }) => {
   const [previewPhoto, setPreviewPhoto] = useState<PhotoData | null>(null);
+  const webInputRef = useRef<HTMLInputElement | null>(null);
 
-  const getCurrentLocation = async (): Promise<{ latitude: number | null; longitude: number | null }> => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        return { latitude: null, longitude: null };
-      }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      return {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      };
-    } catch {
-      return { latitude: null, longitude: null };
-    }
+  const handleWebFileSelect = async (event: any) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const uri = URL.createObjectURL(file);
+    const location = await getGpsLocation();
+    setPreviewPhoto({
+      uri,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      timestamp: new Date().toISOString(),
+    });
   };
 
   const pickFromGallery = async () => {
+    if (Platform.OS === 'web') {
+      webInputRef.current?.click();
+      return;
+    }
     try {
+      const ImagePicker = require('expo-image-picker');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets[0]) {
-        const location = await getCurrentLocation();
+        const location = await getGpsLocation();
         const photoData: PhotoData = {
           uri: result.assets[0].uri,
           latitude: location.latitude,
@@ -149,13 +170,28 @@ const GalleryOnlyCapture: React.FC<PhotoCaptureProps> = ({
         <View style={styles.placeholder} />
       </View>
 
+      {/* Hidden web file input */}
+      {Platform.OS === 'web' && (
+        <input
+          ref={webInputRef as any}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleWebFileSelect}
+          style={{ display: 'none' }}
+        />
+      )}
+
       <View style={styles.galleryOnlyContent}>
         <Text style={styles.galleryOnlyText}>
-          Camera is not available on this device.{'\n'}
-          Please select a photo from your gallery.
+          {Platform.OS === 'web'
+            ? 'Select a photo or take one with your camera.'
+            : `Camera is not available on this device.\nPlease select a photo from your gallery.`}
         </Text>
         <TouchableOpacity style={styles.galleryOnlyButton} onPress={pickFromGallery}>
-          <Text style={styles.galleryOnlyButtonText}>Open Gallery</Text>
+          <Text style={styles.galleryOnlyButtonText}>
+            {Platform.OS === 'web' ? 'Choose Photo' : 'Open Gallery'}
+          </Text>
         </TouchableOpacity>
         {onCancel && (
           <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
@@ -219,26 +255,6 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     );
   }
 
-  const getCurrentLocation = async (): Promise<{ latitude: number | null; longitude: number | null }> => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        return { latitude: null, longitude: null };
-      }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      return {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      };
-    } catch {
-      return { latitude: null, longitude: null };
-    }
-  };
-
   const takePhoto = async () => {
     if (!cameraRef.current || isCapturing) return;
 
@@ -250,7 +266,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       });
 
       if (photo) {
-        const location = await getCurrentLocation();
+        const location = await getGpsLocation();
         const photoData: PhotoData = {
           uri: photo.uri,
           latitude: location.latitude,
@@ -268,13 +284,14 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
   const pickFromGallery = async () => {
     try {
+      const ImagePicker = require('expo-image-picker');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets[0]) {
-        const location = await getCurrentLocation();
+        const location = await getGpsLocation();
         const photoData: PhotoData = {
           uri: result.assets[0].uri,
           latitude: location.latitude,
