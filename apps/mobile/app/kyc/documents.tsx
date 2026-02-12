@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,9 @@ import {
   ActivityIndicator,
   Image,
   TextInput,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import { COLORS, SPACING, FONT_SIZES } from '@/utils/constants';
 import { useAuthStore } from '@/store/auth';
 import { useKYCStore } from '@/store/kyc';
@@ -81,7 +81,18 @@ export default function DocumentsScreen() {
     }
   }, [farmerId]);
 
+  const webFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleWebFileSelect = (event: any) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedImage(URL.createObjectURL(file));
+    }
+  };
+
   const requestCameraPermission = async () => {
+    if (Platform.OS === 'web') return true;
+    const ImagePicker = require('expo-image-picker');
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
@@ -94,6 +105,8 @@ export default function DocumentsScreen() {
   };
 
   const requestMediaLibraryPermission = async () => {
+    if (Platform.OS === 'web') return true;
+    const ImagePicker = require('expo-image-picker');
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
@@ -112,9 +125,14 @@ export default function DocumentsScreen() {
   };
 
   const handleTakePhoto = async () => {
+    if (Platform.OS === 'web') {
+      webFileInputRef.current?.click();
+      return;
+    }
     const hasPermission = await requestCameraPermission();
     if (!hasPermission) return;
 
+    const ImagePicker = require('expo-image-picker');
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -128,9 +146,14 @@ export default function DocumentsScreen() {
   };
 
   const handlePickImage = async () => {
+    if (Platform.OS === 'web') {
+      webFileInputRef.current?.click();
+      return;
+    }
     const hasPermission = await requestMediaLibraryPermission();
     if (!hasPermission) return;
 
+    const ImagePicker = require('expo-image-picker');
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -209,6 +232,15 @@ export default function DocumentsScreen() {
 
   return (
     <View style={styles.container} testID="documents-screen">
+      {Platform.OS === 'web' && (
+        <input
+          ref={webFileInputRef as any}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleWebFileSelect}
+        />
+      )}
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>

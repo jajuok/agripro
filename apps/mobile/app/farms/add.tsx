@@ -12,7 +12,6 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as Location from 'expo-location';
 import { COLORS, SPACING, FONT_SIZES } from '@/utils/constants';
 import { useFarmStore } from '@/store/farm';
 import { useAuthStore } from '@/store/auth';
@@ -45,6 +44,35 @@ export default function AddFarmScreen() {
     setLocationError(null);
 
     try {
+      if (Platform.OS === 'web') {
+        if (!navigator.geolocation) {
+          setLocationError('Geolocation not supported in this browser.');
+          return;
+        }
+        await new Promise<void>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            async (position) => {
+              setLatitude(position.coords.latitude);
+              setLongitude(position.coords.longitude);
+              try {
+                const adminData = await gisApi.reverseGeocode(position.coords.latitude, position.coords.longitude);
+                if (adminData.is_valid) {
+                  setAdminLocation({ county: adminData.county, subCounty: adminData.sub_county, ward: adminData.ward });
+                }
+              } catch {}
+              resolve();
+            },
+            (err) => {
+              setLocationError(err.message || 'Failed to get location.');
+              resolve();
+            },
+            { enableHighAccuracy: true, timeout: 15000 }
+          );
+        });
+        return;
+      }
+
+      const Location = require('expo-location');
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setLocationError('Location permission is required to register a farm.');

@@ -12,7 +12,6 @@ import {
   Platform,
 } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import * as Location from 'expo-location';
 import { useCropPlanningStore } from '@/store/crop-planning';
 import { COLORS, ACTIVITY_TYPE_ICONS } from '@/utils/constants';
 import StatusBadge from '@/components/crop-planning/StatusBadge';
@@ -38,6 +37,19 @@ export default function ActivityCompleteScreen() {
 
   const captureGps = async () => {
     try {
+      if (Platform.OS === 'web') {
+        if (!navigator.geolocation) {
+          Alert.alert('Error', 'Geolocation not supported');
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => { setGpsLat(pos.coords.latitude); setGpsLng(pos.coords.longitude); },
+          () => Alert.alert('Error', 'Failed to get GPS location'),
+          { enableHighAccuracy: true }
+        );
+        return;
+      }
+      const Location = require('expo-location');
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission needed', 'GPS permission required');
