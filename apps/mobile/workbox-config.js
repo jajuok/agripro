@@ -1,14 +1,27 @@
 module.exports = {
   globDirectory: 'dist/',
-  globPatterns: ['**/*.{html,js,css,json,png,jpg,svg,woff,woff2,ttf}'],
+  // Don't precache HTML — navigation requests should always hit the network
+  // so fresh HTML (with new bundle hashes) is served immediately after deploys
+  globPatterns: ['**/*.{js,css,json,png,jpg,svg,woff,woff2,ttf}'],
   swDest: 'dist/sw.js',
   maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB — precache the main bundle
   skipWaiting: true,
   clientsClaim: true,
+  // Offline fallback — serve cached index.html for navigation when offline
+  navigateFallback: '/index.html',
   runtimeCaching: [
     {
-      // JS, CSS, HTML — network-first so deploys are visible immediately
-      urlPattern: /\.(?:js|css|html)$/,
+      // HTML navigation — always network-first so deploys are visible immediately
+      urlPattern: /\.html$/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'html-pages',
+        networkTimeoutSeconds: 3,
+      },
+    },
+    {
+      // JS, CSS — network-first so deploys are visible immediately
+      urlPattern: /\.(?:js|css)$/,
       handler: 'NetworkFirst',
       options: {
         cacheName: 'static-resources',

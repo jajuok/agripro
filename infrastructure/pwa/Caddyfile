@@ -83,8 +83,10 @@
     file_server
     encode gzip
     header /.well-known/assetlinks.json Content-Type application/json
-    # Prevent caching HTML so updates are picked up immediately
+    # Prevent caching HTML and service worker files so updates are picked up immediately
     @html path *.html /
     header @html Cache-Control "no-cache, no-store, must-revalidate"
+    @sw path /sw.js /sw-register.js
+    header @sw Cache-Control "no-cache, no-store, must-revalidate"
   }
 }

@@ -9,32 +9,20 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
         setInterval(function () {
           registration.update();
         }, 5 * 60 * 1000); // every 5 minutes
-
-        // Detect new service worker waiting
-        registration.addEventListener('updatefound', function () {
-          var newWorker = registration.installing;
-          if (!newWorker) return;
-
-          newWorker.addEventListener('statechange', function () {
-            if (
-              newWorker.state === 'installed' &&
-              navigator.serviceWorker.controller
-            ) {
-              // New version available — prompt user
-              if (
-                confirm(
-                  'A new version of AgriPro is available. Reload to update?'
-                )
-              ) {
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-                window.location.reload();
-              }
-            }
-          });
-        });
       })
       .catch(function (err) {
         console.warn('SW registration failed:', err);
       });
+
+    // Auto-reload when a new service worker takes control.
+    // This fires after skipWaiting + clientsClaim activate a new SW,
+    // guaranteeing the page reloads with fresh content after every deploy.
+    var refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (refreshing) return;
+      refreshing = true;
+      console.log('New SW activated — reloading for update');
+      window.location.reload();
+    });
   });
 }
