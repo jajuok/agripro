@@ -1,79 +1,12 @@
 :80 {
-  # API reverse proxy — route /api/v1/{service}/* to correct backend container
-  # All services listen on port 8000 on the coolify Docker network
-
-  handle /api/v1/auth/* {
-    reverse_proxy eswo8kkw0owo8ckk00cgsc0g-122251736688:8000
-  }
-
-  handle /api/v1/farmers/* {
-    reverse_proxy fswk00skcko8wgkcs840o4ok-195834171096:8000
-  }
-  handle /api/v1/farms/* {
-    reverse_proxy fswk00skcko8wgkcs840o4ok-195834171096:8000
-  }
-  handle /api/v1/kyc/* {
-    reverse_proxy fswk00skcko8wgkcs840o4ok-195834171096:8000
-  }
-  handle /api/v1/documents/* {
-    reverse_proxy fswk00skcko8wgkcs840o4ok-195834171096:8000
-  }
-  handle /api/v1/farm-registration/* {
-    reverse_proxy fswk00skcko8wgkcs840o4ok-195834171096:8000
-  }
-  handle /api/v1/crop-planning/* {
-    reverse_proxy fswk00skcko8wgkcs840o4ok-195834171096:8000
-  }
-  handle /api/v1/eligibility/* {
-    reverse_proxy fswk00skcko8wgkcs840o4ok-195834171096:8000
-  }
-
-  handle /api/v1/tasks/* {
-    reverse_proxy rckowgo8ogwogw8gc04o48ko-124616571428:8000
-  }
-
-  handle /api/v1/gis/* {
-    reverse_proxy ckscgcwgcckgk40g4sgkocsw-122931969169:8000
-  }
-
-  handle /api/v1/financial/* {
-    reverse_proxy ksk48c04o0c4o00gs8ggo4go-122840581643:8000
-  }
-
-  handle /api/v1/market/* {
-    reverse_proxy dgk8w048wcc0ckg00k0k0oc4-123257045702:8000
-  }
-
-  handle /api/v1/ai/* {
-    reverse_proxy dgos8sgc0ckgc0kco04gg4kw-122435537706:8000
-  }
-
-  handle /api/v1/iot/* {
-    reverse_proxy rgc0c8so8c8kgckc4gskscc4-123146027013:8000
-  }
-
-  handle /api/v1/livestock/* {
-    reverse_proxy rggcw4ocg4cswk8cokoswo00-123216449721:8000
-  }
-
-  handle /api/v1/inventory/* {
-    reverse_proxy i0gkkgkgs88ks44oo0csc84w-123105211701:8000
-  }
-
-  handle /api/v1/notifications/* {
-    reverse_proxy fsg84owk8cggwc844kkcgcoc-123326786061:8000
-  }
-
-  handle /api/v1/traceability/* {
-    reverse_proxy eww0o8woscc4ckkg4kokwcoo-123433414546:8000
-  }
-
-  handle /api/v1/compliance/* {
-    reverse_proxy v4c4c4k4g0wcwcc484cggk0k-122505373705:8000
-  }
-
-  handle /api/v1/integration/* {
-    reverse_proxy gw8s0swo000g0wcsk4s444k0-123023160912:8000
+  # API reverse proxy — route all API calls through Traefik
+  # Traefik handles service discovery via Coolify labels, so container
+  # hostname changes on redeploy don't break routing.
+  # Host header set to the bare IP so Traefik's PathPrefix rules match.
+  handle /api/v1/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host 213.32.19.116
+    }
   }
 
   # Static files — PWA app shell (fallback for everything else)
