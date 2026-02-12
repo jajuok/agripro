@@ -1,0 +1,54 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.agrischeme.pro'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.agrischeme.pro"
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+
+        manifestPlaceholders = [
+            hostName: "app.213.32.19.116.sslip.io",
+            defaultUrl: "https://app.213.32.19.116.sslip.io",
+            launcherName: "AgriPro",
+            assetStatements: '[{"relation": ["delegate_permission/common.handle_all_urls"], "target": {"namespace": "web", "site": "https://app.213.32.19.116.sslip.io"}}]'
+        ]
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("../agripro-twa.keystore")
+            storePassword "agripro123"
+            keyAlias "agripro"
+            keyPassword "agripro123"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+            signingConfig signingConfigs.release
+        }
+        debug {
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+}
