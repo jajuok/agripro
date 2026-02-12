@@ -10,12 +10,20 @@ echo "AgriScheme Pro - Release APK Build"
 echo "=================================="
 echo ""
 
-# Set production environment variables - Unified API Gateway
-export EXPO_PUBLIC_API_URL="http://213.32.19.116:8888/api/v1"
+# Load production environment from .env file
+# Individual service URLs routed via Coolify's Traefik (port 80)
+# EXPO_PUBLIC_API_URL is intentionally NOT set so the app uses
+# per-service FQDNs (e.g. farmer.213.32.19.116.sslip.io)
+if [ -f ".env" ]; then
+  set -a
+  source .env
+  set +a
+fi
 
 echo "✓ Environment variables set for production"
-echo "  - API Gateway: $EXPO_PUBLIC_API_URL"
-echo "  - All services accessible through single entry point"
+echo "  - Mode: Individual service URLs via Traefik"
+echo "  - Auth: ${EXPO_PUBLIC_AUTH_URL:-not set}"
+echo "  - Farmer: ${EXPO_PUBLIC_FARMER_URL:-not set}"
 echo ""
 
 # Clean previous builds
