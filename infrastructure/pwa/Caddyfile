@@ -1,11 +1,119 @@
 :80 {
-  # API reverse proxy — route all API calls through Traefik
-  # Traefik handles service discovery via Coolify labels, so container
-  # hostname changes on redeploy don't break routing.
-  # Host header set to the bare IP so Traefik's PathPrefix rules match.
-  handle /api/v1/* {
+  # API reverse proxy — route through Traefik using service-specific Host headers.
+  # Traefik routes by Host header to the correct Coolify container,
+  # so this never breaks when containers are redeployed.
+
+  handle /api/v1/auth/* {
     reverse_proxy 213.32.19.116:80 {
-      header_up Host 213.32.19.116
+      header_up Host auth.213.32.19.116.sslip.io
+    }
+  }
+
+  handle /api/v1/farmers/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host farmer.213.32.19.116.sslip.io
+    }
+  }
+  handle /api/v1/farms/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host farmer.213.32.19.116.sslip.io
+    }
+  }
+  handle /api/v1/kyc/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host farmer.213.32.19.116.sslip.io
+    }
+  }
+  handle /api/v1/documents/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host farmer.213.32.19.116.sslip.io
+    }
+  }
+  handle /api/v1/farm-registration/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host farmer.213.32.19.116.sslip.io
+    }
+  }
+  handle /api/v1/crop-planning/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host farmer.213.32.19.116.sslip.io
+    }
+  }
+  handle /api/v1/eligibility/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host farmer.213.32.19.116.sslip.io
+    }
+  }
+
+  handle /api/v1/tasks/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host task.213.32.19.116.sslip.io
+    }
+  }
+
+  handle /api/v1/gis/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host gis.213.32.19.116.sslip.io
+    }
+  }
+
+  handle /api/v1/financial/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host financial.213.32.19.116.sslip.io
+    }
+  }
+
+  handle /api/v1/market/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host market.213.32.19.116.sslip.io
+    }
+  }
+
+  handle /api/v1/ai/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host ai.213.32.19.116.sslip.io
+    }
+  }
+
+  handle /api/v1/iot/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host iot.213.32.19.116.sslip.io
+    }
+  }
+
+  handle /api/v1/livestock/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host livestock.213.32.19.116.sslip.io
+    }
+  }
+
+  handle /api/v1/inventory/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host inventory.213.32.19.116.sslip.io
+    }
+  }
+
+  handle /api/v1/notifications/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host notification.213.32.19.116.sslip.io
+    }
+  }
+
+  handle /api/v1/traceability/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host traceability.213.32.19.116.sslip.io
+    }
+  }
+
+  handle /api/v1/compliance/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host compliance.213.32.19.116.sslip.io
+    }
+  }
+
+  handle /api/v1/integration/* {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host integration.213.32.19.116.sslip.io
     }
   }
 
