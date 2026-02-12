@@ -1,71 +1,76 @@
 # AgriScheme Pro - Feature Development Roadmap
 
-**Version:** 2.0.0
-**Last Updated:** 2026-02-09
+**Version:** 2.1.0
+**Last Updated:** 2026-02-12
 **Status:** Active Development
 
 ---
 
-## 📊 Current Implementation Status
+## Current Implementation Status
 
-### ✅ Fully Implemented Features (v2.0.0)
+### Fully Implemented Features
 
-#### Authentication & User Management
-- **Service:** Auth Service
-- **Mobile App:** ✅ Complete
-- **Backend:** ✅ Complete
+#### 1. Authentication & User Management
+- **Service:** Auth Service (23 endpoints, 8 models, 3 migrations)
+- **Backend:** Complete
+- **Mobile:** Complete
 - **Status:** Production-ready
 - **Features:**
-  - User registration with validation
-  - Login/Logout with JWT tokens
-  - Password reset flow
+  - Email & phone-based registration (with PIN)
+  - Login/logout with JWT tokens
   - Token refresh mechanism
-  - Role-based access control (RBAC)
-  - Session management
+  - Password reset with token expiration
+  - TOTP two-factor authentication (setup, enable, disable, verify)
+  - Role-based access control (RBAC) with granular permissions
+  - Admin role & permission management
+  - User-role assignment
+  - Login attempt tracking with account lockout (brute force protection)
+  - Audit logging for all security actions
+  - Multi-tenant support
+  - IP tracking and user agent logging
 - **API Endpoints:**
-  - POST `/api/v1/auth/register`
-  - POST `/api/v1/auth/login`
-  - POST `/api/v1/auth/logout`
-  - POST `/api/v1/auth/refresh`
-  - GET `/api/v1/auth/me`
+  - POST `/auth/register`, `/auth/register/phone`, `/auth/login`, `/auth/login/phone`
+  - POST `/auth/refresh`, `/auth/logout`
+  - POST `/auth/2fa/setup`, `/auth/2fa/enable`, `/auth/2fa/disable`, GET `/auth/2fa/status`
+  - POST `/auth/password/reset-request`, `/auth/password/reset-confirm`, `/auth/password/change`
+  - GET `/users/me`, PATCH `/users/me`, GET `/users`, GET `/users/{user_id}`
+  - POST `/admin/roles`, GET `/admin/roles`, GET/DELETE `/admin/roles/{role_id}`
+  - POST/GET `/admin/permissions`
+  - POST/DELETE `/admin/roles/{role_id}/permissions[/{permission_id}]`
+  - POST/DELETE/GET `/admin/users/{user_id}/roles[/{role_id}]`
+  - GET `/admin/users/{user_id}/permissions`
 
-#### Farmer Profile Management
+#### 2. Farmer Profile Management
 - **Service:** Farmer Service
-- **Mobile App:** ✅ Complete
-- **Backend:** ✅ Complete
+- **Backend:** Complete
+- **Mobile:** Complete
 - **Status:** Production-ready
 - **Features:**
-  - Farmer profile creation
-  - Profile editing
-  - Profile viewing
-  - Link farmer to user account
+  - Farmer profile creation and editing
+  - Profile viewing with KYC status filtering
+  - Link farmer to auth user account
+  - Pagination and search
 - **API Endpoints:**
-  - GET `/api/v1/farmers`
-  - GET `/api/v1/farmers/{id}`
-  - GET `/api/v1/farmers/by-user/{user_id}`
-  - POST `/api/v1/farmers`
+  - POST `/farmers`, GET `/farmers`, GET `/farmers/{farmer_id}`
+  - GET `/farmers/by-user/{user_id}`, PATCH `/farmers/{farmer_id}`
 
-#### Farm Registration Workflow
-- **Service:** Farmer Service
-- **Mobile App:** ✅ Complete (7-step wizard)
-- **Backend:** ✅ Complete
+#### 3. Farm Registration Workflow
+- **Service:** Farmer Service (20+ endpoints)
+- **Backend:** Complete
+- **Mobile:** Complete (8-screen wizard)
 - **Status:** Production-ready
 - **Features:**
-  - Multi-step farm registration wizard
-  - Location capture (GPS + address)
-  - Farm boundary mapping (polygon drawing)
-  - Land details (size, ownership, use)
-  - Document upload (title deed, lease)
-  - Soil and water information
+  - Multi-step registration state machine (8 steps: LOCATION to COMPLETE)
+  - GPS location capture with reverse geocoding
+  - Farm boundary mapping (polygon drawing with validation)
+  - Land details (size, ownership, use type)
+  - Document upload (title deed, lease, etc.)
+  - Soil test report management
   - Crop history tracking
+  - Farm asset tracking (equipment, vehicles, infrastructure, storage)
+  - Field visit scheduling with GPS check-in and location verification
   - Review and submit workflow
-- **API Endpoints:**
-  - GET `/api/v1/farms`
-  - GET `/api/v1/farms/{id}`
-  - GET `/api/v1/farms/user/{user_id}`
-  - GET `/api/v1/farms/farmer/{farmer_id}`
-  - POST `/api/v1/farms`
-  - PATCH `/api/v1/farms/{id}`
+  - Soft delete support
 - **Mobile Screens:**
   - `/farms/add` - Start registration
   - `/farms/[id]/index` - Farm location
@@ -76,932 +81,446 @@
   - `/farms/[id]/crops` - Crop history
   - `/farms/[id]/review` - Final review
 
-#### KYC (Know Your Customer)
-- **Service:** Farmer Service
-- **Mobile App:** 🚧 Partial (eligibility flow exists)
-- **Backend:** ✅ Complete
-- **Status:** Backend ready, mobile integration needed
+#### 4. KYC (Know Your Customer)
+- **Service:** Farmer Service (15+ endpoints)
+- **Backend:** Complete
+- **Mobile:** Complete (5-screen wizard)
+- **Status:** Production-ready
 - **Features:**
-  - National ID verification
-  - Document verification workflow
-  - KYC status tracking (pending, verified, rejected)
-  - Admin approval interface
+  - Full KYC workflow state machine (PENDING, IN_REVIEW, APPROVED, REJECTED, EXPIRED)
+  - Personal information collection
+  - National ID / passport document upload with OCR extraction
+  - Bank information capture
+  - Biometric capture and verification with quality scoring
+  - External verification integration
+  - Document verification with OCR
+  - KYC review queue management
+  - Admin approval/rejection interface
   - Verification comments
 - **API Endpoints:**
-  - GET `/api/v1/kyc`
-  - GET `/api/v1/kyc/{id}`
-  - POST `/api/v1/kyc`
-  - PATCH `/api/v1/kyc/{id}`
-  - POST `/api/v1/kyc/{id}/approve`
-  - POST `/api/v1/kyc/{id}/reject`
+  - POST `/kyc/{farmer_id}/start`, GET `/kyc/{farmer_id}/status`
+  - POST `/kyc/{farmer_id}/step/complete`
+  - Biometric capture & verification endpoints
+  - Document verification with OCR
+  - External verification integration
+  - KYC review queue management
+- **Mobile Screens:**
+  - `/kyc/index` - KYC status dashboard
+  - `/kyc/personal-info` - Personal information form
+  - `/kyc/documents` - Document upload
+  - `/kyc/bank-info` - Banking details
+  - `/kyc/submit` - Review & submit
 
-#### Eligibility Assessment
+#### 5. Eligibility Assessment
 - **Service:** Farmer Service
-- **Mobile App:** ✅ Complete
-- **Backend:** ✅ Complete
+- **Backend:** Complete
+- **Mobile:** Complete
 - **Status:** Production-ready
 - **Features:**
-  - Program eligibility checking
-  - Rule-based eligibility scoring
+  - Program eligibility checking with rule-based scoring
+  - Risk scoring for credit decisions
   - Multiple program support
   - Eligibility history
+  - Credit assessment engine
 - **API Endpoints:**
-  - GET `/api/v1/eligibility`
-  - POST `/api/v1/eligibility/check`
-  - GET `/api/v1/eligibility/{id}`
-- **Mobile Screens:**
-  - `/eligibility/index` - List programs
-  - `/eligibility/[id]` - Check eligibility
+  - GET `/eligibility`, POST `/eligibility/check`, GET `/eligibility/{id}`
 
-#### Document Management
+#### 6. Document Management
 - **Service:** Farmer Service
-- **Mobile App:** ✅ Integrated in farm registration
-- **Backend:** ✅ Complete
+- **Backend:** Complete
+- **Mobile:** Integrated in farm registration and KYC
 - **Status:** Production-ready
 - **Features:**
-  - Document upload (images, PDFs)
-  - Document categorization
-  - Document verification status
-  - Storage integration
+  - Document upload (images, PDFs) with GPS metadata
+  - Document categorization (NATIONAL_ID, PASSPORT, LAND_TITLE, etc.)
+  - Document verification status tracking
+  - Storage service integration
 - **API Endpoints:**
-  - GET `/api/v1/documents`
-  - POST `/api/v1/documents`
-  - GET `/api/v1/documents/{id}`
-  - DELETE `/api/v1/documents/{id}`
+  - POST `/documents`, GET `/documents/{farm_id}`, DELETE `/documents/{doc_id}`
 
-#### GIS Services
-- **Service:** GIS Service
-- **Mobile App:** ✅ Integrated in farm registration
-- **Backend:** ✅ Complete
+#### 7. GIS Services
+- **Service:** GIS Service (8 endpoints, standalone computation)
+- **Backend:** Complete
+- **Mobile:** Integrated in farm registration
 - **Status:** Production-ready
 - **Features:**
-  - Reverse geocoding (coordinates → address)
-  - Farm boundary storage
-  - Location services
+  - Reverse geocoding (coordinates to county/sub-county/ward)
+  - Kenya boundary validation (checks coordinates against Kenya GIS boundary)
+  - GeoJSON polygon validation and normalization
+  - Geodetic area calculation (acres, hectares, sq meters)
+  - Point-in-polygon with distance to nearest edge
+  - Boundary overlap detection with area/percentage
+  - Polygon self-intersection checking
+  - Douglas-Peucker polygon simplification
+  - Buffer boundary generation
 - **API Endpoints:**
-  - POST `/api/v1/gis/reverse-geocode`
-  - GET `/api/v1/gis/boundaries`
+  - POST `/reverse-geocode`, `/validate-coordinates`, `/validate-polygon`
+  - POST `/calculate-area`, `/point-in-boundary`, `/check-overlap`
+  - POST `/simplify-polygon`, `/buffer-boundary`
 
----
-
-## 🚧 Partially Implemented Features
-
-### Crop Planning System (Phase 3.1)
-- **Service:** Farmer Service
-- **Mobile App:** ❌ Not implemented
-- **Backend:** ✅ Fully complete (724 lines)
-- **Status:** Backend ready, needs mobile UI
-- **Priority:** HIGH
-- **Effort:** 2-3 weeks
-
-**Backend Capabilities (Already Built):**
-- **Crop Calendar Templates:**
-  - Regional crop calendars with growth stages
-  - Planting window recommendations
-  - Template management for admins
-  - Seed rates, fertilizer requirements, expected yields
-
-- **Crop Plans:**
-  - Create seasonal crop plans from templates
-  - Track growth stages (Germination → Vegetative → Flowering → Harvest)
-  - Plan vs. actual tracking (dates, acreage, yield)
-  - Cost estimation and tracking
-  - Status workflow (Draft → Active → Completed)
-
-- **Planned Activities:**
-  - Auto-generate activities from templates
-  - Activity scheduling with flexible timing windows
-  - Weather-dependent activities
-  - Activity completion with GPS verification
-  - Photo documentation
-  - Input usage tracking
-
-- **Input Requirements:**
-  - Seed, fertilizer, pesticide planning
+#### 8. Crop Planning System
+- **Service:** Farmer Service (30+ endpoints, 6 models)
+- **Backend:** Complete
+- **Mobile:** Complete (9 screens + 4 components)
+- **Status:** Production-ready
+- **Features:**
+  - Crop calendar templates with regional variations
+  - Crop plan lifecycle (Draft, Active, Completed, Archived)
+  - Growth stage tracking (Germination, Vegetative, Flowering, Harvest)
+  - Planned activity management (13 activity types, auto-generation from templates)
+  - Activity completion with GPS verification and photo documentation
+  - Input requirement calculation (seed, fertilizer, pesticide)
   - QR code verification for certified inputs
-  - Procurement status tracking
-  - Cost tracking (estimated vs. actual)
-  - Supplier management
+  - Procurement status and cost tracking
+  - Irrigation scheduling (7 methods: drip, sprinkler, furrow, etc.)
+  - Auto-generation based on crop needs with soil moisture tracking
+  - Crop plan alerts (activity reminders, overdue, weather, planting windows, harvest)
+  - Dashboard with plan overview, upcoming/overdue activities, cost summaries
+  - Plan statistics
+- **API Endpoints:**
+  - Templates: GET/POST `/crop-planning/templates`, GET/PATCH `/crop-planning/templates/{id}`, GET `/crop-planning/templates/recommend`
+  - Plans: GET/POST `/crop-planning/plans`, GET/PATCH/DELETE `/crop-planning/plans/{id}`
+  - Plan actions: POST `/crop-planning/plans/{id}/activate`, `/advance-stage`, `/complete`
+  - GET `/crop-planning/plans/{id}/statistics`
+  - Activities: GET/POST `/crop-planning/plans/{id}/activities`, GET/PATCH `/crop-planning/activities/{id}`
+  - POST `/crop-planning/activities/{id}/complete`, `/skip`
+  - GET `/crop-planning/activities/upcoming`
+  - Inputs: GET/POST `/crop-planning/plans/{id}/inputs`, GET/PATCH `/crop-planning/inputs/{id}`
+  - POST `/crop-planning/inputs/{id}/verify-qr`, GET `/crop-planning/calculate-inputs`
+  - Irrigation: GET/POST `/crop-planning/plans/{id}/irrigation`, POST `/crop-planning/plans/{id}/irrigation/generate`
+  - GET/PATCH `/crop-planning/irrigation/{id}`, POST `/crop-planning/irrigation/{id}/complete`
+  - Alerts: GET `/crop-planning/alerts`, POST `/crop-planning/alerts/{id}/read`, `/dismiss`
+  - Dashboard: GET `/crop-planning/dashboard`
+- **Mobile Screens:**
+  - `/crop-planning/index` - Dashboard with active plans
+  - `/crop-planning/create` - New plan wizard
+  - `/crop-planning/[id]/index` - Plan details
+  - `/crop-planning/[id]/activities` - Activity list
+  - `/crop-planning/[id]/activity-complete` - Activity completion form
+  - `/crop-planning/[id]/inputs` - Input management
+  - `/crop-planning/[id]/irrigation` - Irrigation schedule
+  - `/crop-planning/alerts` - Alerts view
+- **Mobile Components:**
+  - GrowthStageTimeline, PlanCard, StatusBadge, ActivityCard
 
-- **Irrigation Schedules:**
-  - Multi-method support (drip, sprinkler, furrow, etc.)
-  - Auto-generation based on crop needs
-  - Soil moisture tracking
-  - Deficit irrigation support
-  - Weather integration
+#### 9. Task Management
+- **Service:** Task Service (9 endpoints, 2 models, 1 migration)
+- **Backend:** Complete
+- **Mobile:** Complete (integrated in Tasks tab)
+- **Status:** Production-ready
+- **Features:**
+  - Task CRUD with soft delete
+  - Task filtering by farmer, status, category, priority range
+  - Task categories (MAINTENANCE, ADMINISTRATIVE, EQUIPMENT, INFRASTRUCTURE, PROCUREMENT, INSPECTION, LIVESTOCK, GENERAL, OTHER)
+  - Priority levels (1-10 scale)
+  - Status workflow (PENDING, IN_PROGRESS, COMPLETED, CANCELLED)
+  - Recurrence support (NONE, DAILY, WEEKLY, BIWEEKLY, MONTHLY, QUARTERLY, YEARLY)
+  - Task comments for collaboration
+  - Task statistics (counts by status/category)
+  - Due date and completion tracking
+  - Worker assignment
+- **API Endpoints:**
+  - GET `/tasks`, POST `/tasks`, GET `/tasks/stats`
+  - GET `/tasks/{task_id}`, PATCH `/tasks/{task_id}`, DELETE `/tasks/{task_id}`
+  - POST `/tasks/{task_id}/comments`, GET `/tasks/{task_id}/comments`
 
-- **Alerts & Notifications:**
-  - Activity reminders
-  - Overdue activity alerts
-  - Weather warnings
-  - Planting window notifications
-  - Harvest reminders
-
-- **Dashboard:**
-  - Active/draft/completed plans overview
-  - Upcoming activities (today, this week)
-  - Overdue activities tracking
-  - Cost summaries
-
-**API Endpoints (All Ready):**
-```
-Templates:
-- GET    /api/v1/crop-planning/templates
-- POST   /api/v1/crop-planning/templates
-- GET    /api/v1/crop-planning/templates/{id}
-- PATCH  /api/v1/crop-planning/templates/{id}
-- GET    /api/v1/crop-planning/templates/recommend
-
-Plans:
-- GET    /api/v1/crop-planning/plans
-- POST   /api/v1/crop-planning/plans
-- GET    /api/v1/crop-planning/plans/{id}
-- PATCH  /api/v1/crop-planning/plans/{id}
-- DELETE /api/v1/crop-planning/plans/{id}
-- POST   /api/v1/crop-planning/plans/{id}/activate
-- POST   /api/v1/crop-planning/plans/{id}/advance-stage
-- POST   /api/v1/crop-planning/plans/{id}/complete
-- GET    /api/v1/crop-planning/plans/{id}/statistics
-
-Activities:
-- GET    /api/v1/crop-planning/plans/{id}/activities
-- POST   /api/v1/crop-planning/plans/{id}/activities
-- GET    /api/v1/crop-planning/activities/{id}
-- PATCH  /api/v1/crop-planning/activities/{id}
-- POST   /api/v1/crop-planning/activities/{id}/complete
-- POST   /api/v1/crop-planning/activities/{id}/skip
-- GET    /api/v1/crop-planning/activities/upcoming
-
-Inputs:
-- GET    /api/v1/crop-planning/plans/{id}/inputs
-- POST   /api/v1/crop-planning/plans/{id}/inputs
-- GET    /api/v1/crop-planning/inputs/{id}
-- PATCH  /api/v1/crop-planning/inputs/{id}
-- POST   /api/v1/crop-planning/inputs/{id}/verify-qr
-- GET    /api/v1/crop-planning/calculate-inputs
-
-Irrigation:
-- GET    /api/v1/crop-planning/plans/{id}/irrigation
-- POST   /api/v1/crop-planning/plans/{id}/irrigation
-- POST   /api/v1/crop-planning/plans/{id}/irrigation/generate
-- GET    /api/v1/crop-planning/irrigation/{id}
-- PATCH  /api/v1/crop-planning/irrigation/{id}
-- POST   /api/v1/crop-planning/irrigation/{id}/complete
-
-Alerts:
-- GET    /api/v1/crop-planning/alerts
-- POST   /api/v1/crop-planning/alerts/{id}/read
-- POST   /api/v1/crop-planning/alerts/{id}/dismiss
-
-Dashboard:
-- GET    /api/v1/crop-planning/dashboard
-```
-
-**Missing Mobile UI Screens:**
-1. Crop planning dashboard (home view)
-2. Create crop plan wizard
-3. Crop plan details/management
-4. Activity calendar view
-5. Activity completion form
-6. Input management
-7. Irrigation schedule
-8. Alerts/notifications view
-
-**Data Models:**
-- CropCalendarTemplate
-- CropPlan (with growth stage tracking)
-- PlannedActivity (13 activity types)
-- InputRequirement (7 input categories)
-- IrrigationSchedule (7 irrigation methods)
-- CropPlanAlert (8 alert types)
-
-**Business Logic:**
-- Automatic activity generation from templates
-- Growth stage advancement
-- Alert generation for reminders
-- Input calculation based on acreage
-- Irrigation schedule generation
-- Cost tracking and variance analysis
-
-**Recommendation:**
-This is the most mature partially-implemented feature. The backend is production-ready with comprehensive functionality. Building the mobile UI will provide immediate value to farmers for crop season planning and management.
+#### 10. CI/CD & Deployment
+- **Status:** Complete
+- **Features:**
+  - GitHub Actions CI (lint, test, build for backend + mobile)
+  - Docker image builds (auth, farmer services)
+  - Auto-deploy workflow via Coolify API (detects changed services, deploys in parallel)
+  - Manual dispatch with explicit service list
+  - Coolify-based deployment (15 services containerized)
+  - Nginx API gateway routing
+  - TWA (Trusted Web Activity) APK project
+  - PWA deployment workflow
 
 ---
 
-## ❌ Not Yet Implemented Services
+### Mobile App Infrastructure
+- **Framework:** Expo / React Native with Expo Router (file-based routing)
+- **Navigation:** 5-tab layout (Home, Farms, Market, Tasks, Profile)
+- **State:** Zustand stores (auth, farmer)
+- **API:** Axios client with interceptors for auth tokens and service routing
+- **Modes:** Unified gateway, production individual services, or development direct ports
+- **Platforms:** Android APK (native + TWA), iOS, Web/PWA
+- **Components:** Button, Input, StepIndicator, PhotoCapture, BoundaryMap + crop planning components
+- **Admin:** Next.js web-admin app (scaffolded with Tailwind, minimal implementation)
 
-### Market Service
-- **Service:** Market Service (10.0.1.36)
-- **Mobile App:** ❌ Empty tab
-- **Backend:** ⚠️ Minimal/Stub
+---
+
+## Not Yet Implemented (Stub Services)
+
+All 11 services below are identical stubs: a FastAPI app with only `GET /` and `GET /health` endpoints, no routers, no models, no database, no business logic.
+
+### HIGH Priority
+
+#### Market Service
+- **Container:** 10.0.1.36
+- **Mobile:** Empty tab placeholder
 - **Priority:** HIGH
 - **Effort:** 3-4 weeks
+- **Planned Features:**
+  - Crop price listings and price history/trends
+  - Produce listings (create, manage, search)
+  - Buyer/seller matching and connections
+  - Location-based market matching
+  - Market news and demand information
+  - External market price API integration
+- **Planned Mobile Screens:**
+  - `/market/prices` - Current market prices
+  - `/market/listings` - My produce listings
+  - `/market/create-listing` - List produce for sale
+  - `/market/buyers` - Find buyers
+  - `/market/trends` - Price trends/charts
 
-**Potential Features:**
-- Crop price listings
-- Market demand information
-- Buyer connections
-- Produce listings
-- Price history/trends
-- Market news
-
-### Task Service
-- **Service:** Task Service (10.0.1.37)
-- **Mobile App:** ❌ Empty tab
-- **Backend:** ⚠️ Minimal/Stub
-- **Priority:** MEDIUM
+#### Notification Service
+- **Container:** 10.0.1.57
+- **Mobile:** No integration
+- **Priority:** HIGH
 - **Effort:** 2-3 weeks
+- **Planned Features:**
+  - Push notifications (Firebase Cloud Messaging)
+  - SMS notifications (Africa's Talking or Twilio)
+  - Email notifications (SendGrid or AWS SES)
+  - In-app notification center
+  - Notification preferences per user
+  - Notification history and read status
+  - Multi-channel delivery with queue (Redis/RabbitMQ)
+  - Integration points: crop planning alerts, KYC updates, market price alerts, payment confirmations
+- **Planned Mobile Screens:**
+  - `/notifications` - Notification center
+  - `/profile/notifications` - Notification preferences
 
-**Potential Features:**
-- General farm task management
-- Task assignment (for hired workers)
-- Task completion tracking
-- Recurring task templates
-- Task categorization
-- Progress reports
-
-**Note:** Overlap with crop planning activities - need to define scope
-
-### Financial Service
-- **Service:** Financial Service (10.0.1.42)
-- **Mobile App:** ❌ Not implemented
-- **Backend:** ⚠️ Minimal/Stub
+#### Financial Service
+- **Container:** 10.0.1.42
 - **Priority:** HIGH
 - **Effort:** 4-5 weeks
+- **Planned Features:**
+  - Income/expense recording and categorization
+  - Transaction history
+  - Financial reports and summaries
+  - M-Pesa integration (STK Push, callbacks)
+  - Loan application workflow
+  - Credit scoring integration
+  - Subsidy tracking and disbursement
+  - Transaction encryption and PIN/biometric confirmation
+  - Audit logging
+- **Planned Mobile Screens:**
+  - `/financial/dashboard` - Financial overview
+  - `/financial/transactions` - Transaction history
+  - `/financial/income` - Record income
+  - `/financial/expense` - Record expense
+  - `/financial/reports` - Financial reports
+  - `/financial/loans` - Loan applications
 
-**Potential Features:**
-- Loan applications
-- Payment processing
-- Financial records
-- Transaction history
-- Credit scoring integration
-- Subsidy tracking
-- Income/expense tracking
+### MEDIUM Priority
 
-### AI Service
-- **Service:** AI Service (10.0.1.58)
-- **Mobile App:** ❌ Not implemented
-- **Backend:** ⚠️ Minimal/Stub
-- **Priority:** MEDIUM-LOW
-- **Effort:** Variable (depends on ML models)
-
-**Potential Features:**
-- Crop disease detection (image recognition)
-- Yield prediction
-- Optimal planting time recommendations
-- Pest identification
-- Soil health assessment
-- Weather-based recommendations
-
-### IoT Service
-- **Service:** IoT Service (10.0.1.40)
-- **Mobile App:** ❌ Not implemented
-- **Backend:** ⚠️ Minimal/Stub
-- **Priority:** LOW
-- **Effort:** 3-4 weeks
-
-**Potential Features:**
-- Sensor data ingestion
-- Soil moisture monitoring
-- Weather station integration
-- Device management
-- Real-time alerts
-- Data visualization
-
-### Livestock Service
-- **Service:** Livestock Service (10.0.1.33)
-- **Mobile App:** ❌ Not implemented
-- **Backend:** ⚠️ Minimal/Stub
-- **Priority:** MEDIUM
-- **Effort:** 3-4 weeks
-
-**Potential Features:**
-- Animal registration
-- Health records
-- Breeding records
-- Feed management
-- Vaccination tracking
-- Production records (milk, eggs)
-
-### Inventory Service
-- **Service:** Inventory Service (10.0.1.29)
-- **Mobile App:** ❌ Not implemented
-- **Backend:** ⚠️ Minimal/Stub
+#### Inventory Service
+- **Container:** 10.0.1.29
 - **Priority:** MEDIUM
 - **Effort:** 2-3 weeks
+- **Planned Features:**
+  - Input stock management (seeds, fertilizer, pesticides)
+  - Harvested produce tracking
+  - Farm equipment registry
+  - Stock level tracking with low stock alerts
+  - Usage recording and reorder management
+  - Integration with crop planning (input procurement) and market service (produce listings)
+- **Planned Mobile Screens:**
+  - `/inventory` - Dashboard
+  - `/inventory/inputs` - Input stock
+  - `/inventory/produce` - Harvested produce
+  - `/inventory/equipment` - Farm equipment
+  - `/inventory/add` - Add inventory item
 
-**Potential Features:**
-- Input stock management
-- Equipment tracking
-- Produce inventory
-- Low stock alerts
-- Usage tracking
-- Reorder management
-
-### Notification Service
-- **Service:** Notification Service (10.0.1.57)
-- **Mobile App:** 🚧 Basic (in-app only)
-- **Backend:** ⚠️ Minimal/Stub
-- **Priority:** HIGH
-- **Effort:** 2-3 weeks
-
-**Potential Features:**
-- Push notifications
-- SMS notifications
-- Email notifications
-- In-app notifications
-- Notification preferences
-- Notification history
-- Multi-channel delivery
-
-### Traceability Service
-- **Service:** Traceability Service (10.0.1.31)
-- **Mobile App:** ❌ Not implemented
-- **Backend:** ⚠️ Minimal/Stub
+#### Livestock Service
+- **Container:** 10.0.1.33
 - **Priority:** MEDIUM
 - **Effort:** 3-4 weeks
+- **Planned Features:**
+  - Animal registration and records
+  - Health records and veterinary tracking
+  - Breeding records and lineage
+  - Feed management
+  - Vaccination scheduling
+  - Production tracking (milk, eggs, etc.)
+  - Integration with inventory (feed stock), financial (sales), notifications (vaccination reminders)
+- **Planned Mobile Screens:**
+  - `/livestock` - Dashboard
+  - `/livestock/animals` - Animal list
+  - `/livestock/[id]` - Animal details
+  - `/livestock/health` - Health records
+  - `/livestock/breeding` - Breeding records
+  - `/livestock/production` - Production tracking
 
-**Potential Features:**
-- QR code generation for produce
-- Batch tracking
-- Supply chain visibility
-- Certification tracking
-- Product journey history
-- Consumer-facing traceability
-
-### Compliance Service
-- **Service:** Compliance Service (10.0.1.59)
-- **Mobile App:** ❌ Not implemented
-- **Backend:** ⚠️ Minimal/Stub
-- **Priority:** LOW-MEDIUM
+#### Traceability Service
+- **Container:** 10.0.1.31
+- **Priority:** MEDIUM
 - **Effort:** 3-4 weeks
+- **Planned Features:**
+  - QR code generation for produce batches
+  - Batch tracking through supply chain
+  - Supply chain event logging
+  - Certification tracking (GlobalGAP, organic, etc.)
+  - Product journey history
+  - Consumer-facing traceability API
+- **Planned Mobile Screens:**
+  - `/traceability` - Batch management
+  - `/traceability/create` - Create batch with QR code
 
-**Potential Features:**
-- Regulatory compliance tracking
-- Certification management (GlobalGAP, organic, etc.)
-- Audit trail
-- Report generation
-- Deadline reminders
-- Documentation repository
+#### Compliance Service
+- **Container:** 10.0.1.59
+- **Priority:** MEDIUM
+- **Effort:** 3-4 weeks
+- **Planned Features:**
+  - Regulatory compliance tracking
+  - Certification management
+  - Audit trail
+  - Report generation
+  - Deadline reminders
+  - Documentation repository
+- **Planned Mobile Screens:**
+  - `/compliance` - Certifications dashboard
+  - `/compliance/documents` - Compliance docs
 
-### Integration Service
-- **Service:** Integration Service (10.0.1.39)
-- **Mobile App:** N/A (backend only)
-- **Backend:** ⚠️ Minimal/Stub
+#### Integration Service
+- **Container:** 10.0.1.39
 - **Priority:** MEDIUM
 - **Effort:** Variable
+- **Planned Features:**
+  - Payment gateway integrations (M-Pesa, bank transfer)
+  - Weather API integration
+  - Government systems integration
+  - Third-party data source connectors
+  - Webhook management
+  - External API adapters
 
-**Potential Features:**
-- Payment gateway integrations (M-Pesa, etc.)
-- External API connectors
-- Weather API integration
-- Government systems integration
-- Third-party data sources
-- Webhook management
+### LOW Priority
 
-### Farm Service
-- **Service:** Farm Service (10.0.1.43)
-- **Mobile App:** ❌ Not implemented
-- **Backend:** ⚠️ Minimal/Stub
+#### AI Service
+- **Container:** 10.0.1.58
+- **Priority:** LOW
+- **Effort:** Variable (requires ML expertise)
+- **Planned Features:**
+  - Crop disease detection (image classification)
+  - Yield prediction (regression models)
+  - Optimal planting time recommendations (time series + weather)
+  - Pest identification (image classification)
+  - Soil health assessment
+  - Weather-based recommendations
+- **Planned Mobile Screens:**
+  - `/ai/disease-detection` - Photo-based diagnosis
+  - `/ai/recommendations` - AI recommendations
+
+#### IoT Service
+- **Container:** 10.0.1.40
+- **Priority:** LOW
+- **Effort:** 3-4 weeks (requires hardware partnerships)
+- **Planned Features:**
+  - Device registration and management
+  - Time-series sensor data ingestion
+  - Soil moisture monitoring
+  - Weather station integration
+  - Data aggregation and alert rules engine
+  - Real-time data visualization
+  - Communication protocols (MQTT, HTTP)
+- **Planned Mobile Screens:**
+  - `/iot` - Device dashboard
+  - Real-time sensor readings
+  - Historical charts
+  - Alert configuration
+
+#### Farm Service
+- **Container:** 10.0.1.43
 - **Priority:** LOW
 - **Effort:** 2-3 weeks
-
-**Potential Features:**
-- Farm operations management
-- Asset management (machinery, buildings)
-- Maintenance scheduling
-- Farm analytics
-- Resource allocation
-
-**Note:** Significant overlap with Farmer Service (farms) - need to clarify separation
+- **Note:** Significant overlap with farm management in Farmer Service. Needs scope clarification or merging.
+- **Planned Features:**
+  - Farm operations management
+  - Asset management (machinery, buildings)
+  - Maintenance scheduling
+  - Farm analytics
+  - Resource allocation
 
 ---
 
-## 🎯 Prioritized Development Roadmap
-
-### Phase 1: Complete Crop Planning (Sprint 1-2) - 2-3 weeks
-**Goal:** Make crop planning feature available to users
-
-**Tasks:**
-1. Design mobile UI/UX for crop planning
-   - Dashboard with active plans
-   - Create plan wizard (select crop, season, acreage)
-   - Plan details view
-   - Activity calendar
-   - Activity completion form
-
-2. Implement mobile screens
-   - `/crop-planning/index` - Dashboard
-   - `/crop-planning/create` - New plan wizard
-   - `/crop-planning/[id]` - Plan details
-   - `/crop-planning/[id]/activities` - Activity list
-   - `/crop-planning/[id]/inputs` - Input management
-   - `/crop-planning/[id]/irrigation` - Irrigation schedule
-
-3. Integrate with notification service
-   - Activity reminders
-   - Overdue alerts
-
-4. Testing
-   - End-to-end user flow
-   - Offline support for viewing plans
-
-5. Seed crop calendar templates
-   - Common Kenyan crops (maize, beans, potatoes, tomatoes, etc.)
-   - Regional variations
-   - Growth stage definitions
-
-**Value:** Immediate value to farmers. Helps them plan season activities, track inputs, manage irrigation, and stay on schedule.
-
-**Dependencies:** None (backend complete)
-
----
-
-### Phase 2: Market Service Implementation (Sprint 3-4) - 3-4 weeks
-**Goal:** Connect farmers to market opportunities
-
-**Tasks:**
-1. Backend development
-   - Market price API (crops, commodities)
-   - Produce listing endpoints
-   - Buyer/seller matching
-   - Price history tracking
-
-2. Mobile UI
-   - `/market/prices` - Current market prices
-   - `/market/listings` - My produce listings
-   - `/market/create-listing` - List produce for sale
-   - `/market/buyers` - Find buyers
-   - `/market/trends` - Price trends/charts
-
-3. Integration
-   - External market price APIs (if available)
-   - Location-based market matching
-
-4. Admin panel
-   - Manage market data
-   - Approve listings
-   - Monitor transactions
-
-**Value:** Helps farmers get better prices, connect with buyers, and make informed selling decisions.
-
-**Dependencies:** None
-
----
-
-### Phase 3: Notification Service Enhancement (Sprint 5) - 2-3 weeks
-**Goal:** Multi-channel notification delivery
-
-**Tasks:**
-1. Backend development
-   - SMS integration (Africa's Talking or Twilio)
-   - Push notification service (Firebase Cloud Messaging)
-   - Email service (SendGrid or AWS SES)
-   - Notification queue (Redis/RabbitMQ)
-   - Notification preferences API
-
-2. Mobile UI
-   - `/notifications` - Notification center
-   - `/profile/notifications` - Notification preferences
-   - In-app notification badge
-   - Push notification handling
-
-3. Integration points
-   - Crop planning alerts
-   - KYC status updates
-   - Market price alerts
-   - Payment confirmations
-
-4. Testing
-   - Delivery reliability
-   - Multi-device support
-   - Notification scheduling
-
-**Value:** Keeps farmers informed via their preferred channels. Critical for time-sensitive alerts (planting windows, activity reminders).
-
-**Dependencies:** None (enhances existing features)
-
----
-
-### Phase 4: Financial Service Foundation (Sprint 6-8) - 4-5 weeks
-**Goal:** Enable financial tracking and transactions
-
-**Tasks:**
-1. Backend development
-   - Transaction recording API
-   - Income/expense categorization
-   - Financial reports
-   - M-Pesa integration (STK Push, callbacks)
-   - Loan application workflow
-
-2. Mobile UI
-   - `/financial/dashboard` - Financial overview
-   - `/financial/transactions` - Transaction history
-   - `/financial/income` - Record income
-   - `/financial/expense` - Record expense
-   - `/financial/reports` - Financial reports
-   - `/financial/loans` - Loan applications
-
-3. Integration
-   - Payment gateway (M-Pesa API)
-   - Crop planning cost tracking
-   - Input procurement payments
-
-4. Security
-   - Transaction encryption
-   - PIN/biometric confirmation
-   - Audit logging
-
-**Value:** Financial visibility, easier payment processing, loan application tracking. Essential for program subsidy disbursement.
-
-**Dependencies:** None
-
----
-
-### Phase 5: Task Service Implementation (Sprint 9-10) - 2-3 weeks
-**Goal:** General farm task management
-
-**Tasks:**
-1. Define scope vs. crop planning activities
-   - Decision: Task service = general/recurring tasks
-   - Crop planning = seasonal crop-specific activities
-
-2. Backend development
-   - Task CRUD API
-   - Recurring task templates
-   - Task assignment (for workers)
-   - Task completion tracking
-
-3. Mobile UI
-   - Integrate into existing Tasks tab
-   - `/tasks` - Task list view
-   - `/tasks/create` - Create task
-   - `/tasks/[id]` - Task details
-   - Calendar view
-
-4. Integration
-   - Link to farms
-   - Notification integration for reminders
-
-**Value:** Helps farmers manage general tasks (repairs, meetings, errands) separate from crop activities.
-
-**Dependencies:** Notification Service (Phase 3) for reminders
-
----
-
-### Phase 6: Inventory Service (Sprint 11-12) - 2-3 weeks
-**Goal:** Track inputs, produce, and equipment
-
-**Tasks:**
-1. Backend development
-   - Inventory item API (inputs, produce, equipment)
-   - Stock level tracking
-   - Usage recording
-   - Low stock alerts
-   - Reorder management
-
-2. Mobile UI
-   - `/inventory` - Inventory dashboard
-   - `/inventory/inputs` - Input stock
-   - `/inventory/produce` - Harvested produce
-   - `/inventory/equipment` - Farm equipment
-   - `/inventory/add` - Add inventory item
-   - Low stock notifications
-
-3. Integration
-   - Crop planning input procurement
-   - Market service produce listings
-   - Financial service cost tracking
-
-**Value:** Helps farmers track what they have, avoid stockouts, and make timely purchases.
-
-**Dependencies:** Financial Service (Phase 4) for cost tracking
-
----
-
-### Phase 7: Livestock Service (Sprint 13-15) - 3-4 weeks
-**Goal:** Mixed farming support (crop + livestock)
-
-**Tasks:**
-1. Backend development
-   - Animal registration API
-   - Health records
-   - Breeding records
-   - Feed management
-   - Vaccination schedules
-   - Production tracking (milk, eggs)
-
-2. Mobile UI
-   - `/livestock` - Livestock dashboard
-   - `/livestock/animals` - Animal list
-   - `/livestock/[id]` - Animal details
-   - `/livestock/health` - Health records
-   - `/livestock/breeding` - Breeding records
-   - `/livestock/production` - Production tracking
-
-3. Integration
-   - Inventory service (feed stock)
-   - Financial service (livestock sales)
-   - Notification service (vaccination reminders)
-
-**Value:** Supports farmers with mixed farming operations. Livestock is a major component of Kenyan agriculture.
-
-**Dependencies:** Inventory Service (Phase 6), Notification Service (Phase 3)
-
----
-
-### Phase 8: Traceability & Compliance (Sprint 16-18) - 4-5 weeks
-**Goal:** Product traceability and certification management
-
-**Tasks:**
-1. Backend development (Traceability)
-   - QR code generation
-   - Batch tracking
-   - Supply chain events
-   - Consumer-facing API
-
-2. Backend development (Compliance)
-   - Certification tracking (GlobalGAP, organic)
-   - Audit trail
-   - Document repository
-   - Deadline reminders
-
-3. Mobile UI
-   - `/traceability` - Batch management
-   - `/traceability/create` - Create batch
-   - QR code generation
-   - `/compliance` - Certifications
-   - `/compliance/documents` - Compliance docs
-
-4. Integration
-   - Market service (certified produce premium)
-   - Document service
-
-**Value:** Access to premium markets, certification management, consumer trust.
-
-**Dependencies:** Market Service (Phase 2), Document Service (complete)
-
----
-
-### Phase 9: AI/ML Features (Sprint 19-22) - Variable
-**Goal:** Smart recommendations and automation
-
-**Tasks:**
-1. Infrastructure
-   - ML model hosting (TensorFlow Serving or AWS SageMaker)
-   - Image processing pipeline
-   - Training data management
-
-2. ML Models
-   - Crop disease detection (image classification)
-   - Yield prediction (regression)
-   - Optimal planting time (time series + weather)
-   - Pest identification (image classification)
-
-3. Mobile UI
-   - `/ai/disease-detection` - Photo-based diagnosis
-   - `/ai/recommendations` - AI recommendations
-   - Camera integration
-
-4. Backend API
-   - Image upload and processing
-   - Model inference endpoints
-   - Result caching
-
-**Value:** Advanced decision support, early disease detection, optimized planning.
-
-**Dependencies:** Crop Planning (Phase 1), Weather Integration
-
-**Note:** High complexity, requires ML expertise
-
----
-
-### Phase 10: IoT Integration (Sprint 23-25) - 3-4 weeks
-**Goal:** Sensor data integration
-
-**Tasks:**
-1. Backend development
-   - Device registration API
-   - Time-series data ingestion
-   - Data aggregation
-   - Alert rules engine
-
-2. Mobile UI
-   - `/iot` - Device dashboard
-   - Real-time sensor readings
-   - Historical charts
-   - Alert configuration
-
-3. Integration
-   - Irrigation service (soil moisture)
-   - Weather data correlation
-   - Notification service (alerts)
-
-4. Hardware support
-   - Define supported sensor types
-   - Communication protocols (MQTT, HTTP)
-
-**Value:** Data-driven farming decisions, automated monitoring, early problem detection.
-
-**Dependencies:** Notification Service (Phase 3)
-
-**Note:** Requires hardware partnerships
-
----
-
-## 🔧 Infrastructure Improvements (Parallel Work)
+## Infrastructure Improvements Pending
 
 ### High Priority
-1. **HTTPS/SSL Certificate** (1-2 days)
-   - Install Let's Encrypt certificate
-   - Configure Nginx for HTTPS
-   - Update mobile app URLs
-
-2. **Push Notifications** (1 week)
-   - Firebase Cloud Messaging setup
-   - Notification service integration
-   - Mobile app FCM configuration
-
-3. **Offline Mode Support** (2-3 weeks)
-   - Local SQLite database
-   - Data synchronization
-   - Conflict resolution
-   - Offline queue for actions
-
-4. **API Documentation** (1 week)
-   - Enable Swagger UI for all services
-   - Generate OpenAPI specs
-   - Host documentation portal
+1. **HTTPS/SSL Certificate** (1-2 days) - Currently using HTTP only on port 8888
+2. **Push Notifications** (1 week) - Firebase Cloud Messaging setup
+3. **Offline Mode Support** (2-3 weeks) - Local SQLite, data sync, conflict resolution
+4. **API Documentation** (1 week) - Swagger UI for all services, OpenAPI specs
 
 ### Medium Priority
-5. **Redis Caching Layer** (1 week)
-   - Cache frequently accessed data
-   - Session storage
-   - Rate limiting
-
-6. **Rate Limiting** (3-4 days)
-   - Protect against abuse
-   - Per-user/IP limits
-   - Graceful degradation
-
-7. **Monitoring Dashboard** (2 weeks)
-   - Prometheus metrics
-   - Grafana dashboards
-   - Service health monitoring
-   - Performance metrics
-
-8. **Centralized Logging** (1 week)
-   - ELK stack or similar
-   - Log aggregation
-   - Search and analysis
+5. **Redis Caching Layer** (1 week) - Cache frequently accessed data, session storage
+6. **Rate Limiting** (3-4 days) - Per-user/IP limits, abuse protection
+7. **Monitoring Dashboard** (2 weeks) - Prometheus metrics, Grafana dashboards
+8. **Centralized Logging** (1 week) - ELK stack or similar, log aggregation
 
 ### Lower Priority
-9. **Service Discovery** (2 weeks)
-   - Replace hardcoded IPs
-   - Consul or similar
-   - Dynamic routing
-
-10. **Horizontal Scaling** (2 weeks)
-    - Load balancer configuration
-    - Multiple service instances
-    - Database connection pooling
-
-11. **Message Queue** (2 weeks)
-    - RabbitMQ or Kafka
-    - Async task processing
-    - Event-driven architecture
-
-12. **GraphQL API** (3-4 weeks)
-    - GraphQL layer on top of REST
-    - Efficient data fetching
-    - Mobile app optimization
+9. **Service Discovery** (2 weeks) - Replace hardcoded container IPs with Consul or similar
+10. **Horizontal Scaling** (2 weeks) - Load balancer, multiple instances, connection pooling
+11. **Message Queue** (2 weeks) - RabbitMQ or Kafka for async processing
+12. **GraphQL API** (3-4 weeks) - Optional layer on top of REST for mobile optimization
 
 ---
 
-## 📱 Mobile App Enhancements
+## Mobile App Enhancements Pending
 
 ### UX Improvements
-1. **Dark Mode** - Support for dark theme
-2. **Multi-language (i18n)** - Swahili, English
-3. **Improved offline UX** - Better offline indicators
-4. **Onboarding flow** - First-time user tutorial
-5. **Help/FAQ section** - In-app guidance
+1. Dark mode theme support
+2. Multi-language (Swahili, English)
+3. Onboarding flow for first-time users
+4. Help/FAQ section
+5. Improved offline indicators
 
 ### Authentication
-6. **Biometric login** - Fingerprint/Face ID
-7. **Remember me** - Stay logged in
-8. **Social login** - Google, Facebook (optional)
+6. Biometric login (Fingerprint/Face ID)
+7. Remember me / stay logged in
+8. Social login (Google, Facebook) - optional
 
 ### Features
-9. **QR code scanner** - For traceability, input verification
-10. **Camera improvements** - Better photo capture for documents
-11. **Maps optimization** - Faster boundary drawing
-12. **Charts/graphs** - Data visualization
-13. **Export reports** - PDF/Excel export
+9. QR code scanner (traceability, input verification)
+10. Camera improvements for document capture
+11. Maps optimization (faster boundary drawing)
+12. Charts/graphs for data visualization
+13. Export reports (PDF/Excel)
 
 ---
 
-## 🎯 Recommended Immediate Focus
+## Technical Debt
 
-### Next 3 Months Priority (Phases 1-3)
-
-1. **Complete Crop Planning UI** (Weeks 1-3)
-   - High impact, backend ready
-   - Core farming activity
-   - Differentiator for the platform
-
-2. **Market Service** (Weeks 4-7)
-   - High farmer value
-   - Revenue opportunity (transaction fees)
-   - Connects farmers to buyers
-
-3. **Notification Service** (Weeks 8-10)
-   - Enables all other features
-   - Critical for user engagement
-   - Low hanging fruit
-
-### Success Metrics
-- **Crop Planning:** 60%+ of farmers create at least one plan
-- **Market Service:** 30%+ of farmers list produce
-- **Notifications:** 80%+ notification delivery rate
-
-### Resource Requirements
-- 2-3 Full-stack developers
-- 1 Mobile developer (React Native)
-- 1 QA engineer
-- 1 UI/UX designer (part-time)
-- 1 Product owner
-
----
-
-## 📋 Decision Points
-
-### Critical Decisions Needed:
-
-1. **Task vs. Crop Planning Scope**
-   - Need clear delineation between general tasks and crop activities
-   - Recommendation: Task service = non-crop tasks only
-
-2. **Farm vs. Farmer Service Separation**
-   - Current overlap unclear
-   - Recommendation: Merge into single Farmer service or clearly separate concerns
-
-3. **Payment Integration**
-   - Which payment provider(s)? M-Pesa (primary), bank transfer, cash?
-   - Transaction fees model?
-
-4. **Market Service Business Model**
-   - Free listings or commission-based?
-   - Direct transactions or lead generation?
-
-5. **AI/ML Investment**
-   - Build in-house or use external APIs?
-   - Which models provide most value?
-   - Data collection strategy?
-
-6. **IoT Hardware**
-   - Partner with sensor manufacturers?
-   - Sell/lease hardware to farmers?
-   - Support which devices?
-
----
-
-## 📊 Technical Debt & Refactoring
-
-### Current Issues:
-1. Hardcoded container IPs in nginx (requires manual update on redeploy)
+1. Hardcoded container IPs in Nginx gateway
 2. No service discovery mechanism
-3. No HTTPS (using HTTP on port 8888)
+3. No HTTPS (HTTP on port 8888)
 4. No rate limiting
 5. No request caching
-6. Mobile app bundle size (optimize dependencies)
-7. Test coverage gaps
-
-### Recommended Refactoring:
-1. Implement service discovery (Phase 10 infrastructure)
-2. Add comprehensive error handling
-3. Improve API response consistency
-4. Database query optimization
-5. Add integration tests
-6. API versioning strategy
-7. Data migration tools
+6. Test coverage gaps (only auth service has tests)
+7. Web admin app is scaffolded but minimal
+8. Task service recurrence support exists in model but auto-generation not implemented
+9. API response format inconsistency across services
 
 ---
 
-## 🚀 Summary
+## Summary
 
-**Current State:** Core features (auth, farmer/farm registration, KYC, eligibility) are production-ready. Mobile app has solid foundation.
+| Category | Count | Details |
+|----------|-------|---------|
+| **Backend services implemented** | 4 | Auth (23 endpoints), Farmer (40+), GIS (8), Task (9) |
+| **Backend services stub** | 11 | Market, Notification, Financial, Inventory, Livestock, Traceability, Compliance, Integration, AI, IoT, Farm |
+| **Total backend endpoints** | ~80+ | Across 4 implemented services |
+| **Mobile screens implemented** | ~30 | Auth, farms, KYC, crop planning, eligibility, tasks, profile |
+| **Mobile screens pending** | ~25 | Market, financial, livestock, inventory, notifications, traceability, compliance, AI, IoT |
+| **Database migrations** | 12 | Auth (3), Farmer (7), Task (1), GIS (in-memory) |
 
-**Immediate Opportunity:** Crop planning backend is 100% complete (724 lines of production-ready code). Building the mobile UI will provide immediate high value to farmers.
+**What's built:** Complete farmer onboarding pipeline (register, KYC, farm registration, eligibility), full crop planning system with mobile UI, task management, and GIS services.
 
-**Strategic Focus:** Prioritize features that directly help farmers make money or save costs:
-1. Crop Planning → Better yields, reduced waste
-2. Market Service → Better prices, easier selling
-3. Financial Service → Payment tracking, loan access
-
-**6-Month Vision:** Complete crop planning, market, notifications, and financial services to create a comprehensive platform for smallholder farmers.
+**Biggest gaps:** Market service, notification service, and financial service are the highest-priority missing pieces that would complete the core farmer experience.
 
 ---
 
 **Document Maintained By:** AgriScheme Pro Development Team
-**Next Review:** 2026-03-09
+**Next Review:** 2026-03-12
