@@ -10,9 +10,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/mobile
 
     steps:
       - uses: actions/checkout@v4
@@ -21,18 +18,20 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: apps/mobile/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build web export
+        working-directory: apps/mobile
         run: npx expo export --platform web
 
       - name: Generate service worker
+        working-directory: apps/mobile
         run: npx workbox-cli generateSW workbox-config.js
 
       - name: Copy PWA assets to dist
+        working-directory: apps/mobile
         run: |
           cp public/manifest.json dist/
           cp public/sw-register.js dist/
@@ -42,6 +41,7 @@ jobs:
           cp ../../infrastructure/pwa/assetlinks.json dist/.well-known/assetlinks.json
 
       - name: Deploy to VPS
+        working-directory: apps/mobile
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
