@@ -71,6 +71,9 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="crop-planning" options={{ headerShown: false }} />
             <Stack.Screen name="tasks" options={{ headerShown: false }} />
+            <Stack.Screen name="profile" options={{ headerShown: false }} />
+            <Stack.Screen name="support" options={{ title: 'Help & Support' }} />
+            <Stack.Screen name="legal" options={{ title: 'Terms & Privacy' }} />
           </Stack>
           <StatusBar style="auto" />
         </QueryClientProvider>

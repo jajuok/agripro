@@ -23,6 +23,7 @@ type AuthState = {
   login: (phoneNumber: string, pin: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (data: Partial<User>) => void;
   refreshTokens: () => Promise<void>;
 };
 
@@ -158,6 +159,10 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: false });
           throw error;
         }
+      },
+
+      updateUser: (data: Partial<User>) => {
+        set((state) => ({ user: state.user ? { ...state.user, ...data } : null }));
       },
 
       logout: async () => {

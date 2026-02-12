@@ -11,7 +11,11 @@ type MenuItem = {
 };
 
 export default function ProfileScreen() {
-  const { logout } = useAuthStore();
+  const { user, logout } = useAuthStore();
+
+  const initials = user
+    ? `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase() || '?'
+    : '?';
 
   const menuItems: MenuItem[] = [
     { icon: '👤', label: 'Edit Profile', testID: 'profile-menu-edit', route: '/profile/edit' },
@@ -31,14 +35,18 @@ export default function ProfileScreen() {
       <View style={styles.header} testID="profile-header">
         <View style={styles.avatarContainer} testID="profile-avatar-container">
           <View style={styles.avatar} testID="profile-avatar">
-            <Text style={{ fontSize: 40 }}>👤</Text>
+            <Text style={styles.initialsText}>{initials}</Text>
           </View>
           <TouchableOpacity style={styles.editAvatar} testID="profile-edit-avatar-button">
             <Text style={{ fontSize: 16 }}>📷</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.name} testID="profile-name">John Doe</Text>
-        <Text style={styles.email} testID="profile-email">john.doe@example.com</Text>
+        <Text style={styles.name} testID="profile-name">
+          {user ? `${user.firstName} ${user.lastName}`.trim() || 'User' : 'User'}
+        </Text>
+        <Text style={styles.email} testID="profile-email">
+          {user?.email || user?.phoneNumber || ''}
+        </Text>
         <View style={styles.verifiedBadge} testID="profile-verified-badge">
           <Text style={{ fontSize: 16 }}>✅</Text>
           <Text style={styles.verifiedText} testID="profile-verified-text">KYC Verified</Text>
@@ -110,6 +118,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8F5E9',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  initialsText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#1B5E20',
   },
   editAvatar: {
     position: 'absolute',
