@@ -5,10 +5,13 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
       .then(function (registration) {
         console.log('SW registered:', registration.scope);
 
-        // Check for updates periodically
+        // Check for updates immediately on every page load
+        registration.update();
+
+        // Continue checking periodically
         setInterval(function () {
           registration.update();
-        }, 5 * 60 * 1000); // every 5 minutes
+        }, 60 * 1000); // every 1 minute
       })
       .catch(function (err) {
         console.warn('SW registration failed:', err);

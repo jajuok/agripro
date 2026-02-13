@@ -1,10 +1,10 @@
 module.exports = {
   globDirectory: 'dist/',
-  // Don't precache HTML — navigation requests should always hit the network
-  // so fresh HTML (with new bundle hashes) is served immediately after deploys
-  globPatterns: ['**/*.{js,css,json,png,jpg,svg,woff,woff2,ttf}'],
+  // Only precache static assets (icons, fonts). JS/CSS are handled by
+  // NetworkFirst runtime caching so the TWA always loads fresh bundles.
+  globPatterns: ['**/*.{png,jpg,svg,woff,woff2,ttf}'],
   swDest: 'dist/sw.js',
-  maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB — precache the main bundle
+  maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
   skipWaiting: true,
   clientsClaim: true,
   // No navigateFallback — navigation requests go straight to the network.
