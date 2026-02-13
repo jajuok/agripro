@@ -60,5 +60,17 @@
                     android:host="${hostName}" />
             </intent-filter>
         </activity>
+
+        <!-- DelegationService allows Chrome to delegate permissions (location, camera, etc.)
+             to this TWA app instead of showing Chrome's own permission prompts -->
+        <service
+            android:name="com.google.androidbrowserhelper.trusted.DelegationService"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.support.customtabs.trusted.TRUSTED_WEB_ACTIVITY_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>
