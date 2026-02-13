@@ -28,15 +28,19 @@ export default function AddFarmScreen() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [locationRetries, setLocationRetries] = useState(0);
   const [adminLocation, setAdminLocation] = useState<{
     county: string | null;
     subCounty: string | null;
     ward: string | null;
   } | null>(null);
 
-  // Get current location on mount
+  // Get current location on mount (delay slightly in TWA to allow
+  // Chrome to complete Digital Asset Links verification first)
   useEffect(() => {
-    getCurrentLocation();
+    const delay = Platform.OS === 'web' ? 1500 : 0;
+    const timer = setTimeout(() => getCurrentLocation(), delay);
+    return () => clearTimeout(timer);
   }, []);
 
   const getCurrentLocation = async () => {
@@ -63,8 +67,15 @@ export default function AddFarmScreen() {
               resolve();
             },
             (err) => {
-              setLocationError(err.message || 'Failed to get location.');
-              resolve();
+              const msg = err.message || 'Failed to get location.';
+              // Chrome TWA verification may not be ready yet — auto-retry once
+              if (msg.includes('Twa') && locationRetries < 2) {
+                setLocationRetries((r) => r + 1);
+                setTimeout(() => { getCurrentLocation(); resolve(); }, 2000);
+              } else {
+                setLocationError(msg);
+                resolve();
+              }
             },
             { enableHighAccuracy: true, timeout: 15000 }
           );
