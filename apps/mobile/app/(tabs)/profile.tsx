@@ -1,6 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
+import { farmApi, kycApi, cropPlanningApi } from '@/services/api';
 
 type MenuItem = {
   icon: string;
@@ -10,8 +12,68 @@ type MenuItem = {
   action?: () => void;
 };
 
+type ProfileStats = {
+  farmCount: number;
+  totalHectares: number;
+  activePlans: number;
+  kycStatus: string;
+  kycVerified: boolean;
+};
+
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
+  const [stats, setStats] = useState<ProfileStats>({
+    farmCount: 0,
+    totalHectares: 0,
+    activePlans: 0,
+    kycStatus: 'Not Started',
+    kycVerified: false,
+  });
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchStats = useCallback(async () => {
+    const farmerId = user?.farmerId;
+    if (!farmerId) return;
+
+    try {
+      const [farmsResult, kycResult, dashboardResult] = await Promise.allSettled([
+        farmApi.list(farmerId),
+        kycApi.getStatus(farmerId),
+        cropPlanningApi.getDashboard(farmerId),
+      ]);
+
+      const farms = farmsResult.status === 'fulfilled' ? (Array.isArray(farmsResult.value) ? farmsResult.value : []) : [];
+      const totalHectares = farms.reduce((sum: number, f: any) => sum + (f.total_acreage || f.cultivable_acreage || 0), 0);
+
+      const kyc = kycResult.status === 'fulfilled' ? kycResult.value : null;
+      const kycStatus = kyc?.status || kyc?.kyc_status || 'Not Started';
+      const kycVerified = ['verified', 'approved', 'completed'].includes(kycStatus.toLowerCase());
+
+      const dashboard = dashboardResult.status === 'fulfilled' ? dashboardResult.value : null;
+      const activePlans = dashboard?.active_plans || dashboard?.total_plans || 0;
+
+      setStats({
+        farmCount: farms.length,
+        totalHectares: Math.round(totalHectares * 10) / 10,
+        activePlans,
+        kycStatus,
+        kycVerified,
+      });
+    } catch {
+      // Keep defaults on error
+    } finally {
+      setRefreshing(false);
+    }
+  }, [user?.farmerId]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchStats();
+  }, [fetchStats]);
 
   const initials = user
     ? `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase() || '?'
@@ -31,7 +93,11 @@ export default function ProfileScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container} testID="profile-screen">
+    <ScrollView
+      style={styles.container}
+      testID="profile-screen"
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       <View style={styles.header} testID="profile-header">
         <View style={styles.avatarContainer} testID="profile-avatar-container">
           <View style={styles.avatar} testID="profile-avatar">
@@ -47,26 +113,28 @@ export default function ProfileScreen() {
         <Text style={styles.email} testID="profile-email">
           {user?.email || user?.phoneNumber || ''}
         </Text>
-        <View style={styles.verifiedBadge} testID="profile-verified-badge">
-          <Text style={{ fontSize: 16 }}>✅</Text>
-          <Text style={styles.verifiedText} testID="profile-verified-text">KYC Verified</Text>
+        <View style={[styles.verifiedBadge, !stats.kycVerified && styles.unverifiedBadge]} testID="profile-verified-badge">
+          <Text style={{ fontSize: 16 }}>{stats.kycVerified ? '✅' : '⚠️'}</Text>
+          <Text style={[styles.verifiedText, !stats.kycVerified && styles.unverifiedText]} testID="profile-verified-text">
+            {stats.kycVerified ? 'KYC Verified' : stats.kycStatus}
+          </Text>
         </View>
       </View>
 
       <View style={styles.statsRow} testID="profile-stats">
         <View style={styles.statItem} testID="profile-stat-farms">
-          <Text style={styles.statValue} testID="profile-stat-farms-value">3</Text>
+          <Text style={styles.statValue} testID="profile-stat-farms-value">{stats.farmCount}</Text>
           <Text style={styles.statLabel} testID="profile-stat-farms-label">Farms</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem} testID="profile-stat-hectares">
-          <Text style={styles.statValue} testID="profile-stat-hectares-value">12.5</Text>
+          <Text style={styles.statValue} testID="profile-stat-hectares-value">{stats.totalHectares}</Text>
           <Text style={styles.statLabel} testID="profile-stat-hectares-label">Hectares</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem} testID="profile-stat-schemes">
-          <Text style={styles.statValue} testID="profile-stat-schemes-value">2</Text>
-          <Text style={styles.statLabel} testID="profile-stat-schemes-label">Schemes</Text>
+          <Text style={styles.statValue} testID="profile-stat-schemes-value">{stats.activePlans}</Text>
+          <Text style={styles.statLabel} testID="profile-stat-schemes-label">Crop Plans</Text>
         </View>
       </View>
 
@@ -155,11 +223,17 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginTop: 12,
   },
+  unverifiedBadge: {
+    backgroundColor: '#FFF3E0',
+  },
   verifiedText: {
     fontSize: 12,
     color: '#4CAF50',
     fontWeight: '600',
     marginLeft: 4,
+  },
+  unverifiedText: {
+    color: '#FF9800',
   },
   statsRow: {
     flexDirection: 'row',

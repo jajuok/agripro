@@ -1,5 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
+import { useAuthStore } from '@/store/auth';
+import { farmApi, kycApi, cropPlanningApi } from '@/services/api';
 
 type QuickAction = {
   icon: string;
@@ -16,99 +19,222 @@ const quickActions: QuickAction[] = [
   { icon: '📊', label: 'Reports', route: '/reports', color: '#9C27B0', testID: 'home-action-view-reports' },
 ];
 
+type DashboardData = {
+  farmCount: number;
+  totalHectares: number;
+  activeCrops: number;
+  kycStatus: string;
+  kycVerified: boolean;
+  upcomingActivities: { name: string; due: string; icon: string }[];
+};
+
 export default function HomeScreen() {
+  const { user } = useAuthStore();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchDashboard = useCallback(async () => {
+    const farmerId = user?.farmerId;
+    if (!farmerId) {
+      setData({
+        farmCount: 0,
+        totalHectares: 0,
+        activeCrops: 0,
+        kycStatus: 'Not Started',
+        kycVerified: false,
+        upcomingActivities: [],
+      });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const [farmsResult, kycResult, dashboardResult, activitiesResult] = await Promise.allSettled([
+        farmApi.list(farmerId),
+        kycApi.getStatus(farmerId),
+        cropPlanningApi.getDashboard(farmerId),
+        cropPlanningApi.getUpcomingActivities(farmerId, 7),
+      ]);
+
+      // Farms
+      const farms = farmsResult.status === 'fulfilled' ? (Array.isArray(farmsResult.value) ? farmsResult.value : []) : [];
+      const totalHectares = farms.reduce((sum: number, f: any) => sum + (f.total_acreage || f.cultivable_acreage || 0), 0);
+
+      // KYC
+      const kyc = kycResult.status === 'fulfilled' ? kycResult.value : null;
+      const kycStatus = kyc?.status || kyc?.kyc_status || 'Not Started';
+      const kycVerified = ['verified', 'approved', 'completed'].includes(kycStatus.toLowerCase());
+
+      // Crop dashboard
+      const dashboard = dashboardResult.status === 'fulfilled' ? dashboardResult.value : null;
+      const activeCrops = dashboard?.active_plans || dashboard?.active_crops || 0;
+
+      // Upcoming activities
+      const rawActivities = activitiesResult.status === 'fulfilled'
+        ? (Array.isArray(activitiesResult.value) ? activitiesResult.value : activitiesResult.value?.items || [])
+        : [];
+      const upcomingActivities = rawActivities.slice(0, 5).map((a: any) => {
+        const dueDate = a.scheduled_date || a.due_date || a.planned_date || '';
+        const today = new Date().toISOString().split('T')[0];
+        const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+        let due = dueDate;
+        if (dueDate === today) due = 'Due today';
+        else if (dueDate === tomorrow) due = 'Due tomorrow';
+        else if (dueDate) due = `Due ${dueDate}`;
+
+        const type = (a.activity_type || a.name || a.title || '').toLowerCase();
+        let icon = '📋';
+        if (type.includes('irrig') || type.includes('water')) icon = '💧';
+        else if (type.includes('fertil') || type.includes('nutrient')) icon = '🧪';
+        else if (type.includes('harvest')) icon = '🌾';
+        else if (type.includes('plant') || type.includes('sow')) icon = '🌱';
+        else if (type.includes('spray') || type.includes('pest')) icon = '🔬';
+        else if (type.includes('weed')) icon = '🌿';
+
+        return {
+          name: a.name || a.title || a.activity_type || 'Task',
+          due,
+          icon,
+        };
+      });
+
+      setData({
+        farmCount: farms.length,
+        totalHectares: Math.round(totalHectares * 10) / 10,
+        activeCrops,
+        kycStatus,
+        kycVerified,
+        upcomingActivities,
+      });
+    } catch {
+      setData({
+        farmCount: 0,
+        totalHectares: 0,
+        activeCrops: 0,
+        kycStatus: 'Unknown',
+        kycVerified: false,
+        upcomingActivities: [],
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user?.farmerId]);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  const firstName = user?.firstName || 'Farmer';
+
   return (
-    <ScrollView style={styles.container} testID="home-screen">
+    <ScrollView
+      style={styles.container}
+      testID="home-screen"
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}
+    >
       <View style={styles.header} testID="home-header">
-        <Text style={styles.greeting} testID="home-greeting">Welcome back!</Text>
+        <Text style={styles.greeting} testID="home-greeting">Welcome back, {firstName}!</Text>
         <Text style={styles.subGreeting} testID="home-sub-greeting">Here's your farm overview</Text>
       </View>
 
-      <View style={styles.statsContainer} testID="home-stats-container">
-        <View style={styles.statCard} testID="home-stat-farms">
-          <Text style={styles.statValue} testID="home-stat-farms-value">3</Text>
-          <Text style={styles.statLabel} testID="home-stat-farms-label">Farms</Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1B5E20" />
         </View>
-        <View style={styles.statCard} testID="home-stat-hectares">
-          <Text style={styles.statValue} testID="home-stat-hectares-value">12.5</Text>
-          <Text style={styles.statLabel} testID="home-stat-hectares-label">Hectares</Text>
-        </View>
-        <View style={styles.statCard} testID="home-stat-crops">
-          <Text style={styles.statValue} testID="home-stat-crops-value">5</Text>
-          <Text style={styles.statLabel} testID="home-stat-crops-label">Active Crops</Text>
-        </View>
-      </View>
-
-      <Text style={styles.sectionTitle} testID="home-section-quick-actions">Quick Actions</Text>
-      <View style={styles.actionsGrid} testID="home-actions-grid">
-        {quickActions.map((action, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.actionCard}
-            onPress={() => router.push(action.route as any)}
-            testID={action.testID}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: action.color }]}>
-              <Text style={{ fontSize: 24 }}>{action.icon}</Text>
+      ) : (
+        <>
+          <View style={styles.statsContainer} testID="home-stats-container">
+            <View style={styles.statCard} testID="home-stat-farms">
+              <Text style={styles.statValue} testID="home-stat-farms-value">{data?.farmCount ?? 0}</Text>
+              <Text style={styles.statLabel} testID="home-stat-farms-label">Farms</Text>
             </View>
-            <Text style={styles.actionLabel}>{action.label}</Text>
+            <View style={styles.statCard} testID="home-stat-hectares">
+              <Text style={styles.statValue} testID="home-stat-hectares-value">{data?.totalHectares ?? 0}</Text>
+              <Text style={styles.statLabel} testID="home-stat-hectares-label">Hectares</Text>
+            </View>
+            <View style={styles.statCard} testID="home-stat-crops">
+              <Text style={styles.statValue} testID="home-stat-crops-value">{data?.activeCrops ?? 0}</Text>
+              <Text style={styles.statLabel} testID="home-stat-crops-label">Active Crops</Text>
+            </View>
+          </View>
+
+          <Text style={styles.sectionTitle} testID="home-section-quick-actions">Quick Actions</Text>
+          <View style={styles.actionsGrid} testID="home-actions-grid">
+            {quickActions.map((action, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.actionCard}
+                onPress={() => router.push(action.route as any)}
+                testID={action.testID}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: action.color }]}>
+                  <Text style={{ fontSize: 24 }}>{action.icon}</Text>
+                </View>
+                <Text style={styles.actionLabel}>{action.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.sectionTitle} testID="home-section-kyc">KYC Status</Text>
+          <View style={styles.kycCard} testID="home-kyc-card">
+            <View style={styles.kycHeader}>
+              <Text style={{ fontSize: 24 }}>{data?.kycVerified ? '✅' : '⚠️'}</Text>
+              <Text style={[styles.kycStatus, !data?.kycVerified && { color: '#FF9800' }]} testID="home-kyc-status">
+                {data?.kycVerified ? 'Verified' : data?.kycStatus || 'Not Started'}
+              </Text>
+            </View>
+            <Text style={styles.kycText} testID="home-kyc-text">
+              {data?.kycVerified
+                ? 'Your KYC verification is complete. You have full access to all features.'
+                : 'Complete your KYC verification to access all features.'}
+            </Text>
+            {!data?.kycVerified && (
+              <TouchableOpacity style={styles.kycButton} onPress={() => router.push('/kyc')}>
+                <Text style={styles.kycButtonText}>Complete KYC</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <Text style={styles.sectionTitle} testID="home-section-eligibility">Scheme Eligibility</Text>
+          <TouchableOpacity
+            style={styles.eligibilityCard}
+            onPress={() => router.push('/eligibility')}
+            testID="home-eligibility-card"
+          >
+            <View style={styles.eligibilityHeader}>
+              <Text style={{ fontSize: 24 }}>📋</Text>
+              <View style={styles.eligibilityInfo}>
+                <Text style={styles.eligibilityTitle} testID="home-eligibility-title">Check Eligibility</Text>
+                <Text style={styles.eligibilitySubtitle} testID="home-eligibility-subtitle">Browse available government programs</Text>
+              </View>
+            </View>
           </TouchableOpacity>
-        ))}
-      </View>
 
-      <Text style={styles.sectionTitle} testID="home-section-kyc">KYC Status</Text>
-      <View style={styles.kycCard} testID="home-kyc-card">
-        <View style={styles.kycHeader}>
-          <Text style={{ fontSize: 24 }}>✅</Text>
-          <Text style={styles.kycStatus} testID="home-kyc-status">Verified</Text>
-        </View>
-        <Text style={styles.kycText} testID="home-kyc-text">
-          Your KYC verification is complete. You have full access to all features.
-        </Text>
-      </View>
-
-      <Text style={styles.sectionTitle} testID="home-section-eligibility">Scheme Eligibility</Text>
-      <TouchableOpacity
-        style={styles.eligibilityCard}
-        onPress={() => router.push('/eligibility')}
-        testID="home-eligibility-card"
-      >
-        <View style={styles.eligibilityHeader}>
-          <Text style={{ fontSize: 24 }}>📋</Text>
-          <View style={styles.eligibilityInfo}>
-            <Text style={styles.eligibilityTitle} testID="home-eligibility-title">3 Schemes Available</Text>
-            <Text style={styles.eligibilitySubtitle} testID="home-eligibility-subtitle">Check your eligibility for government programs</Text>
+          <Text style={styles.sectionTitle} testID="home-section-tasks">Upcoming Activities</Text>
+          <View style={styles.taskCard} testID="home-tasks-card">
+            {data?.upcomingActivities && data.upcomingActivities.length > 0 ? (
+              data.upcomingActivities.map((activity, index) => (
+                <View key={index} style={styles.taskItem}>
+                  <Text style={{ fontSize: 20 }}>{activity.icon}</Text>
+                  <View style={styles.taskContent}>
+                    <Text style={styles.taskTitle}>{activity.name}</Text>
+                    <Text style={styles.taskDue}>{activity.due}</Text>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.emptyText}>No upcoming activities</Text>
+            )}
           </View>
-        </View>
-        <View style={styles.eligibilityStats}>
-          <View style={styles.eligibilityStat} testID="home-eligibility-enrolled">
-            <Text style={styles.eligibilityStatValue} testID="home-eligibility-enrolled-value">1</Text>
-            <Text style={styles.eligibilityStatLabel} testID="home-eligibility-enrolled-label">Enrolled</Text>
-          </View>
-          <View style={styles.eligibilityStat} testID="home-eligibility-available">
-            <Text style={styles.eligibilityStatValue} testID="home-eligibility-available-value">2</Text>
-            <Text style={styles.eligibilityStatLabel} testID="home-eligibility-available-label">Available</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-
-      <Text style={styles.sectionTitle} testID="home-section-tasks">Upcoming Tasks</Text>
-      <View style={styles.taskCard} testID="home-tasks-card">
-        <View style={styles.taskItem} testID="home-task-irrigation">
-          <Text style={{ fontSize: 20 }}>💧</Text>
-          <View style={styles.taskContent}>
-            <Text style={styles.taskTitle} testID="home-task-irrigation-title">Irrigation - Plot A</Text>
-            <Text style={styles.taskDue} testID="home-task-irrigation-due">Due today</Text>
-          </View>
-        </View>
-        <View style={styles.taskItem} testID="home-task-fertilizer">
-          <Text style={{ fontSize: 20 }}>🧪</Text>
-          <View style={styles.taskContent}>
-            <Text style={styles.taskTitle} testID="home-task-fertilizer-title">Fertilizer Application</Text>
-            <Text style={styles.taskDue} testID="home-task-fertilizer-due">Due tomorrow</Text>
-          </View>
-        </View>
-      </View>
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -132,6 +258,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#C8E6C9',
     marginTop: 4,
+  },
+  loadingContainer: {
+    paddingVertical: 60,
+    alignItems: 'center',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -213,6 +343,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  kycButton: {
+    backgroundColor: '#1B5E20',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignSelf: 'flex-start',
+    marginTop: 12,
+  },
+  kycButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   taskCard: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
@@ -241,6 +384,12 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 2,
   },
+  emptyText: {
+    color: '#999',
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
   eligibilityCard: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
@@ -252,7 +401,6 @@ const styles = StyleSheet.create({
   eligibilityHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
   },
   eligibilityInfo: {
     marginLeft: 12,
@@ -267,24 +415,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 2,
-  },
-  eligibilityStats: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingTop: 12,
-    gap: 24,
-  },
-  eligibilityStat: {
-    alignItems: 'center',
-  },
-  eligibilityStatValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1B5E20',
-  },
-  eligibilityStatLabel: {
-    fontSize: 12,
-    color: '#666',
   },
 });
