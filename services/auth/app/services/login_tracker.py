@@ -12,7 +12,7 @@ class LoginTracker:
     """Service for tracking and rate-limiting login attempts."""
 
     MAX_ATTEMPTS = 5
-    LOCKOUT_DURATION_MINUTES = 15
+    LOCKOUT_DURATION_MINUTES = 5
 
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
@@ -74,7 +74,7 @@ class LoginTracker:
         return ip_failures >= self.MAX_ATTEMPTS * 3
 
     async def get_failed_attempts_count(
-        self, email: str, since_minutes: int = 15
+        self, email: str, since_minutes: int = 5
     ) -> int:
         """Get count of failed login attempts for an email."""
         cutoff = datetime.now(timezone.utc) - timedelta(minutes=since_minutes)
