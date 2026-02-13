@@ -117,6 +117,15 @@
     }
   }
 
+  # Expo OTA updates — serve native update bundles with required headers
+  handle /updates/* {
+    root * /srv
+    file_server
+    header Cache-Control "no-cache, no-store, must-revalidate"
+    header expo-protocol-version 0
+    header expo-sfv-version 0
+  }
+
   # Static files — PWA app shell (fallback for everything else)
   handle {
     root * /srv

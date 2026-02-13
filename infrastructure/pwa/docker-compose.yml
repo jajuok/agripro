@@ -8,6 +8,7 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./dist:/srv:ro
+      - ./updates:/srv/updates:ro
       - caddy_data:/data
       - caddy_config:/config
     labels:
