@@ -61,10 +61,11 @@
             </intent-filter>
         </activity>
 
-        <!-- DelegationService allows Chrome to delegate permissions (location, camera, etc.)
-             to this TWA app instead of showing Chrome's own permission prompts -->
+        <!-- Custom DelegationService with location handler registered.
+             The stock DelegationService only handles notifications;
+             location requires the locationdelegation library. -->
         <service
-            android:name="com.google.androidbrowserhelper.trusted.DelegationService"
+            android:name=".LocationDelegationService"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
