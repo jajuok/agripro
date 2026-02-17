@@ -1,7 +1,6 @@
 """Notification database models."""
 
 import uuid
-from datetime import datetime, time
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
@@ -62,23 +61,15 @@ class Notification(Base):
     user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     title = Column(String(255), nullable=False)
     body = Column(Text, nullable=False)
-    notification_type = Column(
-        String(20), nullable=False, default=NotificationType.INFO.value
-    )
-    priority = Column(
-        String(20), nullable=False, default=NotificationPriority.NORMAL.value
-    )
+    notification_type = Column(String(20), nullable=False, default=NotificationType.INFO.value)
+    priority = Column(String(20), nullable=False, default=NotificationPriority.NORMAL.value)
     data = Column(JSONBCompatible, nullable=True)
-    template_id = Column(
-        UUID(as_uuid=True), ForeignKey("notification_templates.id"), nullable=True
-    )
+    template_id = Column(UUID(as_uuid=True), ForeignKey("notification_templates.id"), nullable=True)
     is_read = Column(Boolean, nullable=False, default=False)
     read_at = Column(DateTime(timezone=True), nullable=True)
     scheduled_at = Column(DateTime(timezone=True), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     template = relationship("NotificationTemplate", back_populates="notifications")
     delivery_logs = relationship(
@@ -119,9 +110,7 @@ class NotificationPreference(Base):
     quiet_hours_start = Column(Time, nullable=True)
     quiet_hours_end = Column(Time, nullable=True)
 
-    created_at = Column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -136,20 +125,14 @@ class NotificationTemplate(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     code = Column(String(100), nullable=False, unique=True)
     name = Column(String(255), nullable=False)
-    notification_type = Column(
-        String(20), nullable=False, default=NotificationType.INFO.value
-    )
-    priority = Column(
-        String(20), nullable=False, default=NotificationPriority.NORMAL.value
-    )
+    notification_type = Column(String(20), nullable=False, default=NotificationType.INFO.value)
+    priority = Column(String(20), nullable=False, default=NotificationPriority.NORMAL.value)
     title_template = Column(String(255), nullable=False)
     body_template = Column(Text, nullable=False)
     sms_template = Column(String(160), nullable=True)
     channels = Column(JSONBCompatible, nullable=False, default=list)
     is_active = Column(Boolean, nullable=False, default=True)
-    created_at = Column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     notifications = relationship("Notification", back_populates="template")
 
@@ -165,9 +148,7 @@ class DeliveryLog(Base):
         index=True,
     )
     channel = Column(String(20), nullable=False)
-    status = Column(
-        String(20), nullable=False, default=DeliveryStatus.PENDING.value
-    )
+    status = Column(String(20), nullable=False, default=DeliveryStatus.PENDING.value)
     provider_message_id = Column(String(255), nullable=True)
     error_message = Column(Text, nullable=True)
     cost = Column(Float, nullable=True)

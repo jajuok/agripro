@@ -11,14 +11,14 @@ from sqlalchemy.types import TypeDecorator
 
 class JSONBCompatible(TypeDecorator):
     """A JSON type that uses JSONB on PostgreSQL and JSON on other databases.
-    
+
     This allows using JSONB features in production while maintaining
     compatibility with SQLite for testing.
     """
-    
+
     impl = JSON
     cache_ok = True
-    
+
     def load_dialect_impl(self, dialect):
         """Load the appropriate implementation based on dialect."""
         if dialect.name == "postgresql":

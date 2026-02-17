@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 class DocumentResponse(BaseModel):
     """Document response schema."""
+
     id: UUID
     farmer_id: UUID
     document_type: str

@@ -1,7 +1,6 @@
 """Application configuration."""
 
 from functools import lru_cache
-from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,7 +20,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/agrischeme_farmer"
     redis_url: str = "redis://localhost:6379/1"
 
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8081"]
+    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8081"]
 
     # Auth service
     auth_service_url: str = "http://localhost:8000"

@@ -1,8 +1,7 @@
 """Core notification service."""
 
 import logging
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select, update
@@ -33,10 +32,10 @@ class NotificationService:
         body: str,
         notification_type: str = "info",
         priority: str = "normal",
-        data: Optional[dict] = None,
-        template_code: Optional[str] = None,
-        template_variables: Optional[dict] = None,
-        channels: Optional[list[str]] = None,
+        data: dict | None = None,
+        template_code: str | None = None,
+        template_variables: dict | None = None,
+        channels: list[str] | None = None,
     ) -> Notification:
         template = None
         if template_code:
@@ -76,17 +75,25 @@ class NotificationService:
 
         for channel in channels:
             should_deliver = True
-            if channel == DeliveryChannel.SMS.value and prefs and not prefs.sms_enabled:
-                should_deliver = False
-            elif channel == DeliveryChannel.PUSH.value and prefs and not prefs.push_enabled:
-                should_deliver = False
-            elif channel == DeliveryChannel.EMAIL.value and prefs and not prefs.email_enabled:
+            if (
+                channel == DeliveryChannel.SMS.value
+                and prefs
+                and not prefs.sms_enabled
+                or channel == DeliveryChannel.PUSH.value
+                and prefs
+                and not prefs.push_enabled
+                or channel == DeliveryChannel.EMAIL.value
+                and prefs
+                and not prefs.email_enabled
+            ):
                 should_deliver = False
 
             log = DeliveryLog(
                 notification_id=notification.id,
                 channel=channel,
-                status=DeliveryStatus.PENDING.value if should_deliver else DeliveryStatus.SKIPPED.value,
+                status=DeliveryStatus.PENDING.value
+                if should_deliver
+                else DeliveryStatus.SKIPPED.value,
             )
             self.db.add(log)
 
@@ -106,9 +113,7 @@ class NotificationService:
         query = query.order_by(Notification.created_at.desc())
 
         # Total count
-        count_q = select(func.count()).select_from(
-            query.subquery()
-        )
+        count_q = select(func.count()).select_from(query.subquery())
         total = (await self.db.execute(count_q)).scalar() or 0
 
         # Unread count
@@ -125,7 +130,7 @@ class NotificationService:
 
         return items, total, unread_count
 
-    async def mark_as_read(self, notification_id: UUID, user_id: UUID) -> Optional[Notification]:
+    async def mark_as_read(self, notification_id: UUID, user_id: UUID) -> Notification | None:
         result = await self.db.execute(
             select(Notification).where(
                 Notification.id == notification_id,
@@ -135,7 +140,7 @@ class NotificationService:
         notification = result.scalar_one_or_none()
         if notification and not notification.is_read:
             notification.is_read = True
-            notification.read_at = datetime.now(timezone.utc)
+            notification.read_at = datetime.now(UTC)
             await self.db.flush()
         return notification
 
@@ -146,7 +151,7 @@ class NotificationService:
                 Notification.user_id == user_id,
                 Notification.is_read.is_(False),
             )
-            .values(is_read=True, read_at=datetime.now(timezone.utc))
+            .values(is_read=True, read_at=datetime.now(UTC))
         )
         await self.db.flush()
         return result.rowcount
@@ -162,17 +167,13 @@ class NotificationService:
 
     # --- Preferences ---
 
-    async def get_preferences(self, user_id: UUID) -> Optional[NotificationPreference]:
+    async def get_preferences(self, user_id: UUID) -> NotificationPreference | None:
         result = await self.db.execute(
-            select(NotificationPreference).where(
-                NotificationPreference.user_id == user_id
-            )
+            select(NotificationPreference).where(NotificationPreference.user_id == user_id)
         )
         return result.scalar_one_or_none()
 
-    async def upsert_preferences(
-        self, user_id: UUID, updates: dict
-    ) -> NotificationPreference:
+    async def upsert_preferences(self, user_id: UUID, updates: dict) -> NotificationPreference:
         pref = await self.get_preferences(user_id)
         if pref is None:
             pref = NotificationPreference(user_id=user_id)
@@ -213,20 +214,18 @@ class NotificationService:
         self,
         delivery_id: UUID,
         status: str,
-        provider_message_id: Optional[str] = None,
-        error_message: Optional[str] = None,
-        cost: Optional[float] = None,
-        currency: Optional[str] = None,
-    ) -> Optional[DeliveryLog]:
-        result = await self.db.execute(
-            select(DeliveryLog).where(DeliveryLog.id == delivery_id)
-        )
+        provider_message_id: str | None = None,
+        error_message: str | None = None,
+        cost: float | None = None,
+        currency: str | None = None,
+    ) -> DeliveryLog | None:
+        result = await self.db.execute(select(DeliveryLog).where(DeliveryLog.id == delivery_id))
         log = result.scalar_one_or_none()
         if log:
             log.status = status
-            log.attempted_at = datetime.now(timezone.utc)
+            log.attempted_at = datetime.now(UTC)
             if status == DeliveryStatus.DELIVERED.value:
-                log.delivered_at = datetime.now(timezone.utc)
+                log.delivered_at = datetime.now(UTC)
             if provider_message_id:
                 log.provider_message_id = provider_message_id
             if error_message:

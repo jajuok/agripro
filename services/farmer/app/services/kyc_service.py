@@ -1,13 +1,13 @@
 """KYC verification service."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.farmer import BiometricData, Document, Farmer, KYCStatus
+from app.models.farmer import BiometricData, Farmer, KYCStatus
 from app.schemas.kyc import KYCReviewRequest, KYCStatusResponse
 
 
@@ -66,7 +66,7 @@ class KYCService:
 
         if review.action == "approve":
             farmer.kyc_status = KYCStatus.APPROVED.value
-            farmer.kyc_verified_at = datetime.now(timezone.utc)
+            farmer.kyc_verified_at = datetime.now(UTC)
             farmer.kyc_verified_by = review.reviewer_id
         elif review.action == "reject":
             farmer.kyc_status = KYCStatus.REJECTED.value

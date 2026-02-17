@@ -5,7 +5,6 @@ from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
-from app.models.notification import Base
 
 engine = create_async_engine(
     settings.database_url,

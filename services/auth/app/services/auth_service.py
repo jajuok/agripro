@@ -1,7 +1,7 @@
 """Authentication service."""
 
 import hashlib
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -57,9 +57,7 @@ class AuthService:
     async def register_phone(self, data: PhoneRegisterRequest) -> LoginResponse:
         """Register a new user with phone number and PIN."""
         # Check if phone already exists
-        result = await self.db.execute(
-            select(User).where(User.phone_number == data.phone_number)
-        )
+        result = await self.db.execute(select(User).where(User.phone_number == data.phone_number))
         if result.scalar_one_or_none():
             raise ValueError("Phone number already registered")
 
@@ -108,21 +106,20 @@ class AuthService:
 
             # Verify TOTP code
             from app.services.totp_service import TOTPService
+
             totp_service = TOTPService(self.db)
             if not await totp_service.verify_totp(user.id, totp_code):
                 return None  # Invalid TOTP code
 
         # Update last login
-        user.last_login = datetime.now(timezone.utc)
+        user.last_login = datetime.now(UTC)
 
         # Extract role names from loaded relationships
         roles = [ur.role.name for ur in user.roles] if user.roles else []
 
         return await self._create_tokens_response(user, roles)
 
-    async def login_phone(
-        self, phone_number: str, pin: str
-    ) -> LoginResponse | None:
+    async def login_phone(self, phone_number: str, pin: str) -> LoginResponse | None:
         """Authenticate user with phone number and PIN."""
         result = await self.db.execute(
             select(User)
@@ -138,7 +135,7 @@ class AuthService:
             return None
 
         # Update last login
-        user.last_login = datetime.now(timezone.utc)
+        user.last_login = datetime.now(UTC)
 
         roles = [ur.role.name for ur in user.roles] if user.roles else []
         return await self._create_tokens_response(user, roles)
@@ -156,7 +153,7 @@ class AuthService:
             .where(
                 RefreshToken.token_hash == token_hash,
                 RefreshToken.revoked_at.is_(None),
-                RefreshToken.expires_at > datetime.now(timezone.utc),
+                RefreshToken.expires_at > datetime.now(UTC),
             )
         )
         stored_token = result.scalar_one_or_none()
@@ -165,7 +162,7 @@ class AuthService:
             return None
 
         # Revoke old refresh token
-        stored_token.revoked_at = datetime.now(timezone.utc)
+        stored_token.revoked_at = datetime.now(UTC)
 
         # Generate new tokens
         user = stored_token.user
@@ -192,9 +189,11 @@ class AuthService:
         )
         stored_token = result.scalar_one_or_none()
         if stored_token:
-            stored_token.revoked_at = datetime.now(timezone.utc)
+            stored_token.revoked_at = datetime.now(UTC)
 
-    async def _create_tokens_response(self, user: User, roles: list[str] | None = None) -> LoginResponse:
+    async def _create_tokens_response(
+        self, user: User, roles: list[str] | None = None
+    ) -> LoginResponse:
         """Create token response for user."""
         token_data = {"sub": str(user.id)}
         if user.email:
@@ -224,7 +223,7 @@ class AuthService:
     async def _store_refresh_token(self, user_id, token: str) -> None:
         """Store refresh token hash in database."""
         token_hash = hashlib.sha256(token.encode()).hexdigest()
-        expires_at = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
+        expires_at = datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days)
 
         refresh_token = RefreshToken(
             user_id=user_id,

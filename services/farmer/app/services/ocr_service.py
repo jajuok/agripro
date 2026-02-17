@@ -1,7 +1,6 @@
 """OCR service for document text extraction and verification."""
 
 import re
-from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -109,9 +108,10 @@ class OCRService:
     async def _ocr_tesseract(self, image_data: bytes) -> str | None:
         """OCR using Tesseract (local/open source)."""
         try:
+            import io
+
             import pytesseract
             from PIL import Image
-            import io
 
             image = Image.open(io.BytesIO(image_data))
             text = pytesseract.image_to_string(image)
@@ -319,9 +319,7 @@ class OCRService:
         checks["no_tampering_detected"] = await self._check_tampering(image_data)
 
         # Check document format
-        checks["valid_format"] = await self._check_document_format(
-            image_data, document_type
-        )
+        checks["valid_format"] = await self._check_document_format(image_data, document_type)
 
         # Calculate overall validity
         passed_checks = sum(1 for v in checks.values() if v)
@@ -337,8 +335,9 @@ class OCRService:
     async def _check_image_quality(self, image_data: bytes) -> bool:
         """Check if image quality is sufficient for OCR."""
         try:
-            from PIL import Image
             import io
+
+            from PIL import Image
 
             image = Image.open(io.BytesIO(image_data))
 
@@ -361,9 +360,7 @@ class OCRService:
         # - Copy-move detection
         return True
 
-    async def _check_document_format(
-        self, image_data: bytes, document_type: str
-    ) -> bool:
+    async def _check_document_format(self, image_data: bytes, document_type: str) -> bool:
         """Check if document format matches expected type."""
         # In production, use ML models for document classification
         return True

@@ -48,9 +48,7 @@ class DocumentService:
 
     async def list_farmer_documents(self, farmer_id: UUID) -> list[DocumentResponse]:
         """List all documents for a farmer."""
-        result = await self.db.execute(
-            select(Document).where(Document.farmer_id == farmer_id)
-        )
+        result = await self.db.execute(select(Document).where(Document.farmer_id == farmer_id))
         docs = result.scalars().all()
         return [DocumentResponse.model_validate(d) for d in docs]
 

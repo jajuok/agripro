@@ -1,7 +1,6 @@
 """Application configuration using Pydantic Settings."""
 
 from functools import lru_cache
-from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -37,7 +36,7 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
 
     # CORS
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8081"]
+    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8081"]
 
     # Security
     bcrypt_rounds: int = 12

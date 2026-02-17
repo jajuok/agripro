@@ -34,7 +34,25 @@ select = [
     "ARG",    # flake8-unused-arguments
     "SIM",    # flake8-simplify
 ]
-ignore = ["E501", "B008", "B009", "B010"]
+ignore = [
+    "E402",    # module level import not at top (circular import workarounds)
+    "E501",    # line too long
+    "E711",    # comparison to None (SQLAlchemy == None is intentional)
+    "E712",    # comparison to True/False (required by SQLAlchemy filters)
+    "B008",    # function call in default argument (FastAPI Depends)
+    "B009",    # do not call getattr with a constant attribute value
+    "B010",    # do not call setattr with a constant attribute value
+    "B904",    # raise from in except (FastAPI HTTPException pattern)
+    "ARG001",  # unused function argument (FastAPI dependency injection)
+    "ARG002",  # unused method argument (placeholder implementations)
+    "F841",    # local variable assigned but never used (WIP code)
+    "SIM102",  # collapsible if (readability preference)
+    "SIM103",  # return condition directly (readability preference)
+    "SIM105",  # contextlib.suppress (readability preference)
+    "SIM108",  # ternary operator (readability preference)
+    "SIM114",  # combine if branches (readability preference)
+    "SIM118",  # use key in dict (readability preference)
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

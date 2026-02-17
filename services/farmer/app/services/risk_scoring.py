@@ -1,8 +1,7 @@
 """Risk Scoring Service for Eligibility Assessment."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,8 +12,8 @@ from app.models.eligibility import (
     RiskFactor,
     RiskLevel,
 )
-from app.models.farmer import Farmer, FarmProfile, CropRecord
-from app.schemas.eligibility import RiskFactorScore, RiskAssessmentResponse
+from app.models.farmer import CropRecord, Farmer, FarmProfile
+from app.schemas.eligibility import RiskFactorScore
 
 
 class RiskScoringService:
@@ -72,16 +71,12 @@ class RiskScoringService:
         category_scores["credit"] = credit_risk
 
         # Calculate Performance Risk (based on historical data)
-        performance_risk, performance_factors = await self._calculate_performance_risk(
-            farmer, farm
-        )
+        performance_risk, performance_factors = await self._calculate_performance_risk(farmer, farm)
         factor_scores.extend(performance_factors)
         category_scores["performance"] = performance_risk
 
         # Calculate External Risk (weather, market, etc.)
-        external_risk, external_factors = self._calculate_external_risk(
-            farm, external_data
-        )
+        external_risk, external_factors = self._calculate_external_risk(farm, external_data)
         factor_scores.extend(external_factors)
         category_scores["external"] = external_risk
 
@@ -127,7 +122,7 @@ class RiskScoringService:
             recommendations=recommendations if recommendations else None,
             model_version="1.0.0",
             model_type="rule_based",
-            valid_until=datetime.now(timezone.utc) + timedelta(days=30),
+            valid_until=datetime.now(UTC) + timedelta(days=30),
         )
 
         self.db.add(risk_assessment)
@@ -526,9 +521,7 @@ class RiskScoringService:
 
         return flags
 
-    def _generate_recommendations(
-        self, risk_level: RiskLevel, risk_flags: list[str]
-    ) -> list[str]:
+    def _generate_recommendations(self, risk_level: RiskLevel, risk_flags: list[str]) -> list[str]:
         """Generate recommendations based on risk assessment."""
         recommendations = []
 
@@ -552,7 +545,7 @@ class RiskScoringService:
         self, farmer_id: uuid.UUID, max_age_days: int = 30
     ) -> RiskAssessment | None:
         """Get the most recent valid risk assessment."""
-        cutoff_date = datetime.now(timezone.utc) - timedelta(days=max_age_days)
+        cutoff_date = datetime.now(UTC) - timedelta(days=max_age_days)
         query = (
             select(RiskAssessment)
             .where(RiskAssessment.farmer_id == farmer_id)

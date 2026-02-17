@@ -4,8 +4,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
-
+from pydantic import BaseModel, Field
 
 # =============================================================================
 # Enums
@@ -87,6 +86,7 @@ class CreditCheckStatus(str, Enum):
 
 class EligibilitySchemeBase(BaseModel):
     """Base scheme schema."""
+
     name: str = Field(..., min_length=1, max_length=200)
     code: str = Field(..., min_length=1, max_length=50)
     description: str | None = None
@@ -95,6 +95,7 @@ class EligibilitySchemeBase(BaseModel):
 
 class EligibilitySchemeCreate(EligibilitySchemeBase):
     """Create scheme schema."""
+
     tenant_id: UUID
     start_date: datetime | None = None
     end_date: datetime | None = None
@@ -113,6 +114,7 @@ class EligibilitySchemeCreate(EligibilitySchemeBase):
 
 class EligibilitySchemeUpdate(BaseModel):
     """Update scheme schema."""
+
     name: str | None = None
     description: str | None = None
     status: SchemeStatus | None = None
@@ -133,6 +135,7 @@ class EligibilitySchemeUpdate(BaseModel):
 
 class EligibilitySchemeResponse(EligibilitySchemeBase):
     """Scheme response schema."""
+
     id: UUID
     tenant_id: UUID
     status: str
@@ -155,6 +158,7 @@ class EligibilitySchemeResponse(EligibilitySchemeBase):
 
 class EligibilitySchemeListResponse(BaseModel):
     """Paginated scheme list."""
+
     items: list[EligibilitySchemeResponse]
     total: int
     page: int
@@ -168,6 +172,7 @@ class EligibilitySchemeListResponse(BaseModel):
 
 class EligibilityRuleBase(BaseModel):
     """Base rule schema."""
+
     name: str = Field(..., min_length=1, max_length=100)
     description: str | None = None
     field_type: RuleFieldType
@@ -180,6 +185,7 @@ class EligibilityRuleBase(BaseModel):
 
 class EligibilityRuleCreate(EligibilityRuleBase):
     """Create rule schema."""
+
     scheme_id: UUID
     rule_group_id: UUID | None = None
     is_mandatory: bool = True
@@ -192,6 +198,7 @@ class EligibilityRuleCreate(EligibilityRuleBase):
 
 class EligibilityRuleUpdate(BaseModel):
     """Update rule schema."""
+
     name: str | None = None
     description: str | None = None
     field_type: RuleFieldType | None = None
@@ -211,6 +218,7 @@ class EligibilityRuleUpdate(BaseModel):
 
 class EligibilityRuleResponse(EligibilityRuleBase):
     """Rule response schema."""
+
     id: UUID
     scheme_id: UUID
     rule_group_id: UUID | None
@@ -228,6 +236,7 @@ class EligibilityRuleResponse(EligibilityRuleBase):
 
 class EligibilityRuleGroupBase(BaseModel):
     """Base rule group schema."""
+
     name: str = Field(..., min_length=1, max_length=100)
     description: str | None = None
     logic_operator: str = "AND"
@@ -238,11 +247,13 @@ class EligibilityRuleGroupBase(BaseModel):
 
 class EligibilityRuleGroupCreate(EligibilityRuleGroupBase):
     """Create rule group schema."""
+
     scheme_id: UUID
 
 
 class EligibilityRuleGroupResponse(EligibilityRuleGroupBase):
     """Rule group response schema."""
+
     id: UUID
     scheme_id: UUID
     is_active: bool
@@ -259,6 +270,7 @@ class EligibilityRuleGroupResponse(EligibilityRuleGroupBase):
 
 class EligibilityAssessmentRequest(BaseModel):
     """Request to assess farmer eligibility."""
+
     farmer_id: UUID
     scheme_id: UUID
     farm_id: UUID | None = None
@@ -266,6 +278,7 @@ class EligibilityAssessmentRequest(BaseModel):
 
 class RuleEvaluationResult(BaseModel):
     """Result of a single rule evaluation."""
+
     rule_id: UUID
     rule_name: str
     passed: bool
@@ -278,6 +291,7 @@ class RuleEvaluationResult(BaseModel):
 
 class EligibilityAssessmentResponse(BaseModel):
     """Eligibility assessment response."""
+
     id: UUID
     farmer_id: UUID
     scheme_id: UUID
@@ -305,6 +319,7 @@ class EligibilityAssessmentResponse(BaseModel):
 
 class EligibilityAssessmentListResponse(BaseModel):
     """Paginated assessment list."""
+
     items: list[EligibilityAssessmentResponse]
     total: int
     page: int
@@ -313,6 +328,7 @@ class EligibilityAssessmentListResponse(BaseModel):
 
 class AssessmentDecisionRequest(BaseModel):
     """Manual decision on an assessment."""
+
     decision: str = Field(..., pattern="^(approved|rejected)$")
     reason: str | None = None
     notes: str | None = None
@@ -325,6 +341,7 @@ class AssessmentDecisionRequest(BaseModel):
 
 class CreditCheckRequest(BaseModel):
     """Request for credit check."""
+
     farmer_id: UUID
     assessment_id: UUID | None = None
     request_type: str = "full_report"
@@ -334,6 +351,7 @@ class CreditCheckRequest(BaseModel):
 
 class CreditCheckResponse(BaseModel):
     """Credit check response."""
+
     id: UUID
     farmer_id: UUID
     assessment_id: UUID | None
@@ -363,6 +381,7 @@ class CreditCheckResponse(BaseModel):
 
 class RiskFactorScore(BaseModel):
     """Individual risk factor score."""
+
     factor_code: str
     factor_name: str
     raw_value: float | str | None
@@ -374,6 +393,7 @@ class RiskFactorScore(BaseModel):
 
 class RiskAssessmentResponse(BaseModel):
     """Risk assessment response."""
+
     id: UUID
     farmer_id: UUID
     assessment_id: UUID | None
@@ -402,6 +422,7 @@ class RiskAssessmentResponse(BaseModel):
 
 class WaitlistEntryResponse(BaseModel):
     """Waitlist entry response."""
+
     id: UUID
     scheme_id: UUID
     farmer_id: UUID
@@ -420,6 +441,7 @@ class WaitlistEntryResponse(BaseModel):
 
 class WaitlistResponse(BaseModel):
     """Paginated waitlist."""
+
     items: list[WaitlistEntryResponse]
     total: int
     scheme_id: UUID
@@ -428,6 +450,7 @@ class WaitlistResponse(BaseModel):
 
 class WaitlistOfferResponse(BaseModel):
     """Response to waitlist offer."""
+
     accept: bool
 
 
@@ -438,6 +461,7 @@ class WaitlistOfferResponse(BaseModel):
 
 class ReviewQueueItemResponse(BaseModel):
     """Review queue item response."""
+
     id: UUID
     assessment_id: UUID
     farmer_id: UUID
@@ -458,6 +482,7 @@ class ReviewQueueItemResponse(BaseModel):
 
 class ReviewQueueListResponse(BaseModel):
     """Paginated review queue."""
+
     items: list[ReviewQueueItemResponse]
     total: int
     pending_count: int
@@ -466,6 +491,7 @@ class ReviewQueueListResponse(BaseModel):
 
 class ReviewQueueAssignRequest(BaseModel):
     """Assign review queue item."""
+
     reviewer_id: UUID
 
 
@@ -476,6 +502,7 @@ class ReviewQueueAssignRequest(BaseModel):
 
 class BatchAssessmentRequest(BaseModel):
     """Request for batch eligibility assessment."""
+
     scheme_id: UUID
     farmer_ids: list[UUID] | None = None
     filters: dict | None = None  # Filter criteria for selecting farmers
@@ -483,6 +510,7 @@ class BatchAssessmentRequest(BaseModel):
 
 class BatchAssessmentResponse(BaseModel):
     """Batch assessment response."""
+
     total_processed: int
     eligible_count: int
     not_eligible_count: int
@@ -497,6 +525,7 @@ class BatchAssessmentResponse(BaseModel):
 
 class SchemeEligibilitySummary(BaseModel):
     """Summary of scheme eligibility statistics."""
+
     scheme_id: UUID
     scheme_name: str
     total_assessments: int
@@ -512,6 +541,7 @@ class SchemeEligibilitySummary(BaseModel):
 
 class FarmerEligibilitySummary(BaseModel):
     """Summary of farmer's eligibility across schemes."""
+
     farmer_id: UUID
     farmer_name: str
     total_schemes_assessed: int

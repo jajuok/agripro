@@ -24,14 +24,21 @@ jobs:
       - name: Lint auth-service
         run: |
           cd services/auth
-          uv pip install ruff mypy
+          uv pip install --system ruff mypy
           ruff check app/
           ruff format --check app/
 
       - name: Lint farmer-service
         run: |
           cd services/farmer
-          uv pip install ruff mypy
+          uv pip install --system ruff mypy
+          ruff check app/
+          ruff format --check app/
+
+      - name: Lint notification-service
+        run: |
+          cd services/notification
+          uv pip install --system ruff mypy
           ruff check app/
           ruff format --check app/
 

@@ -1,45 +1,39 @@
 """Main Eligibility Assessment Service."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select, func, and_
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.eligibility import (
-    EligibilityScheme,
+    AssessmentStatus,
+    EligibilityAssessment,
+    EligibilityNotification,
+    EligibilityReviewQueue,
     EligibilityRule,
     EligibilityRuleGroup,
-    EligibilityAssessment,
-    EligibilityReviewQueue,
-    SchemeWaitlist,
-    EligibilityNotification,
-    AssessmentStatus,
-    SchemeStatus,
-    WorkflowDecision,
+    EligibilityScheme,
     RiskLevel,
+    SchemeStatus,
+    SchemeWaitlist,
+    WorkflowDecision,
 )
 from app.models.farmer import Farmer, FarmProfile
 from app.schemas.eligibility import (
+    AssessmentDecisionRequest,
+    CreditCheckRequest,
+    EligibilityAssessmentRequest,
+    EligibilityRuleCreate,
+    EligibilityRuleGroupCreate,
     EligibilitySchemeCreate,
     EligibilitySchemeUpdate,
-    EligibilitySchemeResponse,
-    EligibilityRuleCreate,
-    EligibilityRuleUpdate,
-    EligibilityRuleGroupCreate,
-    EligibilityAssessmentRequest,
-    EligibilityAssessmentResponse,
-    AssessmentDecisionRequest,
-    RuleEvaluationResult,
-    CreditCheckRequest,
     SchemeEligibilitySummary,
-    FarmerEligibilitySummary,
 )
-from app.services.rules_engine import RulesEngine
 from app.services.credit_service import CreditBureauService
 from app.services.risk_scoring import RiskScoringService
+from app.services.rules_engine import RulesEngine
 
 
 class EligibilityService:
@@ -73,7 +67,9 @@ class EligibilityService:
             benefit_description=data.benefit_description,
             auto_approve_enabled=data.auto_approve_enabled,
             min_score_for_auto_approve=data.min_score_for_auto_approve,
-            max_risk_for_auto_approve=data.max_risk_for_auto_approve.value if data.max_risk_for_auto_approve else None,
+            max_risk_for_auto_approve=data.max_risk_for_auto_approve.value
+            if data.max_risk_for_auto_approve
+            else None,
             waitlist_enabled=data.waitlist_enabled,
             waitlist_capacity=data.waitlist_capacity,
         )
@@ -87,7 +83,9 @@ class EligibilityService:
             select(EligibilityScheme)
             .options(
                 selectinload(EligibilityScheme.rules),
-                selectinload(EligibilityScheme.rule_groups).selectinload(EligibilityRuleGroup.rules),
+                selectinload(EligibilityScheme.rule_groups).selectinload(
+                    EligibilityRuleGroup.rules
+                ),
             )
             .where(EligibilityScheme.id == scheme_id)
         )
@@ -183,9 +181,7 @@ class EligibilityService:
         await self.db.flush()
         return rule
 
-    async def create_rule_group(
-        self, data: EligibilityRuleGroupCreate
-    ) -> EligibilityRuleGroup:
+    async def create_rule_group(self, data: EligibilityRuleGroupCreate) -> EligibilityRuleGroup:
         """Create a new rule group."""
         group = EligibilityRuleGroup(
             scheme_id=data.scheme_id,
@@ -242,11 +238,11 @@ class EligibilityService:
 
         # Compare datetimes, handling both timezone-aware and naive
         if scheme.application_deadline:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             deadline = scheme.application_deadline
             # If deadline is naive, make it UTC-aware
             if deadline.tzinfo is None:
-                deadline = deadline.replace(tzinfo=timezone.utc)
+                deadline = deadline.replace(tzinfo=UTC)
             if deadline < now:
                 raise ValueError("Application deadline has passed")
 
@@ -264,7 +260,7 @@ class EligibilityService:
             scheme_id=request.scheme_id,
             farm_id=request.farm_id,
             status=AssessmentStatus.IN_PROGRESS.value,
-            assessment_date=datetime.now(timezone.utc),
+            assessment_date=datetime.now(UTC),
         )
         self.db.add(assessment)
         await self.db.flush()
@@ -286,7 +282,11 @@ class EligibilityService:
             assessment.credit_score = credit_check.credit_score if credit_check else None
 
             # Step 2: Rule Evaluation
-            rule_results, eligibility_score, mandatory_passed = await self.rules_engine.evaluate_rule_groups(
+            (
+                rule_results,
+                eligibility_score,
+                mandatory_passed,
+            ) = await self.rules_engine.evaluate_rule_groups(
                 farmer=farmer,
                 scheme_id=request.scheme_id,
                 farm=farm,
@@ -319,7 +319,7 @@ class EligibilityService:
 
             assessment.status = status.value
             assessment.workflow_decision = decision.value
-            assessment.valid_until = datetime.now(timezone.utc) + timedelta(days=90)
+            assessment.valid_until = datetime.now(UTC) + timedelta(days=90)
 
             # Step 5: Handle workflow decision
             await self._handle_workflow_decision(assessment, scheme, decision)
@@ -353,7 +353,11 @@ class EligibilityService:
         # Check for auto-approval conditions
         if scheme.auto_approve_enabled:
             min_score = scheme.min_score_for_auto_approve or 70
-            max_risk = RiskLevel(scheme.max_risk_for_auto_approve) if scheme.max_risk_for_auto_approve else RiskLevel.MEDIUM
+            max_risk = (
+                RiskLevel(scheme.max_risk_for_auto_approve)
+                if scheme.max_risk_for_auto_approve
+                else RiskLevel.MEDIUM
+            )
 
             risk_order = [RiskLevel.LOW, RiskLevel.MEDIUM, RiskLevel.HIGH, RiskLevel.VERY_HIGH]
             risk_acceptable = risk_order.index(risk_level) <= risk_order.index(max_risk)
@@ -386,13 +390,13 @@ class EligibilityService:
         """Handle the workflow decision."""
         if decision == WorkflowDecision.AUTO_APPROVE:
             assessment.final_decision = "approved"
-            assessment.decision_date = datetime.now(timezone.utc)
+            assessment.decision_date = datetime.now(UTC)
             assessment.decision_reason = "Auto-approved based on eligibility criteria"
             scheme.current_beneficiaries += 1
 
         elif decision == WorkflowDecision.AUTO_REJECT:
             assessment.final_decision = "rejected"
-            assessment.decision_date = datetime.now(timezone.utc)
+            assessment.decision_date = datetime.now(UTC)
             assessment.decision_reason = "Did not meet mandatory eligibility criteria"
 
         elif decision == WorkflowDecision.WAITLIST:
@@ -429,7 +433,7 @@ class EligibilityService:
         self.db.add(waitlist_entry)
 
         assessment.waitlist_position = current_count + 1
-        assessment.waitlisted_at = datetime.now(timezone.utc)
+        assessment.waitlisted_at = datetime.now(UTC)
 
         await self.db.flush()
         return waitlist_entry
@@ -455,7 +459,7 @@ class EligibilityService:
             priority=priority,
             queue_reason=reason,
             queue_category="standard_review",
-            sla_due_at=datetime.now(timezone.utc) + timedelta(days=3),
+            sla_due_at=datetime.now(UTC) + timedelta(days=3),
         )
         self.db.add(queue_entry)
         await self.db.flush()
@@ -504,7 +508,7 @@ class EligibilityService:
 
         assessment.final_decision = decision_request.decision
         assessment.decision_reason = decision_request.reason
-        assessment.decision_date = datetime.now(timezone.utc)
+        assessment.decision_date = datetime.now(UTC)
         assessment.decided_by = reviewer_id
         assessment.notes = decision_request.notes
 
@@ -518,7 +522,9 @@ class EligibilityService:
             assessment.status = AssessmentStatus.REJECTED.value
 
         # Update review queue
-        await self._complete_review_queue_item(assessment_id, decision_request.decision, reviewer_id)
+        await self._complete_review_queue_item(
+            assessment_id, decision_request.decision, reviewer_id
+        )
 
         await self.db.commit()
         await self.db.refresh(assessment)
@@ -537,20 +543,16 @@ class EligibilityService:
         if queue_item:
             queue_item.status = "completed"
             queue_item.decision = decision
-            queue_item.completed_at = datetime.now(timezone.utc)
+            queue_item.completed_at = datetime.now(UTC)
             queue_item.assigned_to = reviewer_id
 
     # =========================================================================
     # Queries
     # =========================================================================
 
-    async def get_assessment(
-        self, assessment_id: uuid.UUID
-    ) -> EligibilityAssessment | None:
+    async def get_assessment(self, assessment_id: uuid.UUID) -> EligibilityAssessment | None:
         """Get an assessment by ID."""
-        query = select(EligibilityAssessment).where(
-            EligibilityAssessment.id == assessment_id
-        )
+        query = select(EligibilityAssessment).where(EligibilityAssessment.id == assessment_id)
         result = await self.db.execute(query)
         return result.scalars().first()
 
@@ -558,12 +560,16 @@ class EligibilityService:
         self, farmer_id: uuid.UUID, scheme_id: uuid.UUID
     ) -> EligibilityAssessment | None:
         """Get existing non-expired assessment."""
-        query = select(EligibilityAssessment).where(
-            and_(
-                EligibilityAssessment.farmer_id == farmer_id,
-                EligibilityAssessment.scheme_id == scheme_id,
+        query = (
+            select(EligibilityAssessment)
+            .where(
+                and_(
+                    EligibilityAssessment.farmer_id == farmer_id,
+                    EligibilityAssessment.scheme_id == scheme_id,
+                )
             )
-        ).order_by(EligibilityAssessment.created_at.desc())
+            .order_by(EligibilityAssessment.created_at.desc())
+        )
         result = await self.db.execute(query)
         return result.scalars().first()
 
@@ -571,9 +577,7 @@ class EligibilityService:
         self, farmer_id: uuid.UUID, page: int = 1, page_size: int = 20
     ) -> tuple[list[EligibilityAssessment], int]:
         """List assessments for a farmer."""
-        query = select(EligibilityAssessment).where(
-            EligibilityAssessment.farmer_id == farmer_id
-        )
+        query = select(EligibilityAssessment).where(EligibilityAssessment.farmer_id == farmer_id)
 
         count_query = select(func.count()).select_from(query.subquery())
         total_result = await self.db.execute(count_query)
@@ -595,9 +599,7 @@ class EligibilityService:
         page_size: int = 20,
     ) -> tuple[list[EligibilityAssessment], int]:
         """List assessments for a scheme."""
-        query = select(EligibilityAssessment).where(
-            EligibilityAssessment.scheme_id == scheme_id
-        )
+        query = select(EligibilityAssessment).where(EligibilityAssessment.scheme_id == scheme_id)
 
         if status:
             query = query.where(EligibilityAssessment.status == status.value)
@@ -621,9 +623,7 @@ class EligibilityService:
         page_size: int = 20,
     ) -> tuple[list[EligibilityReviewQueue], int]:
         """Get manual review queue."""
-        query = select(EligibilityReviewQueue).where(
-            EligibilityReviewQueue.status == status
-        )
+        query = select(EligibilityReviewQueue).where(EligibilityReviewQueue.status == status)
 
         count_query = select(func.count()).select_from(query.subquery())
         total_result = await self.db.execute(count_query)

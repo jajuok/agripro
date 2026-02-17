@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 class SchemeStatus(str, Enum):
     """Scheme status."""
+
     DRAFT = "draft"
     ACTIVE = "active"
     SUSPENDED = "suspended"
@@ -27,6 +28,7 @@ class SchemeStatus(str, Enum):
 
 class AssessmentStatus(str, Enum):
     """Eligibility assessment status."""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     ELIGIBLE = "eligible"
@@ -39,6 +41,7 @@ class AssessmentStatus(str, Enum):
 
 class RuleOperator(str, Enum):
     """Rule comparison operators."""
+
     EQUALS = "equals"
     NOT_EQUALS = "not_equals"
     GREATER_THAN = "greater_than"
@@ -57,6 +60,7 @@ class RuleOperator(str, Enum):
 
 class RuleFieldType(str, Enum):
     """Field types for rules."""
+
     FARMER = "farmer"  # Farmer profile fields
     FARM = "farm"  # Farm profile fields
     KYC = "kyc"  # KYC status fields
@@ -68,6 +72,7 @@ class RuleFieldType(str, Enum):
 
 class CreditCheckStatus(str, Enum):
     """Credit check status."""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -77,6 +82,7 @@ class CreditCheckStatus(str, Enum):
 
 class RiskLevel(str, Enum):
     """Risk level classification."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -85,6 +91,7 @@ class RiskLevel(str, Enum):
 
 class WorkflowDecision(str, Enum):
     """Workflow decision types."""
+
     AUTO_APPROVE = "auto_approve"
     AUTO_REJECT = "auto_reject"
     MANUAL_REVIEW = "manual_review"
@@ -176,7 +183,9 @@ class EligibilityRuleGroup(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
-    scheme: Mapped["EligibilityScheme"] = relationship("EligibilityScheme", back_populates="rule_groups")
+    scheme: Mapped["EligibilityScheme"] = relationship(
+        "EligibilityScheme", back_populates="rule_groups"
+    )
     rules: Mapped[list["EligibilityRule"]] = relationship(
         "EligibilityRule", back_populates="rule_group", cascade="all, delete-orphan"
     )
@@ -207,7 +216,9 @@ class EligibilityRule(Base):
     # Comparison
     operator: Mapped[str] = mapped_column(String(30))  # RuleOperator
     value: Mapped[str | None] = mapped_column(Text)  # JSON-encoded comparison value
-    value_type: Mapped[str] = mapped_column(String(20), default="string")  # string, number, boolean, array, date
+    value_type: Mapped[str] = mapped_column(
+        String(20), default="string"
+    )  # string, number, boolean, array, date
 
     # Rule behavior
     is_mandatory: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -294,8 +305,12 @@ class EligibilityAssessment(Base):
 
     # Relationships
     farmer: Mapped["Farmer"] = relationship("Farmer", backref="eligibility_assessments")
-    scheme: Mapped["EligibilityScheme"] = relationship("EligibilityScheme", back_populates="assessments")
-    farm: Mapped["FarmProfile | None"] = relationship("FarmProfile", backref="eligibility_assessments")
+    scheme: Mapped["EligibilityScheme"] = relationship(
+        "EligibilityScheme", back_populates="assessments"
+    )
+    farm: Mapped["FarmProfile | None"] = relationship(
+        "FarmProfile", backref="eligibility_assessments"
+    )
     credit_checks: Mapped[list["CreditCheck"]] = relationship(
         "CreditCheck", back_populates="assessment", cascade="all, delete-orphan"
     )
@@ -353,18 +368,24 @@ class CreditCheck(Base):
 
     # Request info
     reference_number: Mapped[str | None] = mapped_column(String(100), unique=True)
-    request_type: Mapped[str] = mapped_column(String(50))  # full_report, score_only, identity_verify
+    request_type: Mapped[str] = mapped_column(
+        String(50)
+    )  # full_report, score_only, identity_verify
     consent_given: Mapped[bool] = mapped_column(Boolean, default=False)
     consent_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Status
     status: Mapped[str] = mapped_column(String(20), default=CreditCheckStatus.PENDING.value)
-    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    requested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Results
     credit_score: Mapped[int | None] = mapped_column(Integer)
-    score_band: Mapped[str | None] = mapped_column(String(20))  # excellent, good, fair, poor, very_poor
+    score_band: Mapped[str | None] = mapped_column(
+        String(20)
+    )  # excellent, good, fair, poor, very_poor
     total_accounts: Mapped[int | None] = mapped_column(Integer)
     active_accounts: Mapped[int | None] = mapped_column(Integer)
     total_debt: Mapped[float | None] = mapped_column(Float)
@@ -442,7 +463,9 @@ class RiskAssessment(Base):
     )
 
     # Assessment timestamp
-    assessed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    assessed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     # Overall scores
     total_risk_score: Mapped[float] = mapped_column(Float)
@@ -468,7 +491,9 @@ class RiskAssessment(Base):
 
     # Model info
     model_version: Mapped[str | None] = mapped_column(String(50))
-    model_type: Mapped[str] = mapped_column(String(50), default="rule_based")  # rule_based, ml_model
+    model_type: Mapped[str] = mapped_column(
+        String(50), default="rule_based"
+    )  # rule_based, ml_model
 
     # Validity
     valid_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -498,14 +523,18 @@ class EligibilityReviewQueue(Base):
     # Queue management
     priority: Mapped[int] = mapped_column(Integer, default=5)  # 1 = highest
     queue_reason: Mapped[str] = mapped_column(String(200))
-    queue_category: Mapped[str | None] = mapped_column(String(50))  # exception, fraud_review, escalation
+    queue_category: Mapped[str | None] = mapped_column(
+        String(50)
+    )  # exception, fraud_review, escalation
 
     # Assignment
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     assigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Status
-    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, in_progress, completed
+    status: Mapped[str] = mapped_column(
+        String(20), default="pending"
+    )  # pending, in_progress, completed
     decision: Mapped[str | None] = mapped_column(String(20))  # approved, rejected, escalated
     decision_notes: Mapped[str | None] = mapped_column(Text)
 
@@ -518,7 +547,9 @@ class EligibilityReviewQueue(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Relationship
-    assessment: Mapped["EligibilityAssessment"] = relationship("EligibilityAssessment", backref="review_queue")
+    assessment: Mapped["EligibilityAssessment"] = relationship(
+        "EligibilityAssessment", backref="review_queue"
+    )
 
 
 class SchemeWaitlist(Base):
@@ -546,7 +577,9 @@ class SchemeWaitlist(Base):
     risk_score: Mapped[float | None] = mapped_column(Float)
 
     # Status
-    status: Mapped[str] = mapped_column(String(20), default="waiting")  # waiting, offered, accepted, declined, expired
+    status: Mapped[str] = mapped_column(
+        String(20), default="waiting"
+    )  # waiting, offered, accepted, declined, expired
     offered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     offer_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     response_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -558,9 +591,13 @@ class SchemeWaitlist(Base):
     )
 
     # Relationships
-    scheme: Mapped["EligibilityScheme"] = relationship("EligibilityScheme", backref="waitlist_entries")
+    scheme: Mapped["EligibilityScheme"] = relationship(
+        "EligibilityScheme", backref="waitlist_entries"
+    )
     farmer: Mapped["Farmer"] = relationship("Farmer", backref="waitlist_entries")
-    assessment: Mapped["EligibilityAssessment"] = relationship("EligibilityAssessment", backref="waitlist_entry")
+    assessment: Mapped["EligibilityAssessment"] = relationship(
+        "EligibilityAssessment", backref="waitlist_entry"
+    )
 
 
 class EligibilityNotification(Base):
@@ -577,13 +614,17 @@ class EligibilityNotification(Base):
     )
 
     # Notification details
-    notification_type: Mapped[str] = mapped_column(String(50))  # status_change, waitlist_update, reminder, offer
+    notification_type: Mapped[str] = mapped_column(
+        String(50)
+    )  # status_change, waitlist_update, reminder, offer
     title: Mapped[str] = mapped_column(String(200))
     message: Mapped[str] = mapped_column(Text)
     data: Mapped[dict | None] = mapped_column(JSONBCompatible)
 
     # Delivery
-    channels: Mapped[list] = mapped_column(JSONBCompatible, default=list)  # sms, push, email, in_app
+    channels: Mapped[list] = mapped_column(
+        JSONBCompatible, default=list
+    )  # sms, push, email, in_app
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

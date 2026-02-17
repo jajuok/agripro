@@ -1,6 +1,6 @@
 """KYC Workflow Engine - orchestrates the complete KYC process."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
 from uuid import UUID
@@ -12,8 +12,6 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.models.farmer import (
-    BiometricData,
-    Document,
     ExternalVerification,
     Farmer,
     KYCApplication,
@@ -99,8 +97,16 @@ class KYCWorkflowService:
             return existing
 
         # Use provided requirements or fall back to defaults (None means use defaults, [] means no requirements)
-        docs_required = required_documents if required_documents is not None else self.DEFAULT_REQUIRED_DOCUMENTS
-        bio_required = required_biometrics if required_biometrics is not None else self.DEFAULT_REQUIRED_BIOMETRICS
+        docs_required = (
+            required_documents
+            if required_documents is not None
+            else self.DEFAULT_REQUIRED_DOCUMENTS
+        )
+        bio_required = (
+            required_biometrics
+            if required_biometrics is not None
+            else self.DEFAULT_REQUIRED_BIOMETRICS
+        )
 
         # Create new application
         application = KYCApplication(
@@ -126,12 +132,14 @@ class KYCWorkflowService:
             return None
 
         # Calculate progress
-        steps_completed = sum([
-            application.personal_info_complete,
-            application.documents_complete,
-            application.biometrics_complete,
-            application.bank_info_complete,
-        ])
+        steps_completed = sum(
+            [
+                application.personal_info_complete,
+                application.documents_complete,
+                application.biometrics_complete,
+                application.bank_info_complete,
+            ]
+        )
         progress = int((steps_completed / 4) * 100)
 
         # Get missing requirements
@@ -157,8 +165,12 @@ class KYCWorkflowService:
                 KYCStep.DOCUMENTS.value: {
                     "complete": application.documents_complete,
                     "required": True,
-                    "submitted": list(application.submitted_documents.keys()) if application.submitted_documents else [],
-                    "required_types": list(application.required_documents.keys()) if application.required_documents else [],
+                    "submitted": list(application.submitted_documents.keys())
+                    if application.submitted_documents
+                    else [],
+                    "required_types": list(application.required_documents.keys())
+                    if application.required_documents
+                    else [],
                 },
                 KYCStep.BIOMETRICS.value: {
                     "complete": application.biometrics_complete,
@@ -276,7 +288,7 @@ class KYCWorkflowService:
             raise ValueError("Biometrics incomplete")
 
         # Update application
-        application.submitted_at = datetime.now(timezone.utc)
+        application.submitted_at = datetime.now(UTC)
         application.current_step = KYCStep.REVIEW.value
         farmer.kyc_status = KYCStatus.IN_REVIEW.value
 
@@ -286,7 +298,7 @@ class KYCWorkflowService:
         if can_auto_approve:
             # Auto-approve
             farmer.kyc_status = KYCStatus.APPROVED.value
-            farmer.kyc_verified_at = datetime.now(timezone.utc)
+            farmer.kyc_verified_at = datetime.now(UTC)
             application.current_step = KYCStep.COMPLETE.value
         else:
             # Add to manual review queue
@@ -312,13 +324,13 @@ class KYCWorkflowService:
             raise ValueError("Farmer not found")
 
         # Update application
-        application.reviewed_at = datetime.now(timezone.utc)
+        application.reviewed_at = datetime.now(UTC)
         application.reviewer_id = reviewer_id
         application.review_notes = notes
 
         if decision == "approve":
             farmer.kyc_status = KYCStatus.APPROVED.value
-            farmer.kyc_verified_at = datetime.now(timezone.utc)
+            farmer.kyc_verified_at = datetime.now(UTC)
             farmer.kyc_verified_by = reviewer_id
             application.current_step = KYCStep.COMPLETE.value
         elif decision == "reject":
@@ -404,15 +416,17 @@ class KYCWorkflowService:
         for item in queue_items:
             farmer = await self._get_farmer_with_relations(item.farmer_id)
             if farmer:
-                items.append({
-                    "queue_id": str(item.id),
-                    "farmer_id": str(item.farmer_id),
-                    "farmer_name": f"{farmer.first_name} {farmer.last_name}",
-                    "priority": item.priority,
-                    "reason": item.reason,
-                    "queued_at": item.queued_at.isoformat() if item.queued_at else None,
-                    "assigned_to": str(item.assigned_to) if item.assigned_to else None,
-                })
+                items.append(
+                    {
+                        "queue_id": str(item.id),
+                        "farmer_id": str(item.farmer_id),
+                        "farmer_name": f"{farmer.first_name} {farmer.last_name}",
+                        "priority": item.priority,
+                        "reason": item.reason,
+                        "queued_at": item.queued_at.isoformat() if item.queued_at else None,
+                        "assigned_to": str(item.assigned_to) if item.assigned_to else None,
+                    }
+                )
 
         return items
 
@@ -431,7 +445,7 @@ class KYCWorkflowService:
         queue_item = result.scalar_one_or_none()
         if queue_item:
             queue_item.assigned_to = reviewer_id
-            queue_item.assigned_at = datetime.now(timezone.utc)
+            queue_item.assigned_at = datetime.now(UTC)
             queue_item.status = "in_progress"
 
     # Private helper methods
@@ -455,9 +469,7 @@ class KYCWorkflowService:
         )
         return result.scalar_one_or_none()
 
-    def _get_missing_documents(
-        self, application: KYCApplication, farmer: Farmer
-    ) -> list[str]:
+    def _get_missing_documents(self, application: KYCApplication, farmer: Farmer) -> list[str]:
         """Get list of missing required documents."""
         if not application.required_documents:
             return []
@@ -469,9 +481,7 @@ class KYCWorkflowService:
             if doc_type not in submitted_types
         ]
 
-    def _get_missing_biometrics(
-        self, application: KYCApplication, farmer: Farmer
-    ) -> list[str]:
+    def _get_missing_biometrics(self, application: KYCApplication, farmer: Farmer) -> list[str]:
         """Get list of missing required biometrics."""
         if not application.required_biometrics:
             return []
@@ -483,14 +493,10 @@ class KYCWorkflowService:
             if bio_type not in captured_types
         ]
 
-    async def _get_external_verifications(
-        self, farmer_id: UUID
-    ) -> list[ExternalVerification]:
+    async def _get_external_verifications(self, farmer_id: UUID) -> list[ExternalVerification]:
         """Get all external verifications for a farmer."""
         result = await self.db.execute(
-            select(ExternalVerification).where(
-                ExternalVerification.farmer_id == farmer_id
-            )
+            select(ExternalVerification).where(ExternalVerification.farmer_id == farmer_id)
         )
         return list(result.scalars().all())
 
@@ -576,17 +582,13 @@ class KYCWorkflowService:
         verifications = await self._get_external_verifications(farmer_id)
 
         # Check ID verification
-        id_verified = any(
-            v.verification_type == "id_iprs" and v.is_verified
-            for v in verifications
-        )
+        id_verified = any(v.verification_type == "id_iprs" and v.is_verified for v in verifications)
         if not id_verified:
             reasons.append("ID verification pending or failed")
 
         # Check sanctions
         sanctions_clear = any(
-            v.verification_type == "sanctions" and v.is_verified
-            for v in verifications
+            v.verification_type == "sanctions" and v.is_verified for v in verifications
         )
         if not sanctions_clear:
             reasons.append("Sanctions check pending or flagged")
@@ -601,9 +603,7 @@ class KYCWorkflowService:
         can_auto_approve = len(reasons) == 0
         return can_auto_approve, reasons
 
-    async def _add_to_review_queue(
-        self, farmer_id: UUID, reasons: list[str]
-    ) -> KYCReviewQueue:
+    async def _add_to_review_queue(self, farmer_id: UUID, reasons: list[str]) -> KYCReviewQueue:
         """Add farmer to manual review queue."""
         # Calculate priority based on reasons
         priority = 5  # Default medium priority
@@ -619,9 +619,7 @@ class KYCWorkflowService:
         await self.db.flush()
         return queue_item
 
-    async def _remove_from_review_queue(
-        self, farmer_id: UUID, decision: str
-    ) -> None:
+    async def _remove_from_review_queue(self, farmer_id: UUID, decision: str) -> None:
         """Remove farmer from review queue after decision."""
         result = await self.db.execute(
             select(KYCReviewQueue).where(
@@ -633,4 +631,4 @@ class KYCWorkflowService:
         if queue_item:
             queue_item.status = "completed"
             queue_item.decision = decision
-            queue_item.completed_at = datetime.now(timezone.utc)
+            queue_item.completed_at = datetime.now(UTC)

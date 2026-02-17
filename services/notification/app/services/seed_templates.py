@@ -87,9 +87,7 @@ async def seed_templates(db: AsyncSession) -> None:
     """Seed default templates idempotently."""
     for tmpl_data in DEFAULT_TEMPLATES:
         result = await db.execute(
-            select(NotificationTemplate).where(
-                NotificationTemplate.code == tmpl_data["code"]
-            )
+            select(NotificationTemplate).where(NotificationTemplate.code == tmpl_data["code"])
         )
         existing = result.scalar_one_or_none()
         if existing is None:

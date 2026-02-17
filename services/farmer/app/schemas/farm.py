@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 class FarmCreate(BaseModel):
     """Farm creation schema."""
+
     farmer_id: UUID
     name: str = Field(..., min_length=1, max_length=100)
     latitude: float | None = None
@@ -22,6 +23,7 @@ class FarmCreate(BaseModel):
 
 class FarmUpdate(BaseModel):
     """Farm update schema."""
+
     name: str | None = None
     latitude: float | None = None
     longitude: float | None = None
@@ -35,6 +37,7 @@ class FarmUpdate(BaseModel):
 
 class FarmResponse(BaseModel):
     """Farm response schema."""
+
     id: UUID
     farmer_id: UUID
     plot_id: str | None

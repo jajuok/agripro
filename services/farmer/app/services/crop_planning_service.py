@@ -1,62 +1,56 @@
 """Crop Planning Service (Phase 3.1)."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.crop_planning import (
+    ActivityStatus,
+    AlertSeverity,
+    AlertType,
     CropCalendarTemplate,
     CropPlan,
-    PlannedActivity,
-    InputRequirement,
-    IrrigationSchedule,
     CropPlanAlert,
     CropPlanStatus,
-    ActivityStatus,
-    AlertType,
-    AlertSeverity,
-    ProcurementStatus,
+    InputRequirement,
+    IrrigationSchedule,
     IrrigationStatus,
+    PlannedActivity,
+    ProcurementStatus,
 )
 from app.models.farmer import Farmer, FarmProfile
 from app.schemas.crop_planning import (
-    CropCalendarTemplateCreate,
-    CropCalendarTemplateUpdate,
-    CropCalendarTemplateResponse,
-    CropPlanCreate,
-    CropPlanUpdate,
-    CropPlanActivate,
-    CropPlanAdvanceStage,
-    CropPlanComplete,
-    CropPlanResponse,
-    CropPlanSummary,
-    PlannedActivityCreate,
-    PlannedActivityUpdate,
-    PlannedActivityResponse,
     ActivityCompletion,
     ActivitySkip,
-    UpcomingActivity,
+    ActivityType,
+    CropCalendarTemplateCreate,
+    CropCalendarTemplateUpdate,
+    CropPlanActivate,
+    CropPlanAdvanceStage,
+    CropPlanAlertResponse,
+    CropPlanComplete,
+    CropPlanCreate,
+    CropPlanningDashboard,
+    CropPlanStatistics,
+    CropPlanUpdate,
+    InputCalculation,
+    InputCategory,
     InputRequirementCreate,
     InputRequirementUpdate,
-    InputRequirementResponse,
-    InputCalculation,
-    QrCodeVerification,
-    QrCodeVerificationResult,
-    IrrigationScheduleCreate,
-    IrrigationScheduleUpdate,
-    IrrigationScheduleResponse,
     IrrigationCompletion,
     IrrigationGenerateRequest,
-    CropPlanAlertResponse,
-    CropPlanStatistics,
-    CropPlanningDashboard,
+    IrrigationScheduleCreate,
+    IrrigationScheduleUpdate,
+    PlannedActivityCreate,
+    PlannedActivityResponse,
+    PlannedActivityUpdate,
+    QrCodeVerification,
+    QrCodeVerificationResult,
     Season,
-    ActivityType,
-    InputCategory,
+    UpcomingActivity,
 )
 
 
@@ -70,9 +64,7 @@ class CropPlanningService:
     # Crop Calendar Templates
     # =========================================================================
 
-    async def create_template(
-        self, data: CropCalendarTemplateCreate
-    ) -> CropCalendarTemplate:
+    async def create_template(self, data: CropCalendarTemplateCreate) -> CropCalendarTemplate:
         """Create a new crop calendar template."""
         template = CropCalendarTemplate(
             tenant_id=data.tenant_id,
@@ -84,7 +76,9 @@ class CropPlanningService:
             recommended_planting_start_month=data.recommended_planting_start_month,
             recommended_planting_end_month=data.recommended_planting_end_month,
             total_days_to_harvest=data.total_days_to_harvest,
-            growth_stages=[s.model_dump() for s in data.growth_stages] if data.growth_stages else None,
+            growth_stages=[s.model_dump() for s in data.growth_stages]
+            if data.growth_stages
+            else None,
             seed_rate_kg_per_acre=data.seed_rate_kg_per_acre,
             fertilizer_requirements=data.fertilizer_requirements,
             expected_yield_kg_per_acre_min=data.expected_yield_kg_per_acre_min,
@@ -380,9 +374,7 @@ class CropPlanningService:
 
         return items, total
 
-    async def update_plan(
-        self, plan_id: uuid.UUID, data: CropPlanUpdate
-    ) -> CropPlan | None:
+    async def update_plan(self, plan_id: uuid.UUID, data: CropPlanUpdate) -> CropPlan | None:
         """Update a crop plan."""
         plan = await self.get_plan(plan_id)
         if not plan:
@@ -399,9 +391,7 @@ class CropPlanningService:
         await self.db.refresh(plan)
         return plan
 
-    async def activate_plan(
-        self, plan_id: uuid.UUID, data: CropPlanActivate
-    ) -> CropPlan | None:
+    async def activate_plan(self, plan_id: uuid.UUID, data: CropPlanActivate) -> CropPlan | None:
         """Activate a crop plan (start planting)."""
         plan = await self.get_plan(plan_id)
         if not plan:
@@ -411,7 +401,7 @@ class CropPlanningService:
             raise ValueError(f"Can only activate draft plans, current status: {plan.status}")
 
         plan.status = CropPlanStatus.ACTIVE.value
-        plan.actual_planting_date = data.actual_planting_date or datetime.now(timezone.utc)
+        plan.actual_planting_date = data.actual_planting_date or datetime.now(UTC)
         if data.actual_planted_acreage:
             plan.actual_planted_acreage = data.actual_planted_acreage
 
@@ -420,11 +410,11 @@ class CropPlanningService:
         if template and template.growth_stages:
             first_stage = template.growth_stages[0]
             plan.current_growth_stage = first_stage.get("name")
-            plan.current_growth_stage_start = datetime.now(timezone.utc)
+            plan.current_growth_stage_start = datetime.now(UTC)
             plan.growth_stage_history = [
                 {
                     "stage": first_stage.get("name"),
-                    "started_at": datetime.now(timezone.utc).isoformat(),
+                    "started_at": datetime.now(UTC).isoformat(),
                 }
             ]
 
@@ -446,25 +436,25 @@ class CropPlanningService:
         # Update growth stage history
         history = plan.growth_stage_history or []
         if history and plan.current_growth_stage:
-            history[-1]["ended_at"] = datetime.now(timezone.utc).isoformat()
+            history[-1]["ended_at"] = datetime.now(UTC).isoformat()
 
-        history.append({
-            "stage": data.new_stage,
-            "started_at": datetime.now(timezone.utc).isoformat(),
-            "notes": data.notes,
-        })
+        history.append(
+            {
+                "stage": data.new_stage,
+                "started_at": datetime.now(UTC).isoformat(),
+                "notes": data.notes,
+            }
+        )
 
         plan.current_growth_stage = data.new_stage
-        plan.current_growth_stage_start = datetime.now(timezone.utc)
+        plan.current_growth_stage_start = datetime.now(UTC)
         plan.growth_stage_history = history
 
         await self.db.flush()
         await self.db.refresh(plan)
         return plan
 
-    async def complete_plan(
-        self, plan_id: uuid.UUID, data: CropPlanComplete
-    ) -> CropPlan | None:
+    async def complete_plan(self, plan_id: uuid.UUID, data: CropPlanComplete) -> CropPlan | None:
         """Complete a crop plan (harvest done)."""
         plan = await self.get_plan(plan_id)
         if not plan:
@@ -595,8 +585,8 @@ class CropPlanningService:
             return None
 
         activity.status = ActivityStatus.COMPLETED.value
-        activity.completed_at = datetime.now(timezone.utc)
-        activity.actual_date = data.actual_date or datetime.now(timezone.utc)
+        activity.completed_at = datetime.now(UTC)
+        activity.actual_date = data.actual_date or datetime.now(UTC)
         activity.completion_notes = data.completion_notes
         activity.completion_photos = data.completion_photos
         activity.gps_latitude = data.gps_latitude
@@ -618,7 +608,7 @@ class CropPlanningService:
 
         activity.status = ActivityStatus.SKIPPED.value
         activity.completion_notes = f"Skipped: {data.reason}"
-        activity.completed_at = datetime.now(timezone.utc)
+        activity.completed_at = datetime.now(UTC)
 
         await self.db.flush()
         await self.db.refresh(activity)
@@ -628,7 +618,7 @@ class CropPlanningService:
         self, farmer_id: uuid.UUID, days_ahead: int = 7
     ) -> list[UpcomingActivity]:
         """Get upcoming activities for a farmer."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         end_date = now + timedelta(days=days_ahead)
 
         # Get active plans for farmer
@@ -650,10 +640,12 @@ class CropPlanningService:
             .where(
                 and_(
                     PlannedActivity.crop_plan_id.in_(plans.keys()),
-                    PlannedActivity.status.in_([
-                        ActivityStatus.SCHEDULED.value,
-                        ActivityStatus.OVERDUE.value,
-                    ]),
+                    PlannedActivity.status.in_(
+                        [
+                            ActivityStatus.SCHEDULED.value,
+                            ActivityStatus.OVERDUE.value,
+                        ]
+                    ),
                     PlannedActivity.scheduled_date <= end_date,
                 )
             )
@@ -731,9 +723,11 @@ class CropPlanningService:
         self, crop_plan_id: uuid.UUID
     ) -> tuple[list[InputRequirement], float | None, float | None]:
         """List inputs for a crop plan with totals."""
-        query = select(InputRequirement).where(
-            InputRequirement.crop_plan_id == crop_plan_id
-        ).order_by(InputRequirement.category, InputRequirement.name)
+        query = (
+            select(InputRequirement)
+            .where(InputRequirement.crop_plan_id == crop_plan_id)
+            .order_by(InputRequirement.category, InputRequirement.name)
+        )
 
         result = await self.db.execute(query)
         items = list(result.scalars().all())
@@ -742,7 +736,11 @@ class CropPlanningService:
         total_estimated = sum(i.total_estimated_cost or 0 for i in items)
         total_actual = sum(i.actual_cost or 0 for i in items)
 
-        return items, total_estimated if total_estimated > 0 else None, total_actual if total_actual > 0 else None
+        return (
+            items,
+            total_estimated if total_estimated > 0 else None,
+            total_actual if total_actual > 0 else None,
+        )
 
     async def update_input(
         self, input_id: uuid.UUID, data: InputRequirementUpdate
@@ -798,7 +796,7 @@ class CropPlanningService:
         # Update input record
         input_req.qr_code_verified = verified
         input_req.qr_code_data = qr_data
-        input_req.qr_verified_at = datetime.now(timezone.utc)
+        input_req.qr_verified_at = datetime.now(UTC)
 
         await self.db.flush()
         return result
@@ -862,9 +860,7 @@ class CropPlanningService:
     # Irrigation Schedules
     # =========================================================================
 
-    async def create_irrigation(
-        self, data: IrrigationScheduleCreate
-    ) -> IrrigationSchedule:
+    async def create_irrigation(self, data: IrrigationScheduleCreate) -> IrrigationSchedule:
         """Create irrigation schedule."""
         schedule = IrrigationSchedule(
             crop_plan_id=data.crop_plan_id,
@@ -883,9 +879,7 @@ class CropPlanningService:
         await self.db.refresh(schedule)
         return schedule
 
-    async def get_irrigation(
-        self, schedule_id: uuid.UUID
-    ) -> IrrigationSchedule | None:
+    async def get_irrigation(self, schedule_id: uuid.UUID) -> IrrigationSchedule | None:
         """Get irrigation schedule by ID."""
         query = select(IrrigationSchedule).where(IrrigationSchedule.id == schedule_id)
         result = await self.db.execute(query)
@@ -895,18 +889,28 @@ class CropPlanningService:
         self, crop_plan_id: uuid.UUID
     ) -> tuple[list[IrrigationSchedule], float | None, float | None]:
         """List irrigation schedules for a crop plan."""
-        query = select(IrrigationSchedule).where(
-            IrrigationSchedule.crop_plan_id == crop_plan_id
-        ).order_by(IrrigationSchedule.scheduled_date)
+        query = (
+            select(IrrigationSchedule)
+            .where(IrrigationSchedule.crop_plan_id == crop_plan_id)
+            .order_by(IrrigationSchedule.scheduled_date)
+        )
 
         result = await self.db.execute(query)
         items = list(result.scalars().all())
 
         # Calculate totals
         total_planned = sum(i.water_amount_liters or 0 for i in items)
-        total_used = sum(i.actual_water_used_liters or 0 for i in items if i.status == IrrigationStatus.COMPLETED.value)
+        total_used = sum(
+            i.actual_water_used_liters or 0
+            for i in items
+            if i.status == IrrigationStatus.COMPLETED.value
+        )
 
-        return items, total_planned if total_planned > 0 else None, total_used if total_used > 0 else None
+        return (
+            items,
+            total_planned if total_planned > 0 else None,
+            total_used if total_used > 0 else None,
+        )
 
     async def update_irrigation(
         self, schedule_id: uuid.UUID, data: IrrigationScheduleUpdate
@@ -936,7 +940,7 @@ class CropPlanningService:
             return None
 
         schedule.status = IrrigationStatus.COMPLETED.value
-        schedule.actual_date = data.actual_date or datetime.now(timezone.utc)
+        schedule.actual_date = data.actual_date or datetime.now(UTC)
         schedule.actual_duration_minutes = data.actual_duration_minutes
         schedule.actual_water_used_liters = data.actual_water_used_liters
         schedule.soil_moisture_before = data.soil_moisture_before
@@ -1047,7 +1051,7 @@ class CropPlanningService:
         alert = result.scalars().first()
 
         if alert:
-            alert.read_at = datetime.now(timezone.utc)
+            alert.read_at = datetime.now(UTC)
             await self.db.flush()
 
         return alert
@@ -1059,7 +1063,7 @@ class CropPlanningService:
         alert = result.scalars().first()
 
         if alert:
-            alert.dismissed_at = datetime.now(timezone.utc)
+            alert.dismissed_at = datetime.now(UTC)
             await self.db.flush()
 
         return alert
@@ -1084,18 +1088,18 @@ class CropPlanningService:
         # Days calculation
         days_since_planting = None
         days_to_harvest = None
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         if plan.actual_planting_date:
             planting = plan.actual_planting_date
             if planting.tzinfo is None:
-                planting = planting.replace(tzinfo=timezone.utc)
+                planting = planting.replace(tzinfo=UTC)
             days_since_planting = (now - planting).days
 
         if plan.expected_harvest_date:
             harvest = plan.expected_harvest_date
             if harvest.tzinfo is None:
-                harvest = harvest.replace(tzinfo=timezone.utc)
+                harvest = harvest.replace(tzinfo=UTC)
             days_to_harvest = (harvest - now).days
 
         # Cost calculation
@@ -1105,9 +1109,12 @@ class CropPlanningService:
             cost_variance = actual_cost - estimated_cost
 
         # Procurement percentage
-        inputs_procured = sum(1 for i in inputs if i.procurement_status in [
-            ProcurementStatus.RECEIVED.value, ProcurementStatus.APPLIED.value
-        ])
+        inputs_procured = sum(
+            1
+            for i in inputs
+            if i.procurement_status
+            in [ProcurementStatus.RECEIVED.value, ProcurementStatus.APPLIED.value]
+        )
         inputs_procured_pct = (inputs_procured / len(inputs) * 100) if inputs else None
 
         return CropPlanStatistics(
@@ -1127,7 +1134,7 @@ class CropPlanningService:
 
     async def get_dashboard(self, farmer_id: uuid.UUID) -> CropPlanningDashboard:
         """Get crop planning dashboard for a farmer."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Count plans by status
         plans, _ = await self.list_plans(farmer_id=farmer_id, page_size=100)
@@ -1137,7 +1144,9 @@ class CropPlanningService:
         completed_count = sum(1 for p in plans if p.status == CropPlanStatus.COMPLETED.value)
 
         # Calculate total acreage
-        total_acreage = sum(p.planned_acreage for p in plans if p.status == CropPlanStatus.ACTIVE.value)
+        total_acreage = sum(
+            p.planned_acreage for p in plans if p.status == CropPlanStatus.ACTIVE.value
+        )
 
         # Get upcoming activities
         upcoming = await self.get_upcoming_activities(farmer_id, days_ahead=7)

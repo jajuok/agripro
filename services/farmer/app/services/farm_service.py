@@ -51,9 +51,7 @@ class FarmService:
     async def list_farms_by_user_id(self, user_id: UUID) -> list[FarmResponse]:
         """List all farms for a user (via farmer lookup)."""
         # First find the farmer by user_id
-        farmer_result = await self.db.execute(
-            select(Farmer).where(Farmer.user_id == user_id)
-        )
+        farmer_result = await self.db.execute(select(Farmer).where(Farmer.user_id == user_id))
         farmer = farmer_result.scalar_one_or_none()
         if not farmer:
             return []

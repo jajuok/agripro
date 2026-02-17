@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.schemas.farmer import FarmerCreate, FarmerResponse, FarmerUpdate, FarmerListResponse
+from app.schemas.farmer import FarmerCreate, FarmerListResponse, FarmerResponse, FarmerUpdate
 from app.services.farmer_service import FarmerService
 
 router = APIRouter()

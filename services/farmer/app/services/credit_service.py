@@ -14,7 +14,7 @@ from app.models.eligibility import (
     CreditCheckStatus,
 )
 from app.models.farmer import Farmer
-from app.schemas.eligibility import CreditCheckRequest, CreditCheckResponse
+from app.schemas.eligibility import CreditCheckRequest
 
 
 class CreditBureauService:

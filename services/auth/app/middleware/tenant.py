@@ -27,9 +27,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
 
     TENANT_HEADER = "X-Tenant-ID"
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         """Extract tenant ID from request and set in context."""
         tenant_id: UUID | None = None
 

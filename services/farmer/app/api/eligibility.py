@@ -8,39 +8,39 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.schemas.eligibility import (
-    # Scheme schemas
-    EligibilitySchemeCreate,
-    EligibilitySchemeUpdate,
-    EligibilitySchemeResponse,
-    EligibilitySchemeListResponse,
-    # Rule schemas
-    EligibilityRuleCreate,
-    EligibilityRuleResponse,
-    EligibilityRuleGroupCreate,
-    EligibilityRuleGroupResponse,
-    # Assessment schemas
-    EligibilityAssessmentRequest,
-    EligibilityAssessmentResponse,
-    EligibilityAssessmentListResponse,
     AssessmentDecisionRequest,
     AssessmentStatus,
-    SchemeStatus,
+    BatchAssessmentRequest,
+    BatchAssessmentResponse,
     # Credit schemas
     CreditCheckRequest,
     CreditCheckResponse,
+    EligibilityAssessmentListResponse,
+    # Assessment schemas
+    EligibilityAssessmentRequest,
+    EligibilityAssessmentResponse,
+    # Rule schemas
+    EligibilityRuleCreate,
+    EligibilityRuleGroupCreate,
+    EligibilityRuleGroupResponse,
+    EligibilityRuleResponse,
+    # Scheme schemas
+    EligibilitySchemeCreate,
+    EligibilitySchemeListResponse,
+    EligibilitySchemeResponse,
+    EligibilitySchemeUpdate,
+    ReviewQueueItemResponse,
+    ReviewQueueListResponse,
     # Risk schemas
     RiskAssessmentResponse,
+    SchemeEligibilitySummary,
+    SchemeStatus,
+    WaitlistEntryResponse,
     # Other schemas
     WaitlistResponse,
-    WaitlistEntryResponse,
-    ReviewQueueListResponse,
-    ReviewQueueItemResponse,
-    BatchAssessmentRequest,
-    BatchAssessmentResponse,
-    SchemeEligibilitySummary,
 )
-from app.services.eligibility_service import EligibilityService
 from app.services.credit_service import CreditBureauService
+from app.services.eligibility_service import EligibilityService
 from app.services.risk_scoring import RiskScoringService
 
 router = APIRouter(prefix="/eligibility", tags=["Eligibility"])
@@ -48,7 +48,7 @@ router = APIRouter(prefix="/eligibility", tags=["Eligibility"])
 
 # Dependency to get eligibility service
 async def get_eligibility_service(
-    db: Annotated[AsyncSession, Depends(get_db)]
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> EligibilityService:
     return EligibilityService(db)
 
@@ -58,7 +58,9 @@ async def get_eligibility_service(
 # =============================================================================
 
 
-@router.post("/schemes", response_model=EligibilitySchemeResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/schemes", response_model=EligibilitySchemeResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_scheme(
     data: EligibilitySchemeCreate,
     service: Annotated[EligibilityService, Depends(get_eligibility_service)],
@@ -178,7 +180,9 @@ async def list_scheme_rules(
     return [EligibilityRuleResponse.model_validate(rule) for rule in rules]
 
 
-@router.post("/rule-groups", response_model=EligibilityRuleGroupResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/rule-groups", response_model=EligibilityRuleGroupResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_rule_group(
     data: EligibilityRuleGroupCreate,
     service: Annotated[EligibilityService, Depends(get_eligibility_service)],
@@ -201,7 +205,11 @@ async def create_rule_group(
 # =============================================================================
 
 
-@router.post("/assessments", response_model=EligibilityAssessmentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/assessments",
+    response_model=EligibilityAssessmentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def assess_eligibility(
     request: EligibilityAssessmentRequest,
     tenant_id: UUID,
@@ -383,17 +391,20 @@ async def get_scheme_waitlist(
 # =============================================================================
 
 
-@router.post("/credit-checks", response_model=CreditCheckResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/credit-checks", response_model=CreditCheckResponse, status_code=status.HTTP_201_CREATED
+)
 async def request_credit_check(
     request: CreditCheckRequest,
     tenant_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Request a credit check for a farmer."""
-    from app.models.farmer import Farmer
-
     # Get farmer
     from sqlalchemy import select
+
+    from app.models.farmer import Farmer
+
     query = select(Farmer).where(Farmer.id == request.farmer_id)
     result = await db.execute(query)
     farmer = result.scalars().first()

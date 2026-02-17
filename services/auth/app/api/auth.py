@@ -48,6 +48,7 @@ async def register(
 ) -> LoginResponse:
     """Register a new user account."""
     import logging
+
     logger = logging.getLogger(__name__)
 
     service = AuthService(db)
@@ -76,7 +77,7 @@ async def register(
         logger.error(f"Registration error: {type(e).__name__}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Registration failed: {type(e).__name__}"
+            detail=f"Registration failed: {type(e).__name__}",
         )
 
 
@@ -88,6 +89,7 @@ async def register_phone(
 ) -> LoginResponse:
     """Register a new farmer account using phone number and PIN."""
     import logging
+
     logger = logging.getLogger(__name__)
 
     service = AuthService(db)
@@ -115,7 +117,7 @@ async def register_phone(
         logger.error(f"Phone registration error: {type(e).__name__}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Registration failed: {type(e).__name__}"
+            detail=f"Registration failed: {type(e).__name__}",
         )
 
 
@@ -148,9 +150,7 @@ async def login(
             detail="Too many failed login attempts. Please try again later.",
         )
 
-    result = await service.login(
-        request_data.email, request_data.password, request_data.totp_code
-    )
+    result = await service.login(request_data.email, request_data.password, request_data.totp_code)
 
     if result is None:
         await tracker.record_attempt(

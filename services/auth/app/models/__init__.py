@@ -1,5 +1,5 @@
 """Database models."""
 
-from app.models.user import User, Role, UserRole, RefreshToken
+from app.models.user import RefreshToken, Role, User, UserRole
 
 __all__ = ["User", "Role", "UserRole", "RefreshToken"]

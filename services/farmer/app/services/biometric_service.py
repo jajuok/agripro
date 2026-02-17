@@ -2,7 +2,6 @@
 
 import hashlib
 import secrets
-from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 from uuid import UUID
@@ -11,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.farmer import BiometricData, Farmer
+from app.models.farmer import BiometricData
 
 
 class BiometricType(str, Enum):
@@ -259,9 +258,7 @@ class BiometricService:
         # Compare against each stored template
         # In production, use actual biometric matching SDK
         for stored in stored_biometrics:
-            match_result = await self._compare_fingerprints(
-                template_data, stored.template_hash
-            )
+            match_result = await self._compare_fingerprints(template_data, stored.template_hash)
             if match_result["match"]:
                 return BiometricVerifyResult(
                     match=True,
@@ -324,9 +321,7 @@ class BiometricService:
         all_biometrics = result.scalars().all()
 
         for stored in all_biometrics:
-            match_result = await self._compare_fingerprints(
-                template_data, stored.template_hash
-            )
+            match_result = await self._compare_fingerprints(template_data, stored.template_hash)
             if match_result["match"]:
                 return BiometricVerifyResult(
                     match=True,

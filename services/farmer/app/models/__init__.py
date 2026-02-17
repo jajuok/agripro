@@ -1,39 +1,39 @@
 """Database models."""
 
-from app.models.farmer import (
-    Farmer,
-    FarmProfile,
-    Document,
-    BiometricData,
-    KYCApplication,
-    ExternalVerification,
-    KYCReviewQueue,
-    FarmDocument,
-    FarmAsset,
-    CropRecord,
-    SoilTestReport,
-    FieldVisit,
-)
-from app.models.eligibility import (
-    EligibilityScheme,
-    EligibilityRuleGroup,
-    EligibilityRule,
-    EligibilityAssessment,
-    CreditBureauProvider,
-    CreditCheck,
-    RiskFactor,
-    RiskAssessment,
-    EligibilityReviewQueue,
-    SchemeWaitlist,
-    EligibilityNotification,
-)
 from app.models.crop_planning import (
     CropCalendarTemplate,
     CropPlan,
-    PlannedActivity,
+    CropPlanAlert,
     InputRequirement,
     IrrigationSchedule,
-    CropPlanAlert,
+    PlannedActivity,
+)
+from app.models.eligibility import (
+    CreditBureauProvider,
+    CreditCheck,
+    EligibilityAssessment,
+    EligibilityNotification,
+    EligibilityReviewQueue,
+    EligibilityRule,
+    EligibilityRuleGroup,
+    EligibilityScheme,
+    RiskAssessment,
+    RiskFactor,
+    SchemeWaitlist,
+)
+from app.models.farmer import (
+    BiometricData,
+    CropRecord,
+    Document,
+    ExternalVerification,
+    FarmAsset,
+    FarmDocument,
+    Farmer,
+    FarmProfile,
+    FieldVisit,
+    KYCApplication,
+    KYCReviewQueue,
+    SoilTestReport,
 )
 
 __all__ = [

@@ -15,10 +15,7 @@ from app.schemas.admin import (
     RolePermissionAssign,
     RoleResponse,
     RoleWithPermissions,
-    UserListResponse,
-    UserResponse,
     UserRoleAssign,
-    UserUpdate,
 )
 from app.services.audit_service import AuditAction, AuditService, ResourceType
 from app.services.rbac_service import RBACService
@@ -239,7 +236,9 @@ async def assign_permission_to_role(
     return {"message": "Permission assigned to role"}
 
 
-@router.delete("/roles/{role_id}/permissions/{permission_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/roles/{role_id}/permissions/{permission_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def revoke_permission_from_role(
     role_id: UUID,
     permission_id: UUID,

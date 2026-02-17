@@ -117,7 +117,11 @@ async def set_boundary(
     try:
         farm = await service.set_boundary(farm_id, data)
         await db.commit()
-        area_msg = f" Calculated area: {farm.boundary_area_calculated:.2f} acres" if farm.boundary_area_calculated else ""
+        area_msg = (
+            f" Calculated area: {farm.boundary_area_calculated:.2f} acres"
+            if farm.boundary_area_calculated
+            else ""
+        )
         return FarmRegistrationResponse(
             farm_id=farm.id,
             status="updated",
@@ -207,7 +211,9 @@ async def complete_registration(
 # Document endpoints
 
 
-@router.post("/{farm_id}/documents", response_model=FarmDocumentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{farm_id}/documents", response_model=FarmDocumentResponse, status_code=status.HTTP_201_CREATED
+)
 async def add_document(
     farm_id: UUID,
     data: FarmDocumentCreate,
@@ -237,7 +243,9 @@ async def list_documents(
 # Asset endpoints
 
 
-@router.post("/{farm_id}/assets", response_model=FarmAssetResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{farm_id}/assets", response_model=FarmAssetResponse, status_code=status.HTTP_201_CREATED
+)
 async def add_asset(
     farm_id: UUID,
     data: FarmAssetCreate,
@@ -267,7 +275,9 @@ async def list_assets(
 # Crop record endpoints
 
 
-@router.post("/{farm_id}/crops", response_model=CropRecordResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{farm_id}/crops", response_model=CropRecordResponse, status_code=status.HTTP_201_CREATED
+)
 async def add_crop_record(
     farm_id: UUID,
     data: CropRecordCreate,
@@ -297,7 +307,11 @@ async def list_crop_records(
 # Soil test endpoints
 
 
-@router.post("/{farm_id}/soil-tests", response_model=SoilTestReportResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{farm_id}/soil-tests",
+    response_model=SoilTestReportResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def add_soil_test(
     farm_id: UUID,
     data: SoilTestReportCreate,
@@ -327,7 +341,9 @@ async def list_soil_tests(
 # Field visit endpoints
 
 
-@router.post("/{farm_id}/visits", response_model=FieldVisitResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{farm_id}/visits", response_model=FieldVisitResponse, status_code=status.HTTP_201_CREATED
+)
 async def add_field_visit(
     farm_id: UUID,
     data: FieldVisitCreate,

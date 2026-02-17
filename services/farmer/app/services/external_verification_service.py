@@ -1,7 +1,7 @@
 """External verification service for ID, credit, and sanctions checks."""
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 from uuid import UUID
@@ -11,7 +11,6 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.models.farmer import ExternalVerification, Farmer
 
 
@@ -103,7 +102,7 @@ class ExternalVerificationService:
             verification.is_verified = verification_data["match"]
             verification.match_score = verification_data.get("match_score")
             verification.response_data = verification_data
-            verification.completed_at = datetime.now(timezone.utc)
+            verification.completed_at = datetime.now(UTC)
 
             return VerificationResult(
                 success=True,
@@ -115,7 +114,7 @@ class ExternalVerificationService:
         except Exception as e:
             verification.status = "error"
             verification.error_message = str(e)
-            verification.completed_at = datetime.now(timezone.utc)
+            verification.completed_at = datetime.now(UTC)
 
             return VerificationResult(
                 success=False,
@@ -152,7 +151,7 @@ class ExternalVerificationService:
             verification.status = "success"
             verification.is_verified = True  # Credit check completed
             verification.response_data = credit_data
-            verification.completed_at = datetime.now(timezone.utc)
+            verification.completed_at = datetime.now(UTC)
 
             return VerificationResult(
                 success=True,
@@ -163,7 +162,7 @@ class ExternalVerificationService:
         except Exception as e:
             verification.status = "error"
             verification.error_message = str(e)
-            verification.completed_at = datetime.now(timezone.utc)
+            verification.completed_at = datetime.now(UTC)
 
             return VerificationResult(
                 success=False,
@@ -208,7 +207,7 @@ class ExternalVerificationService:
             verification.is_verified = is_clear
             verification.match_score = screening_data.get("match_score", 0.0)
             verification.response_data = screening_data
-            verification.completed_at = datetime.now(timezone.utc)
+            verification.completed_at = datetime.now(UTC)
 
             return VerificationResult(
                 success=True,
@@ -220,7 +219,7 @@ class ExternalVerificationService:
         except Exception as e:
             verification.status = "error"
             verification.error_message = str(e)
-            verification.completed_at = datetime.now(timezone.utc)
+            verification.completed_at = datetime.now(UTC)
 
             return VerificationResult(
                 success=False,
@@ -255,7 +254,7 @@ class ExternalVerificationService:
             verification.is_verified = bank_data.get("name_match", False)
             verification.match_score = bank_data.get("match_score")
             verification.response_data = bank_data
-            verification.completed_at = datetime.now(timezone.utc)
+            verification.completed_at = datetime.now(UTC)
 
             return VerificationResult(
                 success=True,
@@ -267,7 +266,7 @@ class ExternalVerificationService:
         except Exception as e:
             verification.status = "error"
             verification.error_message = str(e)
-            verification.completed_at = datetime.now(timezone.utc)
+            verification.completed_at = datetime.now(UTC)
 
             return VerificationResult(
                 success=False,
@@ -284,9 +283,7 @@ class ExternalVerificationService:
         Returns dict mapping verification type to result.
         """
         # Get farmer details
-        result = await self.db.execute(
-            select(Farmer).where(Farmer.id == farmer_id)
-        )
+        result = await self.db.execute(select(Farmer).where(Farmer.id == farmer_id))
         farmer = result.scalar_one_or_none()
         if not farmer:
             raise ValueError("Farmer not found")
@@ -354,14 +351,10 @@ class ExternalVerificationService:
 
         return results
 
-    async def get_verification_status(
-        self, farmer_id: UUID
-    ) -> list[dict[str, Any]]:
+    async def get_verification_status(self, farmer_id: UUID) -> list[dict[str, Any]]:
         """Get status of all verifications for a farmer."""
         result = await self.db.execute(
-            select(ExternalVerification).where(
-                ExternalVerification.farmer_id == farmer_id
-            )
+            select(ExternalVerification).where(ExternalVerification.farmer_id == farmer_id)
         )
         verifications = result.scalars().all()
 
@@ -481,7 +474,7 @@ class ExternalVerificationService:
                 "Local PEP List",
             ],
             "potential_matches": [],
-            "screening_date": datetime.now(timezone.utc).isoformat(),
+            "screening_date": datetime.now(UTC).isoformat(),
         }
 
     async def _simulate_bank_verification(

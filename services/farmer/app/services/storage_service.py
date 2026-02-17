@@ -3,8 +3,6 @@
 import hashlib
 import io
 import os
-from datetime import datetime, timedelta, timezone
-from typing import BinaryIO
 from uuid import UUID, uuid4
 
 import boto3

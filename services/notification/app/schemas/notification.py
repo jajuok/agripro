@@ -1,11 +1,10 @@
 """Pydantic schemas for notification service."""
 
 from datetime import datetime, time
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
-
 
 # --- Notification ---
 
@@ -16,10 +15,10 @@ class NotificationCreate(BaseModel):
     body: str = ""
     notification_type: str = "info"
     priority: str = "normal"
-    data: Optional[dict[str, Any]] = None
-    template_code: Optional[str] = None
-    template_variables: Optional[dict[str, str]] = None
-    channels: Optional[list[str]] = None
+    data: dict[str, Any] | None = None
+    template_code: str | None = None
+    template_variables: dict[str, str] | None = None
+    channels: list[str] | None = None
 
 
 class NotificationBulkCreate(BaseModel):
@@ -28,10 +27,10 @@ class NotificationBulkCreate(BaseModel):
     body: str = ""
     notification_type: str = "info"
     priority: str = "normal"
-    data: Optional[dict[str, Any]] = None
-    template_code: Optional[str] = None
-    template_variables: Optional[dict[str, str]] = None
-    channels: Optional[list[str]] = None
+    data: dict[str, Any] | None = None
+    template_code: str | None = None
+    template_variables: dict[str, str] | None = None
+    channels: list[str] | None = None
 
 
 class NotificationResponse(BaseModel):
@@ -43,11 +42,11 @@ class NotificationResponse(BaseModel):
     body: str
     notification_type: str
     priority: str
-    data: Optional[dict[str, Any]] = None
+    data: dict[str, Any] | None = None
     is_read: bool
-    read_at: Optional[datetime] = None
-    scheduled_at: Optional[datetime] = None
-    expires_at: Optional[datetime] = None
+    read_at: datetime | None = None
+    scheduled_at: datetime | None = None
+    expires_at: datetime | None = None
     created_at: datetime
 
 
@@ -63,17 +62,17 @@ class NotificationListResponse(BaseModel):
 
 
 class PreferenceUpdate(BaseModel):
-    push_enabled: Optional[bool] = None
-    sms_enabled: Optional[bool] = None
-    email_enabled: Optional[bool] = None
-    scheme_deadlines: Optional[bool] = None
-    weather_alerts: Optional[bool] = None
-    task_reminders: Optional[bool] = None
-    crop_alerts: Optional[bool] = None
-    market_prices: Optional[bool] = None
-    sms_phone_number: Optional[str] = None
-    quiet_hours_start: Optional[time] = None
-    quiet_hours_end: Optional[time] = None
+    push_enabled: bool | None = None
+    sms_enabled: bool | None = None
+    email_enabled: bool | None = None
+    scheme_deadlines: bool | None = None
+    weather_alerts: bool | None = None
+    task_reminders: bool | None = None
+    crop_alerts: bool | None = None
+    market_prices: bool | None = None
+    sms_phone_number: str | None = None
+    quiet_hours_start: time | None = None
+    quiet_hours_end: time | None = None
 
 
 class PreferenceResponse(BaseModel):
@@ -89,10 +88,10 @@ class PreferenceResponse(BaseModel):
     task_reminders: bool
     crop_alerts: bool
     market_prices: bool
-    push_subscription: Optional[dict[str, Any]] = None
-    sms_phone_number: Optional[str] = None
-    quiet_hours_start: Optional[time] = None
-    quiet_hours_end: Optional[time] = None
+    push_subscription: dict[str, Any] | None = None
+    sms_phone_number: str | None = None
+    quiet_hours_start: time | None = None
+    quiet_hours_end: time | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -115,7 +114,7 @@ class TemplateResponse(BaseModel):
     priority: str
     title_template: str
     body_template: str
-    sms_template: Optional[str] = None
+    sms_template: str | None = None
     channels: list[str]
     is_active: bool
     created_at: datetime
@@ -131,12 +130,12 @@ class DeliveryLogResponse(BaseModel):
     notification_id: UUID
     channel: str
     status: str
-    provider_message_id: Optional[str] = None
-    error_message: Optional[str] = None
-    cost: Optional[float] = None
-    currency: Optional[str] = None
-    attempted_at: Optional[datetime] = None
-    delivered_at: Optional[datetime] = None
+    provider_message_id: str | None = None
+    error_message: str | None = None
+    cost: float | None = None
+    currency: str | None = None
+    attempted_at: datetime | None = None
+    delivered_at: datetime | None = None
 
 
 class UnreadCountResponse(BaseModel):

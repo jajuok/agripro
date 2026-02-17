@@ -1,18 +1,17 @@
 """Main application entry point for Auth Service."""
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Import all models to ensure they're registered with Base.metadata
+import app.models.user  # noqa: F401
 from app.api import router as api_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.middleware.tenant import TenantMiddleware
-
-# Import all models to ensure they're registered with Base.metadata
-import app.models.user  # noqa: F401
 
 
 @asynccontextmanager
@@ -21,8 +20,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     configure_logging()
 
     # Initialize database schema
-    from app.core.database import engine, Base
     import logging
+
+    from app.core.database import Base, engine
+
     logger = logging.getLogger(__name__)
 
     try:

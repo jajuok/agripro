@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from app.core.config import settings
 
@@ -11,9 +11,7 @@ logger = logging.getLogger(__name__)
 
 class WebPushService:
     def __init__(self):
-        self._configured = bool(
-            settings.vapid_private_key and settings.vapid_public_key
-        )
+        self._configured = bool(settings.vapid_private_key and settings.vapid_public_key)
         if self._configured:
             logger.info("Web Push (VAPID) configured")
         else:
@@ -24,7 +22,7 @@ class WebPushService:
         subscription_info: dict,
         title: str,
         body: str,
-        data: Optional[dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
     ) -> bool:
         if not self._configured:
             logger.debug("Web Push not configured, skipping")

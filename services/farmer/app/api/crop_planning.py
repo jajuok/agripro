@@ -9,53 +9,53 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.schemas.crop_planning import (
-    # Template schemas
-    CropCalendarTemplateCreate,
-    CropCalendarTemplateUpdate,
-    CropCalendarTemplateResponse,
-    CropCalendarTemplateListResponse,
-    TemplateRecommendation,
-    # Plan schemas
-    CropPlanCreate,
-    CropPlanUpdate,
-    CropPlanActivate,
-    CropPlanAdvanceStage,
-    CropPlanComplete,
-    CropPlanResponse,
-    CropPlanSummary,
-    CropPlanListResponse,
-    CropPlanStatistics,
-    CropPlanningDashboard,
-    # Activity schemas
-    PlannedActivityCreate,
-    PlannedActivityUpdate,
-    PlannedActivityResponse,
-    PlannedActivityListResponse,
     ActivityCompletion,
     ActivitySkip,
-    UpcomingActivitiesResponse,
-    # Input schemas
-    InputRequirementCreate,
-    InputRequirementUpdate,
-    InputRequirementResponse,
-    InputRequirementListResponse,
-    InputCalculation,
-    QrCodeVerification,
-    QrCodeVerificationResult,
-    # Irrigation schemas
-    IrrigationScheduleCreate,
-    IrrigationScheduleUpdate,
-    IrrigationScheduleResponse,
-    IrrigationScheduleListResponse,
-    IrrigationCompletion,
-    IrrigationGenerateRequest,
+    ActivityStatus,
+    # Template schemas
+    CropCalendarTemplateCreate,
+    CropCalendarTemplateListResponse,
+    CropCalendarTemplateResponse,
+    CropCalendarTemplateUpdate,
+    CropPlanActivate,
+    CropPlanAdvanceStage,
+    CropPlanAlertListResponse,
     # Alert schemas
     CropPlanAlertResponse,
-    CropPlanAlertListResponse,
+    CropPlanComplete,
+    # Plan schemas
+    CropPlanCreate,
+    CropPlanListResponse,
+    CropPlanningDashboard,
+    CropPlanResponse,
+    CropPlanStatistics,
+    CropPlanStatus,
+    CropPlanSummary,
+    CropPlanUpdate,
+    InputCalculation,
+    # Input schemas
+    InputRequirementCreate,
+    InputRequirementListResponse,
+    InputRequirementResponse,
+    InputRequirementUpdate,
+    IrrigationCompletion,
+    IrrigationGenerateRequest,
+    # Irrigation schemas
+    IrrigationScheduleCreate,
+    IrrigationScheduleListResponse,
+    IrrigationScheduleResponse,
+    IrrigationScheduleUpdate,
+    # Activity schemas
+    PlannedActivityCreate,
+    PlannedActivityListResponse,
+    PlannedActivityResponse,
+    PlannedActivityUpdate,
+    QrCodeVerification,
+    QrCodeVerificationResult,
     # Enums
     Season,
-    CropPlanStatus,
-    ActivityStatus,
+    TemplateRecommendation,
+    UpcomingActivitiesResponse,
 )
 from app.services.crop_planning_service import CropPlanningService
 
@@ -64,7 +64,7 @@ router = APIRouter()
 
 # Dependency to get crop planning service
 async def get_crop_planning_service(
-    db: Annotated[AsyncSession, Depends(get_db)]
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> CropPlanningService:
     return CropPlanningService(db)
 
@@ -116,7 +116,9 @@ async def list_templates(
     )
 
 
-@router.get("/templates/{template_id}", response_model=CropCalendarTemplateResponse, tags=["Templates"])
+@router.get(
+    "/templates/{template_id}", response_model=CropCalendarTemplateResponse, tags=["Templates"]
+)
 async def get_template(
     template_id: UUID,
     service: Annotated[CropPlanningService, Depends(get_crop_planning_service)],
@@ -157,7 +159,9 @@ async def recommend_templates(
     return recommendations
 
 
-@router.patch("/templates/{template_id}", response_model=CropCalendarTemplateResponse, tags=["Templates"])
+@router.patch(
+    "/templates/{template_id}", response_model=CropCalendarTemplateResponse, tags=["Templates"]
+)
 async def update_template(
     template_id: UUID,
     data: CropCalendarTemplateUpdate,
@@ -375,7 +379,9 @@ async def create_activity(
     return PlannedActivityResponse.model_validate(activity)
 
 
-@router.get("/plans/{plan_id}/activities", response_model=PlannedActivityListResponse, tags=["Activities"])
+@router.get(
+    "/plans/{plan_id}/activities", response_model=PlannedActivityListResponse, tags=["Activities"]
+)
 async def list_activities(
     plan_id: UUID,
     service: Annotated[CropPlanningService, Depends(get_crop_planning_service)],
@@ -416,7 +422,9 @@ async def get_upcoming_activities(
     )
 
 
-@router.get("/activities/{activity_id}", response_model=PlannedActivityResponse, tags=["Activities"])
+@router.get(
+    "/activities/{activity_id}", response_model=PlannedActivityResponse, tags=["Activities"]
+)
 async def get_activity(
     activity_id: UUID,
     service: Annotated[CropPlanningService, Depends(get_crop_planning_service)],
@@ -428,7 +436,9 @@ async def get_activity(
     return PlannedActivityResponse.model_validate(activity)
 
 
-@router.patch("/activities/{activity_id}", response_model=PlannedActivityResponse, tags=["Activities"])
+@router.patch(
+    "/activities/{activity_id}", response_model=PlannedActivityResponse, tags=["Activities"]
+)
 async def update_activity(
     activity_id: UUID,
     data: PlannedActivityUpdate,
@@ -441,7 +451,11 @@ async def update_activity(
     return PlannedActivityResponse.model_validate(activity)
 
 
-@router.post("/activities/{activity_id}/complete", response_model=PlannedActivityResponse, tags=["Activities"])
+@router.post(
+    "/activities/{activity_id}/complete",
+    response_model=PlannedActivityResponse,
+    tags=["Activities"],
+)
 async def complete_activity(
     activity_id: UUID,
     data: ActivityCompletion,
@@ -454,7 +468,9 @@ async def complete_activity(
     return PlannedActivityResponse.model_validate(activity)
 
 
-@router.post("/activities/{activity_id}/skip", response_model=PlannedActivityResponse, tags=["Activities"])
+@router.post(
+    "/activities/{activity_id}/skip", response_model=PlannedActivityResponse, tags=["Activities"]
+)
 async def skip_activity(
     activity_id: UUID,
     data: ActivitySkip,
@@ -534,7 +550,9 @@ async def update_input(
     return InputRequirementResponse.model_validate(input_req)
 
 
-@router.post("/inputs/{input_id}/verify-qr", response_model=QrCodeVerificationResult, tags=["Inputs"])
+@router.post(
+    "/inputs/{input_id}/verify-qr", response_model=QrCodeVerificationResult, tags=["Inputs"]
+)
 async def verify_input_qr(
     input_id: UUID,
     data: QrCodeVerification,
@@ -586,7 +604,11 @@ async def create_irrigation(
     return IrrigationScheduleResponse.model_validate(schedule)
 
 
-@router.get("/plans/{plan_id}/irrigation", response_model=IrrigationScheduleListResponse, tags=["Irrigation"])
+@router.get(
+    "/plans/{plan_id}/irrigation",
+    response_model=IrrigationScheduleListResponse,
+    tags=["Irrigation"],
+)
 async def list_irrigation(
     plan_id: UUID,
     service: Annotated[CropPlanningService, Depends(get_crop_planning_service)],
@@ -620,7 +642,9 @@ async def generate_irrigation(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
-@router.get("/irrigation/{schedule_id}", response_model=IrrigationScheduleResponse, tags=["Irrigation"])
+@router.get(
+    "/irrigation/{schedule_id}", response_model=IrrigationScheduleResponse, tags=["Irrigation"]
+)
 async def get_irrigation(
     schedule_id: UUID,
     service: Annotated[CropPlanningService, Depends(get_crop_planning_service)],
@@ -628,11 +652,15 @@ async def get_irrigation(
     """Get irrigation schedule by ID."""
     schedule = await service.get_irrigation(schedule_id)
     if not schedule:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Irrigation schedule not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Irrigation schedule not found"
+        )
     return IrrigationScheduleResponse.model_validate(schedule)
 
 
-@router.patch("/irrigation/{schedule_id}", response_model=IrrigationScheduleResponse, tags=["Irrigation"])
+@router.patch(
+    "/irrigation/{schedule_id}", response_model=IrrigationScheduleResponse, tags=["Irrigation"]
+)
 async def update_irrigation(
     schedule_id: UUID,
     data: IrrigationScheduleUpdate,
@@ -641,11 +669,17 @@ async def update_irrigation(
     """Update irrigation schedule."""
     schedule = await service.update_irrigation(schedule_id, data)
     if not schedule:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Irrigation schedule not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Irrigation schedule not found"
+        )
     return IrrigationScheduleResponse.model_validate(schedule)
 
 
-@router.post("/irrigation/{schedule_id}/complete", response_model=IrrigationScheduleResponse, tags=["Irrigation"])
+@router.post(
+    "/irrigation/{schedule_id}/complete",
+    response_model=IrrigationScheduleResponse,
+    tags=["Irrigation"],
+)
 async def complete_irrigation(
     schedule_id: UUID,
     data: IrrigationCompletion,
@@ -654,7 +688,9 @@ async def complete_irrigation(
     """Mark irrigation as completed."""
     schedule = await service.complete_irrigation(schedule_id, data)
     if not schedule:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Irrigation schedule not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Irrigation schedule not found"
+        )
     return IrrigationScheduleResponse.model_validate(schedule)
 
 

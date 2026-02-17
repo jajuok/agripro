@@ -17,11 +17,13 @@ if TYPE_CHECKING:
 
 class Base(DeclarativeBase):
     """Base class for models."""
+
     pass
 
 
 class KYCStatus(str, Enum):
     """KYC verification status."""
+
     PENDING = "pending"
     IN_REVIEW = "in_review"
     APPROVED = "approved"
@@ -31,6 +33,7 @@ class KYCStatus(str, Enum):
 
 class DocumentType(str, Enum):
     """Document types for KYC."""
+
     NATIONAL_ID = "national_id"
     PASSPORT = "passport"
     LAND_TITLE = "land_title"
@@ -43,6 +46,7 @@ class DocumentType(str, Enum):
 
 class FarmDocumentType(str, Enum):
     """Farm-specific document types."""
+
     LAND_TITLE = "land_title"
     LEASE_AGREEMENT = "lease_agreement"
     SURVEY_MAP = "survey_map"
@@ -56,6 +60,7 @@ class FarmDocumentType(str, Enum):
 
 class AssetCategory(str, Enum):
     """Farm asset categories."""
+
     EQUIPMENT = "equipment"
     VEHICLE = "vehicle"
     INFRASTRUCTURE = "infrastructure"
@@ -67,6 +72,7 @@ class AssetCategory(str, Enum):
 
 class CropStatus(str, Enum):
     """Crop record status."""
+
     PLANNED = "planned"
     PLANTED = "planted"
     GROWING = "growing"
@@ -76,6 +82,7 @@ class CropStatus(str, Enum):
 
 class FieldVisitStatus(str, Enum):
     """Field visit status."""
+
     SCHEDULED = "scheduled"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -85,6 +92,7 @@ class FieldVisitStatus(str, Enum):
 
 class FarmRegistrationStep(str, Enum):
     """Farm registration workflow steps."""
+
     LOCATION = "location"
     BOUNDARY = "boundary"
     LAND_DETAILS = "land_details"
@@ -144,7 +152,9 @@ class Farmer(Base):
     # Relationships
     farms: Mapped[list["FarmProfile"]] = relationship("FarmProfile", back_populates="farmer")
     documents: Mapped[list["Document"]] = relationship("Document", back_populates="farmer")
-    biometrics: Mapped[list["BiometricData"]] = relationship("BiometricData", back_populates="farmer")
+    biometrics: Mapped[list["BiometricData"]] = relationship(
+        "BiometricData", back_populates="farmer"
+    )
 
 
 class FarmProfile(Base):
@@ -177,15 +187,21 @@ class FarmProfile(Base):
     # Land details
     total_acreage: Mapped[float | None] = mapped_column(Float)
     cultivable_acreage: Mapped[float | None] = mapped_column(Float)
-    ownership_type: Mapped[str | None] = mapped_column(String(50))  # owned, leased, communal, family
+    ownership_type: Mapped[str | None] = mapped_column(
+        String(50)
+    )  # owned, leased, communal, family
 
     # Boundary validation
-    boundary_area_calculated: Mapped[float | None] = mapped_column(Float)  # Area from GeoJSON in acres
+    boundary_area_calculated: Mapped[float | None] = mapped_column(
+        Float
+    )  # Area from GeoJSON in acres
     boundary_validated: Mapped[bool] = mapped_column(Boolean, default=False)
     boundary_validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Plot ID metadata
-    plot_id_source: Mapped[str | None] = mapped_column(String(50))  # manual, land_registry, auto_generated
+    plot_id_source: Mapped[str | None] = mapped_column(
+        String(50)
+    )  # manual, land_registry, auto_generated
     land_reference_number: Mapped[str | None] = mapped_column(String(100))  # Official LR number
 
     # Soil profile
@@ -197,7 +213,9 @@ class FarmProfile(Base):
     water_source: Mapped[str | None] = mapped_column(String(100))
     irrigation_type: Mapped[str | None] = mapped_column(String(100))
     has_year_round_water: Mapped[bool | None] = mapped_column(Boolean)
-    water_reliability: Mapped[str | None] = mapped_column(String(50))  # reliable, seasonal, unreliable
+    water_reliability: Mapped[str | None] = mapped_column(
+        String(50)
+    )  # reliable, seasonal, unreliable
 
     # Legacy JSON fields (kept for backward compatibility)
     crop_history: Mapped[dict | None] = mapped_column(JSONBCompatible)
@@ -210,7 +228,9 @@ class FarmProfile(Base):
     verified_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
 
     # Registration workflow tracking
-    registration_step: Mapped[str] = mapped_column(String(50), default=FarmRegistrationStep.LOCATION.value)
+    registration_step: Mapped[str] = mapped_column(
+        String(50), default=FarmRegistrationStep.LOCATION.value
+    )
     registration_complete: Mapped[bool] = mapped_column(Boolean, default=False)
     registration_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -356,7 +376,9 @@ class ExternalVerification(Base):
         UUID(as_uuid=True), ForeignKey("farmers.id", ondelete="CASCADE")
     )
 
-    verification_type: Mapped[str] = mapped_column(String(50))  # id_iprs, id_nin, credit_bureau, sanctions
+    verification_type: Mapped[str] = mapped_column(
+        String(50)
+    )  # id_iprs, id_nin, credit_bureau, sanctions
     provider: Mapped[str] = mapped_column(String(100))
     reference_number: Mapped[str | None] = mapped_column(String(100))
 
@@ -371,7 +393,9 @@ class ExternalVerification(Base):
     error_message: Mapped[str | None] = mapped_column(Text)
 
     # Timestamps
-    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    requested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     farmer: Mapped["Farmer"] = relationship("Farmer", backref="external_verifications")
@@ -392,7 +416,9 @@ class KYCReviewQueue(Base):
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
 
     # Status
-    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, in_progress, completed
+    status: Mapped[str] = mapped_column(
+        String(20), default="pending"
+    )  # pending, in_progress, completed
     decision: Mapped[str | None] = mapped_column(String(20))  # approved, rejected, escalated
 
     # Timestamps
@@ -462,7 +488,9 @@ class FarmAsset(Base):
     description: Mapped[str | None] = mapped_column(Text)
 
     # Ownership
-    ownership_type: Mapped[str] = mapped_column(String(50), default="owned")  # owned, leased, rented, shared
+    ownership_type: Mapped[str] = mapped_column(
+        String(50), default="owned"
+    )  # owned, leased, rented, shared
     acquisition_date: Mapped[datetime | None] = mapped_column(DateTime)
     estimated_value: Mapped[float | None] = mapped_column(Float)
 
@@ -518,7 +546,9 @@ class CropRecord(Base):
     is_current: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Inputs used
-    inputs_used: Mapped[dict | None] = mapped_column(JSONBCompatible)  # seeds, fertilizer, pesticides
+    inputs_used: Mapped[dict | None] = mapped_column(
+        JSONBCompatible
+    )  # seeds, fertilizer, pesticides
     notes: Mapped[str | None] = mapped_column(Text)
 
     # Verification by extension officer
@@ -599,15 +629,15 @@ class FieldVisit(Base):
     )
 
     # Visit details
-    visit_date: Mapped[datetime] = mapped_column(
-        "scheduled_date", DateTime(timezone=True)
-    )
+    visit_date: Mapped[datetime] = mapped_column("scheduled_date", DateTime(timezone=True))
     purpose: Mapped[str] = mapped_column(
         "visit_type", String(50)
     )  # verification, inspection, extension, follow_up
 
     # Visitor info
-    visitor_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))  # Extension officer/verifier user ID
+    visitor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True)
+    )  # Extension officer/verifier user ID
     visitor_name: Mapped[str] = mapped_column(String(200))
 
     # Visit location verification

@@ -2,7 +2,7 @@
 
 import hashlib
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import select
@@ -33,7 +33,7 @@ class PasswordService:
         reset_token = PasswordResetToken(
             user_id=user.id,
             token_hash=token_hash,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
         self.db.add(reset_token)
 
@@ -44,10 +44,9 @@ class PasswordService:
         token_hash = hashlib.sha256(token.encode()).hexdigest()
 
         result = await self.db.execute(
-            select(PasswordResetToken)
-            .where(
+            select(PasswordResetToken).where(
                 PasswordResetToken.token_hash == token_hash,
-                PasswordResetToken.expires_at > datetime.now(timezone.utc),
+                PasswordResetToken.expires_at > datetime.now(UTC),
                 PasswordResetToken.used_at.is_(None),
             )
         )
@@ -56,9 +55,7 @@ class PasswordService:
             return None
 
         # Get user
-        user_result = await self.db.execute(
-            select(User).where(User.id == reset_token.user_id)
-        )
+        user_result = await self.db.execute(select(User).where(User.id == reset_token.user_id))
         return user_result.scalar_one_or_none()
 
     async def reset_password(self, token: str, new_password: str) -> bool:
@@ -66,10 +63,9 @@ class PasswordService:
         token_hash = hashlib.sha256(token.encode()).hexdigest()
 
         result = await self.db.execute(
-            select(PasswordResetToken)
-            .where(
+            select(PasswordResetToken).where(
                 PasswordResetToken.token_hash == token_hash,
-                PasswordResetToken.expires_at > datetime.now(timezone.utc),
+                PasswordResetToken.expires_at > datetime.now(UTC),
                 PasswordResetToken.used_at.is_(None),
             )
         )
@@ -78,15 +74,13 @@ class PasswordService:
             return False
 
         # Get user and update password
-        user_result = await self.db.execute(
-            select(User).where(User.id == reset_token.user_id)
-        )
+        user_result = await self.db.execute(select(User).where(User.id == reset_token.user_id))
         user = user_result.scalar_one_or_none()
         if not user:
             return False
 
         user.hashed_password = hash_password(new_password)
-        reset_token.used_at = datetime.now(timezone.utc)
+        reset_token.used_at = datetime.now(UTC)
 
         return True
 

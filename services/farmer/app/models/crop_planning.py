@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
 class Season(str, Enum):
     """Growing seasons in Kenya."""
+
     LONG_RAINS = "long_rains"  # March-May
     SHORT_RAINS = "short_rains"  # October-December
     IRRIGATED = "irrigated"  # Year-round with irrigation
@@ -31,6 +32,7 @@ class Season(str, Enum):
 
 class CropPlanStatus(str, Enum):
     """Crop plan lifecycle status."""
+
     DRAFT = "draft"
     ACTIVE = "active"
     COMPLETED = "completed"
@@ -39,6 +41,7 @@ class CropPlanStatus(str, Enum):
 
 class ActivityStatus(str, Enum):
     """Planned activity status."""
+
     SCHEDULED = "scheduled"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -48,6 +51,7 @@ class ActivityStatus(str, Enum):
 
 class ActivityType(str, Enum):
     """Types of farming activities."""
+
     LAND_PREPARATION = "land_preparation"
     PLANTING = "planting"
     FERTILIZER_APPLICATION = "fertilizer_application"
@@ -66,6 +70,7 @@ class ActivityType(str, Enum):
 
 class InputCategory(str, Enum):
     """Categories of farm inputs."""
+
     SEED = "seed"
     FERTILIZER = "fertilizer"
     PESTICIDE = "pesticide"
@@ -77,6 +82,7 @@ class InputCategory(str, Enum):
 
 class ProcurementStatus(str, Enum):
     """Input procurement status."""
+
     PLANNED = "planned"
     ORDERED = "ordered"
     RECEIVED = "received"
@@ -85,6 +91,7 @@ class ProcurementStatus(str, Enum):
 
 class IrrigationMethod(str, Enum):
     """Irrigation methods."""
+
     DRIP = "drip"
     SPRINKLER = "sprinkler"
     FURROW = "furrow"
@@ -96,6 +103,7 @@ class IrrigationMethod(str, Enum):
 
 class IrrigationStatus(str, Enum):
     """Irrigation schedule status."""
+
     SCHEDULED = "scheduled"
     COMPLETED = "completed"
     SKIPPED = "skipped"
@@ -103,6 +111,7 @@ class IrrigationStatus(str, Enum):
 
 class AlertType(str, Enum):
     """Types of crop planning alerts."""
+
     ACTIVITY_REMINDER = "activity_reminder"
     ACTIVITY_OVERDUE = "activity_overdue"
     WEATHER_WARNING = "weather_warning"
@@ -115,6 +124,7 @@ class AlertType(str, Enum):
 
 class AlertSeverity(str, Enum):
     """Alert severity levels."""
+
     INFO = "info"
     WARNING = "warning"
     CRITICAL = "critical"
@@ -260,7 +270,9 @@ class CropPlan(Base):
     # Relationships
     farmer: Mapped["Farmer"] = relationship("Farmer", backref="crop_plans")
     farm: Mapped["FarmProfile"] = relationship("FarmProfile", backref="crop_plans")
-    template: Mapped["CropCalendarTemplate | None"] = relationship("CropCalendarTemplate", backref="plans")
+    template: Mapped["CropCalendarTemplate | None"] = relationship(
+        "CropCalendarTemplate", backref="plans"
+    )
     activities: Mapped[list["PlannedActivity"]] = relationship(
         "PlannedActivity", back_populates="crop_plan", cascade="all, delete-orphan"
     )
@@ -390,7 +402,9 @@ class InputRequirement(Base):
     actual_cost: Mapped[float | None] = mapped_column(Float)
 
     # Procurement
-    procurement_status: Mapped[str] = mapped_column(String(20), default=ProcurementStatus.PLANNED.value)
+    procurement_status: Mapped[str] = mapped_column(
+        String(20), default=ProcurementStatus.PLANNED.value
+    )
     supplier_name: Mapped[str | None] = mapped_column(String(200))
     purchase_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     purchase_location: Mapped[str | None] = mapped_column(String(200))

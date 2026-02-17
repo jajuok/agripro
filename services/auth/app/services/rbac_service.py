@@ -88,9 +88,7 @@ class RBACService:
 
     async def get_permission_by_code(self, code: str) -> Permission | None:
         """Get permission by code."""
-        result = await self.db.execute(
-            select(Permission).where(Permission.code == code)
-        )
+        result = await self.db.execute(select(Permission).where(Permission.code == code))
         return result.scalar_one_or_none()
 
     async def list_permissions(self) -> list[Permission]:
@@ -99,9 +97,7 @@ class RBACService:
         return list(result.scalars().all())
 
     # Role-Permission operations
-    async def assign_permission_to_role(
-        self, role_id: UUID, permission_id: UUID
-    ) -> RolePermission:
+    async def assign_permission_to_role(self, role_id: UUID, permission_id: UUID) -> RolePermission:
         """Assign a permission to a role."""
         role_permission = RolePermission(
             role_id=role_id,
@@ -111,9 +107,7 @@ class RBACService:
         await self.db.flush()
         return role_permission
 
-    async def revoke_permission_from_role(
-        self, role_id: UUID, permission_id: UUID
-    ) -> bool:
+    async def revoke_permission_from_role(self, role_id: UUID, permission_id: UUID) -> bool:
         """Revoke a permission from a role."""
         result = await self.db.execute(
             select(RolePermission).where(
@@ -130,9 +124,7 @@ class RBACService:
     async def get_role_permissions(self, role_id: UUID) -> list[Permission]:
         """Get all permissions for a role."""
         result = await self.db.execute(
-            select(Permission)
-            .join(RolePermission)
-            .where(RolePermission.role_id == role_id)
+            select(Permission).join(RolePermission).where(RolePermission.role_id == role_id)
         )
         return list(result.scalars().all())
 
@@ -176,10 +168,7 @@ class RBACService:
         # Get user with roles and permissions
         result = await self.db.execute(
             select(User)
-            .options(
-                selectinload(User.roles)
-                .selectinload(UserRole.role)
-            )
+            .options(selectinload(User.roles).selectinload(UserRole.role))
             .where(User.id == user_id)
         )
         user = result.scalar_one_or_none()
@@ -205,16 +194,12 @@ class RBACService:
         permissions = await self.get_user_permissions(user_id)
         return permission_code in permissions
 
-    async def has_any_permission(
-        self, user_id: UUID, permission_codes: list[str]
-    ) -> bool:
+    async def has_any_permission(self, user_id: UUID, permission_codes: list[str]) -> bool:
         """Check if user has any of the specified permissions."""
         permissions = await self.get_user_permissions(user_id)
         return any(code in permissions for code in permission_codes)
 
-    async def has_all_permissions(
-        self, user_id: UUID, permission_codes: list[str]
-    ) -> bool:
+    async def has_all_permissions(self, user_id: UUID, permission_codes: list[str]) -> bool:
         """Check if user has all of the specified permissions."""
         permissions = await self.get_user_permissions(user_id)
         return all(code in permissions for code in permission_codes)

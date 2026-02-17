@@ -6,7 +6,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-
 # =============================================================================
 # Enums
 # =============================================================================
@@ -14,6 +13,7 @@ from pydantic import BaseModel, Field
 
 class Season(str, Enum):
     """Growing seasons in Kenya."""
+
     LONG_RAINS = "long_rains"
     SHORT_RAINS = "short_rains"
     IRRIGATED = "irrigated"
@@ -22,6 +22,7 @@ class Season(str, Enum):
 
 class CropPlanStatus(str, Enum):
     """Crop plan lifecycle status."""
+
     DRAFT = "draft"
     ACTIVE = "active"
     COMPLETED = "completed"
@@ -30,6 +31,7 @@ class CropPlanStatus(str, Enum):
 
 class ActivityStatus(str, Enum):
     """Planned activity status."""
+
     SCHEDULED = "scheduled"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -39,6 +41,7 @@ class ActivityStatus(str, Enum):
 
 class ActivityType(str, Enum):
     """Types of farming activities."""
+
     LAND_PREPARATION = "land_preparation"
     PLANTING = "planting"
     FERTILIZER_APPLICATION = "fertilizer_application"
@@ -57,6 +60,7 @@ class ActivityType(str, Enum):
 
 class InputCategory(str, Enum):
     """Categories of farm inputs."""
+
     SEED = "seed"
     FERTILIZER = "fertilizer"
     PESTICIDE = "pesticide"
@@ -68,6 +72,7 @@ class InputCategory(str, Enum):
 
 class ProcurementStatus(str, Enum):
     """Input procurement status."""
+
     PLANNED = "planned"
     ORDERED = "ordered"
     RECEIVED = "received"
@@ -76,6 +81,7 @@ class ProcurementStatus(str, Enum):
 
 class IrrigationMethod(str, Enum):
     """Irrigation methods."""
+
     DRIP = "drip"
     SPRINKLER = "sprinkler"
     FURROW = "furrow"
@@ -87,6 +93,7 @@ class IrrigationMethod(str, Enum):
 
 class IrrigationStatus(str, Enum):
     """Irrigation schedule status."""
+
     SCHEDULED = "scheduled"
     COMPLETED = "completed"
     SKIPPED = "skipped"
@@ -94,6 +101,7 @@ class IrrigationStatus(str, Enum):
 
 class AlertType(str, Enum):
     """Types of crop planning alerts."""
+
     ACTIVITY_REMINDER = "activity_reminder"
     ACTIVITY_OVERDUE = "activity_overdue"
     WEATHER_WARNING = "weather_warning"
@@ -106,6 +114,7 @@ class AlertType(str, Enum):
 
 class AlertSeverity(str, Enum):
     """Alert severity levels."""
+
     INFO = "info"
     WARNING = "warning"
     CRITICAL = "critical"
@@ -118,6 +127,7 @@ class AlertSeverity(str, Enum):
 
 class GrowthStageActivity(BaseModel):
     """Activity definition within a growth stage."""
+
     activity_type: ActivityType
     title: str
     description: str | None = None
@@ -129,6 +139,7 @@ class GrowthStageActivity(BaseModel):
 
 class GrowthStage(BaseModel):
     """Growth stage definition in a crop calendar template."""
+
     name: str
     start_day: int  # Days from planting
     end_day: int
@@ -145,6 +156,7 @@ class GrowthStage(BaseModel):
 
 class CropCalendarTemplateBase(BaseModel):
     """Base template schema."""
+
     crop_name: str = Field(..., min_length=1, max_length=100)
     variety: str | None = None
     region_type: str = Field(..., max_length=50)
@@ -157,6 +169,7 @@ class CropCalendarTemplateBase(BaseModel):
 
 class CropCalendarTemplateCreate(CropCalendarTemplateBase):
     """Create template schema."""
+
     tenant_id: UUID
     growth_stages: list[GrowthStage] | None = None
     seed_rate_kg_per_acre: float | None = None
@@ -171,6 +184,7 @@ class CropCalendarTemplateCreate(CropCalendarTemplateBase):
 
 class CropCalendarTemplateUpdate(BaseModel):
     """Update template schema."""
+
     crop_name: str | None = None
     variety: str | None = None
     region_type: str | None = None
@@ -191,6 +205,7 @@ class CropCalendarTemplateUpdate(BaseModel):
 
 class CropCalendarTemplateResponse(CropCalendarTemplateBase):
     """Template response schema."""
+
     id: UUID
     tenant_id: UUID
     growth_stages: list[GrowthStage] | None
@@ -210,6 +225,7 @@ class CropCalendarTemplateResponse(CropCalendarTemplateBase):
 
 class CropCalendarTemplateListResponse(BaseModel):
     """Paginated template list."""
+
     items: list[CropCalendarTemplateResponse]
     total: int
     page: int
@@ -218,6 +234,7 @@ class CropCalendarTemplateListResponse(BaseModel):
 
 class TemplateRecommendation(BaseModel):
     """Template recommendation based on farm and timing."""
+
     template: CropCalendarTemplateResponse
     match_score: float
     match_reasons: list[str]
@@ -231,6 +248,7 @@ class TemplateRecommendation(BaseModel):
 
 class CropPlanBase(BaseModel):
     """Base crop plan schema."""
+
     name: str = Field(..., min_length=1, max_length=200)
     crop_name: str = Field(..., min_length=1, max_length=100)
     variety: str | None = None
@@ -242,6 +260,7 @@ class CropPlanBase(BaseModel):
 
 class CropPlanCreate(CropPlanBase):
     """Create crop plan schema."""
+
     farmer_id: UUID
     farm_id: UUID
     template_id: UUID | None = None
@@ -254,6 +273,7 @@ class CropPlanCreate(CropPlanBase):
 
 class CropPlanUpdate(BaseModel):
     """Update crop plan schema."""
+
     name: str | None = None
     variety: str | None = None
     planned_planting_date: datetime | None = None
@@ -270,18 +290,21 @@ class CropPlanUpdate(BaseModel):
 
 class CropPlanActivate(BaseModel):
     """Activate crop plan schema."""
+
     actual_planting_date: datetime | None = None
     actual_planted_acreage: float | None = None
 
 
 class CropPlanAdvanceStage(BaseModel):
     """Advance to next growth stage."""
+
     new_stage: str
     notes: str | None = None
 
 
 class CropPlanComplete(BaseModel):
     """Complete crop plan schema."""
+
     actual_harvest_date: datetime
     actual_yield_kg: float
     notes: str | None = None
@@ -289,6 +312,7 @@ class CropPlanComplete(BaseModel):
 
 class CropPlanSummary(BaseModel):
     """Crop plan summary for list views."""
+
     id: UUID
     name: str
     crop_name: str
@@ -311,6 +335,7 @@ class CropPlanSummary(BaseModel):
 
 class CropPlanResponse(CropPlanBase):
     """Full crop plan response."""
+
     id: UUID
     farmer_id: UUID
     farm_id: UUID
@@ -343,6 +368,7 @@ class CropPlanResponse(CropPlanBase):
 
 class CropPlanListResponse(BaseModel):
     """Paginated crop plan list."""
+
     items: list[CropPlanSummary]
     total: int
     page: int
@@ -356,6 +382,7 @@ class CropPlanListResponse(BaseModel):
 
 class PlannedActivityBase(BaseModel):
     """Base activity schema."""
+
     activity_type: ActivityType
     title: str = Field(..., min_length=1, max_length=200)
     description: str | None = None
@@ -367,6 +394,7 @@ class PlannedActivityBase(BaseModel):
 
 class PlannedActivityCreate(PlannedActivityBase):
     """Create activity schema."""
+
     crop_plan_id: UUID
     earliest_date: datetime | None = None
     latest_date: datetime | None = None
@@ -379,6 +407,7 @@ class PlannedActivityCreate(PlannedActivityBase):
 
 class PlannedActivityUpdate(BaseModel):
     """Update activity schema."""
+
     title: str | None = None
     description: str | None = None
     scheduled_date: datetime | None = None
@@ -395,6 +424,7 @@ class PlannedActivityUpdate(BaseModel):
 
 class ActivityCompletion(BaseModel):
     """Complete an activity."""
+
     completion_notes: str | None = None
     completion_photos: list[str] | None = None
     gps_latitude: float | None = None
@@ -406,11 +436,13 @@ class ActivityCompletion(BaseModel):
 
 class ActivitySkip(BaseModel):
     """Skip an activity."""
+
     reason: str
 
 
 class PlannedActivityResponse(PlannedActivityBase):
     """Activity response schema."""
+
     id: UUID
     crop_plan_id: UUID
     status: str
@@ -438,6 +470,7 @@ class PlannedActivityResponse(PlannedActivityBase):
 
 class PlannedActivityListResponse(BaseModel):
     """Paginated activity list."""
+
     items: list[PlannedActivityResponse]
     total: int
     page: int
@@ -446,6 +479,7 @@ class PlannedActivityListResponse(BaseModel):
 
 class UpcomingActivity(BaseModel):
     """Upcoming activity with plan context."""
+
     activity: PlannedActivityResponse
     plan_id: UUID
     plan_name: str
@@ -457,6 +491,7 @@ class UpcomingActivity(BaseModel):
 
 class UpcomingActivitiesResponse(BaseModel):
     """List of upcoming activities."""
+
     items: list[UpcomingActivity]
     total: int
 
@@ -468,6 +503,7 @@ class UpcomingActivitiesResponse(BaseModel):
 
 class InputRequirementBase(BaseModel):
     """Base input requirement schema."""
+
     category: InputCategory
     name: str = Field(..., min_length=1, max_length=200)
     brand: str | None = None
@@ -477,6 +513,7 @@ class InputRequirementBase(BaseModel):
 
 class InputRequirementCreate(InputRequirementBase):
     """Create input requirement schema."""
+
     crop_plan_id: UUID
     is_certified: bool | None = None
     certification_number: str | None = None
@@ -491,6 +528,7 @@ class InputRequirementCreate(InputRequirementBase):
 
 class InputRequirementUpdate(BaseModel):
     """Update input requirement schema."""
+
     name: str | None = None
     brand: str | None = None
     quantity_required: float | None = None
@@ -513,11 +551,13 @@ class InputRequirementUpdate(BaseModel):
 
 class QrCodeVerification(BaseModel):
     """QR code verification data."""
+
     qr_code_data: dict
 
 
 class QrCodeVerificationResult(BaseModel):
     """QR code verification result."""
+
     verified: bool
     product_name: str | None = None
     manufacturer: str | None = None
@@ -529,6 +569,7 @@ class QrCodeVerificationResult(BaseModel):
 
 class InputRequirementResponse(InputRequirementBase):
     """Input requirement response schema."""
+
     id: UUID
     crop_plan_id: UUID
     is_certified: bool | None
@@ -558,6 +599,7 @@ class InputRequirementResponse(InputRequirementBase):
 
 class InputRequirementListResponse(BaseModel):
     """Paginated input list."""
+
     items: list[InputRequirementResponse]
     total: int
     total_estimated_cost: float | None
@@ -566,6 +608,7 @@ class InputRequirementListResponse(BaseModel):
 
 class InputCalculation(BaseModel):
     """Calculated input requirements based on crop and acreage."""
+
     crop_name: str
     variety: str | None
     acreage: float
@@ -581,6 +624,7 @@ class InputCalculation(BaseModel):
 
 class IrrigationScheduleBase(BaseModel):
     """Base irrigation schedule schema."""
+
     method: IrrigationMethod
     scheduled_date: datetime
     scheduled_duration_minutes: int | None = None
@@ -590,6 +634,7 @@ class IrrigationScheduleBase(BaseModel):
 
 class IrrigationScheduleCreate(IrrigationScheduleBase):
     """Create irrigation schedule schema."""
+
     crop_plan_id: UUID
     growth_stage: str | None = None
     is_deficit_irrigation: bool = False
@@ -599,6 +644,7 @@ class IrrigationScheduleCreate(IrrigationScheduleBase):
 
 class IrrigationScheduleUpdate(BaseModel):
     """Update irrigation schedule schema."""
+
     scheduled_date: datetime | None = None
     scheduled_duration_minutes: int | None = None
     water_amount_liters: float | None = None
@@ -610,6 +656,7 @@ class IrrigationScheduleUpdate(BaseModel):
 
 class IrrigationCompletion(BaseModel):
     """Complete an irrigation event."""
+
     actual_duration_minutes: int | None = None
     actual_water_used_liters: float | None = None
     soil_moisture_before: float | None = None
@@ -620,6 +667,7 @@ class IrrigationCompletion(BaseModel):
 
 class IrrigationScheduleResponse(IrrigationScheduleBase):
     """Irrigation schedule response schema."""
+
     id: UUID
     crop_plan_id: UUID
     status: str
@@ -643,6 +691,7 @@ class IrrigationScheduleResponse(IrrigationScheduleBase):
 
 class IrrigationScheduleListResponse(BaseModel):
     """Paginated irrigation schedule list."""
+
     items: list[IrrigationScheduleResponse]
     total: int
     total_water_planned_liters: float | None
@@ -651,6 +700,7 @@ class IrrigationScheduleListResponse(BaseModel):
 
 class IrrigationGenerateRequest(BaseModel):
     """Request to auto-generate irrigation schedule."""
+
     start_date: datetime
     end_date: datetime
     method: IrrigationMethod
@@ -661,6 +711,7 @@ class IrrigationGenerateRequest(BaseModel):
 
 class IrrigationRecommendation(BaseModel):
     """Irrigation recommendation based on weather and crop needs."""
+
     recommended_date: datetime
     recommended_amount_liters: float
     recommended_amount_mm: float
@@ -677,6 +728,7 @@ class IrrigationRecommendation(BaseModel):
 
 class CropPlanAlertResponse(BaseModel):
     """Alert response schema."""
+
     id: UUID
     farmer_id: UUID
     crop_plan_id: UUID | None
@@ -698,6 +750,7 @@ class CropPlanAlertResponse(BaseModel):
 
 class CropPlanAlertListResponse(BaseModel):
     """Paginated alert list."""
+
     items: list[CropPlanAlertResponse]
     total: int
     unread_count: int
@@ -710,6 +763,7 @@ class CropPlanAlertListResponse(BaseModel):
 
 class WeatherForecast(BaseModel):
     """Weather forecast data."""
+
     date: datetime
     temperature_min_celsius: float
     temperature_max_celsius: float
@@ -724,6 +778,7 @@ class WeatherForecast(BaseModel):
 
 class WeatherForecastResponse(BaseModel):
     """Weather forecast response."""
+
     latitude: float
     longitude: float
     location_name: str | None
@@ -734,6 +789,7 @@ class WeatherForecastResponse(BaseModel):
 
 class PlantingWindowRecommendation(BaseModel):
     """Recommended planting window based on weather."""
+
     crop_name: str
     optimal_start_date: datetime
     optimal_end_date: datetime
@@ -751,6 +807,7 @@ class PlantingWindowRecommendation(BaseModel):
 
 class CropPlanningDashboard(BaseModel):
     """Dashboard summary for crop planning."""
+
     farmer_id: UUID
     active_plans_count: int
     draft_plans_count: int
@@ -766,6 +823,7 @@ class CropPlanningDashboard(BaseModel):
 
 class CropPlanStatistics(BaseModel):
     """Statistics for a crop plan."""
+
     plan_id: UUID
     days_since_planting: int | None
     days_to_harvest: int | None

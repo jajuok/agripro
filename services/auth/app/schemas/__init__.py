@@ -4,10 +4,10 @@ from app.schemas.auth import (
     LoginRequest,
     LoginResponse,
     RefreshRequest,
-    TokenResponse,
     RegisterRequest,
+    TokenResponse,
 )
-from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse
+from app.schemas.user import UserCreate, UserListResponse, UserResponse, UserUpdate
 
 __all__ = [
     "LoginRequest",

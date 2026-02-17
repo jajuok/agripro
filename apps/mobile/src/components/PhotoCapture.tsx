@@ -210,6 +210,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   title = 'Take Photo',
 }) => {
   // Use camera permissions hook if available, otherwise use a dummy state
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const cameraPermissionResult = useCameraPermissions ? useCameraPermissions() : [null, async () => ({ granted: false })];
   const [permission, requestPermission] = cameraPermissionResult;
   const [facing, setFacing] = useState<CameraFacing>('back');

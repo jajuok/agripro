@@ -13,11 +13,10 @@ from sqlalchemy.orm import selectinload
 from app.models.eligibility import (
     EligibilityRule,
     EligibilityRuleGroup,
-    EligibilityScheme,
-    RuleOperator,
     RuleFieldType,
+    RuleOperator,
 )
-from app.models.farmer import Farmer, FarmProfile, CropRecord
+from app.models.farmer import Farmer, FarmProfile
 from app.schemas.eligibility import RuleEvaluationResult
 
 
@@ -313,9 +312,7 @@ class RulesEngine:
         except (ValueError, json.JSONDecodeError):
             return value
 
-    def _compare_values(
-        self, actual: Any, expected: Any, operator: str
-    ) -> bool:
+    def _compare_values(self, actual: Any, expected: Any, operator: str) -> bool:
         """Compare two values using the specified operator."""
         op = operator.lower()
 
@@ -331,9 +328,13 @@ class RulesEngine:
 
         try:
             if op == "equals":
-                return self._normalize_for_comparison(actual) == self._normalize_for_comparison(expected)
+                return self._normalize_for_comparison(actual) == self._normalize_for_comparison(
+                    expected
+                )
             elif op == "not_equals":
-                return self._normalize_for_comparison(actual) != self._normalize_for_comparison(expected)
+                return self._normalize_for_comparison(actual) != self._normalize_for_comparison(
+                    expected
+                )
             elif op == "greater_than":
                 return float(actual) > float(expected)
             elif op == "greater_than_or_equal":

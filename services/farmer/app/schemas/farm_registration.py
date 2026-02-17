@@ -61,7 +61,9 @@ class LandDetailsInput(BaseModel):
     cultivable_acreage: float | None = Field(None, gt=0)
     ownership_type: str = Field(..., description="owned, leased, communal, inherited")
     land_reference_number: str | None = None
-    plot_id_source: str | None = Field(None, description="Source of plot ID (e.g., 'national_land_registry')")
+    plot_id_source: str | None = Field(
+        None, description="Source of plot ID (e.g., 'national_land_registry')"
+    )
 
 
 # Soil and water step schemas

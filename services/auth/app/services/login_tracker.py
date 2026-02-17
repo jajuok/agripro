@@ -1,6 +1,6 @@
 """Login attempt tracking service for security."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,9 +39,7 @@ class LoginTracker:
 
     async def is_locked_out(self, email: str, ip_address: str) -> bool:
         """Check if an account or IP is locked out due to too many failed attempts."""
-        cutoff = datetime.now(timezone.utc) - timedelta(
-            minutes=self.LOCKOUT_DURATION_MINUTES
-        )
+        cutoff = datetime.now(UTC) - timedelta(minutes=self.LOCKOUT_DURATION_MINUTES)
 
         # Check failed attempts for this email
         email_result = await self.db.execute(
@@ -73,11 +71,9 @@ class LoginTracker:
         # Allow more attempts from same IP since multiple users might share it
         return ip_failures >= self.MAX_ATTEMPTS * 3
 
-    async def get_failed_attempts_count(
-        self, email: str, since_minutes: int = 5
-    ) -> int:
+    async def get_failed_attempts_count(self, email: str, since_minutes: int = 5) -> int:
         """Get count of failed login attempts for an email."""
-        cutoff = datetime.now(timezone.utc) - timedelta(minutes=since_minutes)
+        cutoff = datetime.now(UTC) - timedelta(minutes=since_minutes)
 
         result = await self.db.execute(
             select(func.count())

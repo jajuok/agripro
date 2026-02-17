@@ -34,10 +34,7 @@ class TOTPService:
 
         # Create provisioning URI for authenticator apps
         totp = pyotp.TOTP(secret)
-        provisioning_uri = totp.provisioning_uri(
-            name=user.email,
-            issuer_name="AgriScheme Pro"
-        )
+        provisioning_uri = totp.provisioning_uri(name=user.email, issuer_name="AgriScheme Pro")
 
         # Generate QR code
         qr = qrcode.QRCode(version=1, box_size=10, border=5)

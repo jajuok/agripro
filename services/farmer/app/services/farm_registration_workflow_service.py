@@ -1,7 +1,7 @@
 """Farm Registration Workflow Engine - orchestrates the farm registration process."""
 
 import secrets
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -12,9 +12,9 @@ from sqlalchemy.orm import selectinload
 
 from app.models.farmer import (
     CropRecord,
-    Farmer,
     FarmAsset,
     FarmDocument,
+    Farmer,
     FarmProfile,
     FieldVisit,
     SoilTestReport,
@@ -105,7 +105,9 @@ class FarmRegistrationWorkflowService:
 
         # Calculate progress
         steps_completed = self._count_completed_steps(farm)
-        total_steps = 7  # location, boundary, land_details, documents, soil_water, assets, crop_history
+        total_steps = (
+            7  # location, boundary, land_details, documents, soil_water, assets, crop_history
+        )
         progress = int((steps_completed / total_steps) * 100)
 
         return FarmRegistrationStatus(
@@ -148,7 +150,7 @@ class FarmRegistrationWorkflowService:
         farm.sub_county = admin_location.get("sub_county")
         farm.ward = admin_location.get("ward")
 
-        farm.updated_at = datetime.now(timezone.utc)
+        farm.updated_at = datetime.now(UTC)
         return farm
 
     async def set_boundary(
@@ -179,7 +181,7 @@ class FarmRegistrationWorkflowService:
         if farm.registration_step == FarmRegistrationStep.LOCATION.value:
             farm.registration_step = FarmRegistrationStep.BOUNDARY.value
 
-        farm.updated_at = datetime.now(timezone.utc)
+        farm.updated_at = datetime.now(UTC)
         return farm
 
     async def update_land_details(
@@ -206,7 +208,7 @@ class FarmRegistrationWorkflowService:
         ]:
             farm.registration_step = FarmRegistrationStep.LAND_DETAILS.value
 
-        farm.updated_at = datetime.now(timezone.utc)
+        farm.updated_at = datetime.now(UTC)
         return farm
 
     async def update_soil_water(
@@ -233,7 +235,7 @@ class FarmRegistrationWorkflowService:
         ]:
             farm.registration_step = FarmRegistrationStep.SOIL_WATER.value
 
-        farm.updated_at = datetime.now(timezone.utc)
+        farm.updated_at = datetime.now(UTC)
         return farm
 
     async def complete_step(
@@ -265,7 +267,7 @@ class FarmRegistrationWorkflowService:
             farm.registration_complete = True
             farm.is_verified = False  # Requires field verification
 
-        farm.updated_at = datetime.now(timezone.utc)
+        farm.updated_at = datetime.now(UTC)
         return await self.get_registration_status(farm_id)  # type: ignore
 
     async def complete_registration(self, farm_id: UUID) -> FarmRegistrationStatus:
@@ -284,7 +286,7 @@ class FarmRegistrationWorkflowService:
 
         farm.registration_step = FarmRegistrationStep.COMPLETE.value
         farm.registration_complete = True
-        farm.updated_at = datetime.now(timezone.utc)
+        farm.updated_at = datetime.now(UTC)
 
         return await self.get_registration_status(farm_id)  # type: ignore
 
@@ -320,15 +322,13 @@ class FarmRegistrationWorkflowService:
             FarmRegistrationStep.LAND_DETAILS.value,
         ]:
             farm.registration_step = FarmRegistrationStep.DOCUMENTS.value
-            farm.updated_at = datetime.now(timezone.utc)
+            farm.updated_at = datetime.now(UTC)
 
         return document
 
     async def get_documents(self, farm_id: UUID) -> list[FarmDocument]:
         """Get all documents for a farm."""
-        result = await self.db.execute(
-            select(FarmDocument).where(FarmDocument.farm_id == farm_id)
-        )
+        result = await self.db.execute(select(FarmDocument).where(FarmDocument.farm_id == farm_id))
         return list(result.scalars().all())
 
     # Asset management
@@ -358,15 +358,13 @@ class FarmRegistrationWorkflowService:
         # Advance step if needed
         if farm.registration_step == FarmRegistrationStep.SOIL_WATER.value:
             farm.registration_step = FarmRegistrationStep.ASSETS.value
-            farm.updated_at = datetime.now(timezone.utc)
+            farm.updated_at = datetime.now(UTC)
 
         return asset
 
     async def get_assets(self, farm_id: UUID) -> list[FarmAsset]:
         """Get all assets for a farm."""
-        result = await self.db.execute(
-            select(FarmAsset).where(FarmAsset.farm_id == farm_id)
-        )
+        result = await self.db.execute(select(FarmAsset).where(FarmAsset.farm_id == farm_id))
         return list(result.scalars().all())
 
     # Crop records management
@@ -413,7 +411,7 @@ class FarmRegistrationWorkflowService:
             FarmRegistrationStep.ASSETS.value,
         ]:
             farm.registration_step = FarmRegistrationStep.CROP_HISTORY.value
-            farm.updated_at = datetime.now(timezone.utc)
+            farm.updated_at = datetime.now(UTC)
 
         return crop_record
 
@@ -493,7 +491,7 @@ class FarmRegistrationWorkflowService:
         # If verification visit, update farm status
         if data.purpose == "verification":
             farm.is_verified = True
-            farm.verification_date = datetime.now(timezone.utc)
+            farm.verification_date = datetime.now(UTC)
 
         return visit
 
@@ -510,16 +508,12 @@ class FarmRegistrationWorkflowService:
 
     async def _get_farmer(self, farmer_id: UUID) -> Farmer | None:
         """Get farmer by ID."""
-        result = await self.db.execute(
-            select(Farmer).where(Farmer.id == farmer_id)
-        )
+        result = await self.db.execute(select(Farmer).where(Farmer.id == farmer_id))
         return result.scalar_one_or_none()
 
     async def _get_farm(self, farm_id: UUID) -> FarmProfile | None:
         """Get farm by ID."""
-        result = await self.db.execute(
-            select(FarmProfile).where(FarmProfile.id == farm_id)
-        )
+        result = await self.db.execute(select(FarmProfile).where(FarmProfile.id == farm_id))
         return result.scalar_one_or_none()
 
     async def _get_farm_with_relations(self, farm_id: UUID) -> FarmProfile | None:
@@ -540,7 +534,7 @@ class FarmRegistrationWorkflowService:
     async def _generate_plot_id(self) -> str:
         """Generate unique plot ID."""
         # Format: PLT-YYYYMMDD-XXXX
-        date_part = datetime.now(timezone.utc).strftime("%Y%m%d")
+        date_part = datetime.now(UTC).strftime("%Y%m%d")
         random_part = secrets.token_hex(2).upper()
         return f"PLT-{date_part}-{random_part}"
 

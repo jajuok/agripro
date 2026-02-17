@@ -1,7 +1,6 @@
 """Application configuration."""
 
 from functools import lru_cache
-from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,10 +17,12 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 9011
 
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/agrischeme_notification"
+    database_url: str = (
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/agrischeme_notification"
+    )
     redis_url: str = "redis://localhost:6379/10"
 
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8081"]
+    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8081"]
 
     # Africa's Talking SMS
     at_username: str = ""

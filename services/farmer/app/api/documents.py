@@ -12,7 +12,9 @@ from app.services.document_service import DocumentService
 router = APIRouter()
 
 
-@router.post("/upload/{farmer_id}", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/upload/{farmer_id}", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED
+)
 async def upload_document(
     farmer_id: UUID,
     document_type: str,
