@@ -103,7 +103,7 @@ const SERVICE_PORTS: Record<string, number> = {
   '/livestock': 8000,
   '/tasks': 9009,
   '/inventory': 8000,
-  '/notifications': 8000,
+  '/notifications': 9011,
   '/traceability': 8000,
   '/compliance': 8000,
   '/integration': 8000,
@@ -977,6 +977,48 @@ export const taskApi = {
 
   getStats: async (farmerId: string) => {
     const response = await apiClient.get(`/tasks/stats?farmer_id=${farmerId}`);
+    return response.data;
+  },
+};
+
+// Notification API (uses notification service)
+export const notificationApi = {
+  list: async (userId: string, params?: { page?: number; pageSize?: number; unreadOnly?: boolean }) => {
+    const queryParams = new URLSearchParams({ user_id: userId });
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.pageSize) queryParams.append('page_size', params.pageSize.toString());
+    if (params?.unreadOnly) queryParams.append('unread_only', 'true');
+    const response = await apiClient.get(`/notifications?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  getUnreadCount: async (userId: string) => {
+    const response = await apiClient.get(`/notifications/unread-count?user_id=${userId}`);
+    return response.data;
+  },
+
+  markAsRead: async (notificationId: string, userId: string) => {
+    const response = await apiClient.patch(`/notifications/${notificationId}/read?user_id=${userId}`);
+    return response.data;
+  },
+
+  markAllRead: async (userId: string) => {
+    const response = await apiClient.post(`/notifications/mark-all-read?user_id=${userId}`);
+    return response.data;
+  },
+
+  getPreferences: async (userId: string) => {
+    const response = await apiClient.get(`/notifications/preferences?user_id=${userId}`);
+    return response.data;
+  },
+
+  updatePreferences: async (userId: string, data: Record<string, any>) => {
+    const response = await apiClient.put(`/notifications/preferences?user_id=${userId}`, data);
+    return response.data;
+  },
+
+  savePushSubscription: async (userId: string, subscription: { endpoint: string; keys: Record<string, string> }) => {
+    const response = await apiClient.post(`/notifications/preferences/push-subscription?user_id=${userId}`, subscription);
     return response.data;
   },
 };

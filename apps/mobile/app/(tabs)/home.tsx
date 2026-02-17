@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
-import { farmApi, kycApi, cropPlanningApi } from '@/services/api';
+import { farmApi, kycApi, cropPlanningApi, notificationApi } from '@/services/api';
 
 type QuickAction = {
   icon: string;
@@ -33,6 +33,8 @@ export default function HomeScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchDashboard = useCallback(async () => {
     const farmerId = user?.farmerId;
@@ -122,14 +124,31 @@ export default function HomeScreen() {
     }
   }, [user?.farmerId]);
 
+  const fetchUnreadCount = useCallback(async () => {
+    const userId = user?.id;
+    if (!userId) return;
+    try {
+      const result = await notificationApi.getUnreadCount(userId);
+      setUnreadCount(result.unread_count || 0);
+    } catch {}
+  }, [user?.id]);
+
   useEffect(() => {
     fetchDashboard();
-  }, [fetchDashboard]);
+    fetchUnreadCount();
+
+    // Refresh unread count every 60 seconds
+    intervalRef.current = setInterval(fetchUnreadCount, 60000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [fetchDashboard, fetchUnreadCount]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchDashboard();
-  }, [fetchDashboard]);
+    fetchUnreadCount();
+  }, [fetchDashboard, fetchUnreadCount]);
 
   const firstName = user?.firstName || 'Farmer';
 
@@ -140,8 +159,26 @@ export default function HomeScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}
     >
       <View style={styles.header} testID="home-header">
-        <Text style={styles.greeting} testID="home-greeting">Welcome back, {firstName}!</Text>
-        <Text style={styles.subGreeting} testID="home-sub-greeting">Here's your farm overview</Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.greeting} testID="home-greeting">Welcome back, {firstName}!</Text>
+            <Text style={styles.subGreeting} testID="home-sub-greeting">Here's your farm overview</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.bellButton}
+            onPress={() => router.push('/notifications')}
+            testID="home-bell-button"
+          >
+            <Text style={styles.bellIcon}>bell</Text>
+            {unreadCount > 0 && (
+              <View style={styles.badge} testID="home-bell-badge">
+                <Text style={styles.badgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -248,6 +285,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#1B5E20',
     padding: 24,
     paddingTop: 16,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  bellButton: {
+    padding: 4,
+    position: 'relative',
+  },
+  bellIcon: {
+    fontSize: 24,
+    color: '#fff',
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    backgroundColor: '#F44336',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   greeting: {
     fontSize: 24,
