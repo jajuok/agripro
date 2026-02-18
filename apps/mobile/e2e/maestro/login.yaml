@@ -1,0 +1,28 @@
+appId: com.agrischeme.pro
+---
+# Reusable login flow for Maestro tests
+# TWA loads the PWA - interact via visible text and web elements
+
+- launchApp:
+    clearState: true
+
+# Wait for the PWA to load inside the TWA
+- extendedWaitUntil:
+    visible: "AgriScheme Pro"
+    timeout: 20000
+
+# Enter phone number
+- tapOn: "Phone Number (+254...)"
+- inputText: "+254799999999"
+
+# Enter PIN
+- tapOn: "4-Digit PIN"
+- inputText: "1234"
+
+# Submit login
+- tapOn: "Login"
+
+# Wait for home screen to load
+- extendedWaitUntil:
+    visible: "farm overview"
+    timeout: 15000

@@ -1,0 +1,93 @@
+appId: com.agrischeme.pro
+---
+# Notification feature E2E tests for TWA
+# Tests: bell icon, navigation, list/empty state, mark all read, pull-to-refresh, back nav
+
+# ============================================================
+# Step 1: Login
+# ============================================================
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "AgriScheme Pro"
+    timeout: 20000
+
+# Phone field pre-fills "+254", so clear it first
+- tapOn: "Phone Number (+254...)"
+- eraseText: 20
+- inputText: "+254799999999"
+
+# Enter PIN - hide keyboard first to ensure PIN field is tappable
+- hideKeyboard
+- tapOn: "4-Digit PIN"
+- inputText: "1234"
+
+# Submit login
+- hideKeyboard
+- tapOn: "Login"
+
+- extendedWaitUntil:
+    visible: "🔔"
+    timeout: 20000
+
+# ============================================================
+# Step 2: Verify bell icon on home screen
+# ============================================================
+- assertVisible: "🔔"
+- takeScreenshot: "01_home_bell_visible"
+
+# ============================================================
+# Step 3: Tap bell icon to navigate to notifications
+# ============================================================
+- tapOn: "🔔"
+
+# Wait for notifications screen to load
+- waitForAnimationToEnd
+
+# ============================================================
+# Step 4: Verify notifications screen content
+# ============================================================
+- takeScreenshot: "02_notifications_screen"
+
+# Check for empty state
+- runFlow:
+    when:
+      visible: "No Notifications"
+    commands:
+      - assertVisible: "No Notifications"
+      - assertVisible: "You're all caught up!"
+      - takeScreenshot: "03_empty_state"
+
+# Check for notifications list with Mark All Read
+- runFlow:
+    when:
+      visible: "Mark All Read"
+    commands:
+      - assertVisible: "Mark All Read"
+      - takeScreenshot: "03_notifications_list"
+      - tapOn: "Mark All Read"
+      - takeScreenshot: "04_after_mark_all_read"
+
+# ============================================================
+# Step 5: Pull to refresh
+# ============================================================
+- swipe:
+    direction: DOWN
+    duration: 1000
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "05_after_pull_refresh"
+
+# ============================================================
+# Step 6: Navigate back to home
+# ============================================================
+- pressKey: back
+
+- extendedWaitUntil:
+    visible: "🔔"
+    timeout: 10000
+
+- assertVisible: "🔔"
+- takeScreenshot: "06_back_to_home"
