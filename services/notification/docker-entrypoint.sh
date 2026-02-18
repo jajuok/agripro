@@ -1,19 +1,15 @@
 #!/bin/bash
-set -e
 
 echo "========================================="
 echo "Notification Service - Starting"
 echo "========================================="
 
-# Run database migrations
+# Run database migrations (non-fatal: app can start without migrations)
 echo "Running database migrations..."
-alembic upgrade head
-
-if [ $? -eq 0 ]; then
+if alembic upgrade head 2>&1; then
     echo "Migrations completed successfully"
 else
-    echo "Migration failed"
-    exit 1
+    echo "WARNING: Migration failed - app will start without migrations"
 fi
 
 echo "Starting application..."
