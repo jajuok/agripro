@@ -52,6 +52,9 @@ ignore = [
     "SIM108",  # ternary operator (readability preference)
     "SIM114",  # combine if branches (readability preference)
     "SIM118",  # use key in dict (readability preference)
+    "UP042",   # str, Enum -> StrEnum (keep compat with Python <3.11 patterns)
+    "C408",    # unnecessary dict call (readability preference)
+    "C420",    # unnecessary dict comprehension (readability preference)
 ]
 
 [tool.ruff.lint.isort]
