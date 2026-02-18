@@ -169,7 +169,7 @@ export default function HomeScreen() {
             onPress={() => router.push('/notifications')}
             testID="home-bell-button"
           >
-            <Text style={styles.bellIcon}>bell</Text>
+            <Text style={styles.bellIcon}>🔔</Text>
             {unreadCount > 0 && (
               <View style={styles.badge} testID="home-bell-badge">
                 <Text style={styles.badgeText}>
