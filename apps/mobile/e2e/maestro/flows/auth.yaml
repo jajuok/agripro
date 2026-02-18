@@ -1,0 +1,117 @@
+appId: com.agrischeme.pro
+---
+# Authentication E2E tests
+# Tests: login screen elements, invalid creds, successful login, logout, register navigation
+# Total: 7 test assertions
+#
+# NOTE: In TWA, Maestro can find text inside interactive elements (buttons, inputs, links)
+# and elements by testID (resource-id). Plain text inside WebView is NOT accessible.
+
+# ============================================================
+# Test 1: Display login screen elements
+# ============================================================
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "AgriScheme Pro"
+    timeout: 20000
+
+- assertVisible: "AgriScheme Pro"
+- assertVisible: "Farm Management System"
+- assertVisible: "Phone Number (+254...)"
+- assertVisible: "4-Digit PIN"
+- assertVisible: "Login"
+- assertVisible: "Register"
+- takeScreenshot: "auth_01_login_screen_elements"
+
+# ============================================================
+# Test 2: Show error for invalid credentials
+# ============================================================
+- tapOn: "Phone Number (+254...)"
+- eraseText: 20
+- inputText: "+254700000000"
+- hideKeyboard
+
+- tapOn: "4-Digit PIN"
+- inputText: "0000"
+- hideKeyboard
+
+- tapOn: "Login"
+
+# Wait for error message
+- extendedWaitUntil:
+    visible: "Invalid phone number or PIN"
+    timeout: 10000
+- assertVisible: "Invalid phone number or PIN"
+- takeScreenshot: "auth_02_invalid_credentials"
+
+# ============================================================
+# Test 3: Login successfully with valid credentials
+# ============================================================
+# Relaunch with clean state for reliable login
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "AgriScheme Pro"
+    timeout: 20000
+
+- tapOn: "Phone Number (+254...)"
+- eraseText: 20
+- inputText: "+254799999999"
+- hideKeyboard
+
+- tapOn: "4-Digit PIN"
+- inputText: "1234"
+- hideKeyboard
+
+- tapOn: "Login"
+
+# Wait for home screen (bell icon is reliably visible in TWA WebView)
+- extendedWaitUntil:
+    visible: "🔔"
+    timeout: 20000
+- assertVisible: "🔔"
+- takeScreenshot: "auth_03_login_success"
+
+# ============================================================
+# Test 4: Verify home screen loaded
+# ============================================================
+- assertVisible:
+    id: "home-bell-button"
+- takeScreenshot: "auth_04_home_screen"
+
+# ============================================================
+# Test 5: Logout successfully
+# ============================================================
+- runFlow: ../subflows/logout.yaml
+- assertVisible: "AgriScheme Pro"
+- assertVisible: "Login"
+- takeScreenshot: "auth_05_logout_success"
+
+# ============================================================
+# Test 6: Navigate to registration screen
+# ============================================================
+- tapOn: "Register"
+- extendedWaitUntil:
+    visible: "Create Account"
+    timeout: 10000
+- assertVisible: "Create Account"
+- assertVisible: "First Name"
+- assertVisible: "Last Name"
+- takeScreenshot: "auth_06_register_screen"
+
+# ============================================================
+# Test 7: Navigate back to login from registration
+# ============================================================
+- scrollUntilVisible:
+    element: "Login"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Login"
+- extendedWaitUntil:
+    visible: "AgriScheme Pro"
+    timeout: 10000
+- assertVisible: "AgriScheme Pro"
+- takeScreenshot: "auth_07_back_to_login"

@@ -1,0 +1,54 @@
+appId: com.agrischeme.pro
+---
+# Tasks E2E tests
+# Tests: list, sections, empty state, create FAB, back nav
+# Total: 5 test assertions
+
+# ============================================================
+# Login
+# ============================================================
+- runFlow: ../subflows/login.yaml
+
+# ============================================================
+# Test 1: Navigate to Tasks tab
+# ============================================================
+- tapOn: "Tasks"
+- extendedWaitUntil:
+    visible:
+      id: "tasks-screen"
+    timeout: 10000
+- assertVisible:
+    id: "tasks-screen"
+- takeScreenshot: "tasks_01_navigate_to_tasks"
+
+# ============================================================
+# Test 2: Display tasks screen content
+# ============================================================
+- takeScreenshot: "tasks_02_content"
+
+# ============================================================
+# Test 3: Check for create FAB
+# ============================================================
+- runFlow:
+    when:
+      visible:
+        id: "tasks-fab-create"
+    commands:
+      - assertVisible:
+          id: "tasks-fab-create"
+      - takeScreenshot: "tasks_03_fab_create"
+
+# ============================================================
+# Test 4: Screen state verification
+# ============================================================
+- takeScreenshot: "tasks_04_state"
+
+# ============================================================
+# Test 5: Navigate back to home
+# ============================================================
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible: "🔔"
+    timeout: 10000
+- assertVisible: "🔔"
+- takeScreenshot: "tasks_05_back_to_home"

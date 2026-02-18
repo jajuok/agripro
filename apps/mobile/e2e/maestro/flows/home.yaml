@@ -1,0 +1,77 @@
+appId: com.agrischeme.pro
+---
+# Home screen E2E tests
+# Tests: home loaded, stats, quick actions, KYC section, eligibility section
+# Total: 5 test assertions
+#
+# NOTE: Uses id selectors since plain text not accessible in TWA WebView
+
+# ============================================================
+# Login
+# ============================================================
+- runFlow: ../subflows/login.yaml
+
+# ============================================================
+# Test 1: Verify home screen loaded with greeting
+# ============================================================
+- assertVisible:
+    id: "home-greeting"
+- assertVisible:
+    id: "home-sub-greeting"
+- assertVisible:
+    id: "home-bell-button"
+- takeScreenshot: "home_01_greeting"
+
+# ============================================================
+# Test 2: Display stats container
+# ============================================================
+- assertVisible:
+    id: "home-stats-container"
+- assertVisible:
+    id: "home-stat-farms"
+- assertVisible:
+    id: "home-stat-hectares"
+- assertVisible:
+    id: "home-stat-crops"
+- takeScreenshot: "home_02_stats"
+
+# ============================================================
+# Test 3: Display Quick Actions section
+# ============================================================
+- scrollUntilVisible:
+    element:
+      id: "home-section-quick-actions"
+    direction: DOWN
+    timeout: 10000
+
+- assertVisible:
+    id: "home-section-quick-actions"
+- assertVisible:
+    id: "home-actions-grid"
+- takeScreenshot: "home_03_quick_actions"
+
+# ============================================================
+# Test 4: Display KYC Status section
+# ============================================================
+- scrollUntilVisible:
+    element:
+      id: "home-section-kyc"
+    direction: DOWN
+    timeout: 10000
+
+- assertVisible:
+    id: "home-kyc-card"
+- takeScreenshot: "home_04_kyc_status"
+
+# ============================================================
+# Test 5: Display Eligibility section
+# ============================================================
+- scrollUntilVisible:
+    element:
+      id: "home-section-eligibility"
+    direction: DOWN
+    timeout: 10000
+
+- assertVisible:
+    id: "home-eligibility-card"
+- takeScreenshot: "home_05_eligibility_card"

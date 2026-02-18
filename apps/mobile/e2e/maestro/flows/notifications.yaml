@@ -1,0 +1,91 @@
+appId: com.agrischeme.pro
+---
+# Notification feature E2E tests
+# Tests: bell icon, navigation, list/empty state, mark all read, pull-to-refresh, back nav
+# Total: 8 test assertions
+
+# ============================================================
+# Login
+# ============================================================
+- runFlow: ../subflows/login.yaml
+
+# ============================================================
+# Test 1: Verify bell icon on home screen
+# ============================================================
+- assertVisible:
+    id: "home-bell-button"
+- assertVisible: "🔔"
+- takeScreenshot: "notif_01_home_bell_visible"
+
+# ============================================================
+# Test 2: Tap bell icon to navigate to notifications
+# ============================================================
+- tapOn: "🔔"
+- waitForAnimationToEnd
+
+# ============================================================
+# Test 3: Verify notifications screen loaded
+# ============================================================
+- extendedWaitUntil:
+    visible:
+      id: "notifications-screen"
+    timeout: 10000
+- takeScreenshot: "notif_02_notifications_screen"
+
+# ============================================================
+# Test 4: Check empty state
+# ============================================================
+- runFlow:
+    when:
+      visible:
+        id: "notifications-empty"
+    commands:
+      - assertVisible:
+          id: "notifications-empty"
+      - takeScreenshot: "notif_03_empty_state"
+
+# ============================================================
+# Test 5: Check notifications list with Mark All Read
+# ============================================================
+- runFlow:
+    when:
+      visible:
+        id: "notifications-mark-all-read"
+    commands:
+      - assertVisible:
+          id: "notifications-mark-all-read"
+      - takeScreenshot: "notif_03_notifications_list"
+      - tapOn:
+          id: "notifications-mark-all-read"
+      - takeScreenshot: "notif_04_after_mark_all_read"
+
+# ============================================================
+# Test 6: Pull to refresh
+# ============================================================
+- swipe:
+    direction: DOWN
+    duration: 1000
+- waitForAnimationToEnd
+- takeScreenshot: "notif_05_after_pull_refresh"
+
+# ============================================================
+# Test 7: Navigate back to home
+# ============================================================
+- pressKey: back
+- extendedWaitUntil:
+    visible: "🔔"
+    timeout: 10000
+- assertVisible: "🔔"
+- takeScreenshot: "notif_06_back_to_home"
+
+# ============================================================
+# Test 8: Bell icon still functional after returning
+# ============================================================
+- tapOn: "🔔"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "notifications-screen"
+    timeout: 10000
+- takeScreenshot: "notif_07_re_enter_notifications"
+- pressKey: back

@@ -1,0 +1,24 @@
+appId: com.agrischeme.pro
+---
+# Reusable logout subflow
+# Navigates to Profile tab, scrolls to Logout, taps it, waits for login screen
+# Note: In TWA, Maestro can only find interactive elements (buttons/links/inputs)
+# "Logout" is a TouchableOpacity below the fold, so we scroll to it
+
+- tapOn: "Profile"
+- waitForAnimationToEnd
+
+# Scroll down to find the Logout button (it's below the fold)
+- scrollUntilVisible:
+    element:
+      id: "profile-logout-button"
+    direction: DOWN
+    timeout: 15000
+
+- tapOn:
+    id: "profile-logout-button"
+
+# Wait for login screen to appear
+- extendedWaitUntil:
+    visible: "AgriScheme Pro"
+    timeout: 15000

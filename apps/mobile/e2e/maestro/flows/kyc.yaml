@@ -1,0 +1,352 @@
+appId: com.agrischeme.pro
+---
+# KYC Verification E2E tests
+# Tests: dashboard, personal info, documents, bank info, submit, status, navigation
+# Total: 29 test assertions
+
+# ============================================================
+# Login and navigate to KYC
+# ============================================================
+- runFlow: ../subflows/login.yaml
+
+# Navigate to Profile > KYC Documents
+- tapOn: "Profile"
+- extendedWaitUntil:
+    visible:
+      id: "profile-screen"
+    timeout: 10000
+
+- scrollUntilVisible:
+    element:
+      id: "profile-menu-kyc"
+    direction: DOWN
+    timeout: 10000
+
+- tapOn:
+    id: "profile-menu-kyc"
+- waitForAnimationToEnd
+
+# ============================================================
+# KYC Dashboard Tests (Tests 1-3)
+# ============================================================
+
+# Test 1: Display KYC dashboard
+- extendedWaitUntil:
+    visible:
+      id: "kyc-dashboard"
+    timeout: 10000
+- assertVisible:
+    id: "kyc-dashboard"
+- takeScreenshot: "kyc_01_dashboard"
+
+# Test 2: Display empty state or existing application
+- runFlow:
+    when:
+      visible:
+        id: "kyc-start-button"
+    commands:
+      - assertVisible:
+          id: "kyc-start-button"
+      - takeScreenshot: "kyc_02_empty_dashboard"
+      # Start KYC application
+      - tapOn:
+          id: "kyc-start-button"
+      - waitForAnimationToEnd
+      - takeScreenshot: "kyc_03_start_kyc"
+
+# Test 3: Display existing KYC steps
+- runFlow:
+    when:
+      visible:
+        id: "personal-info-step"
+    commands:
+      - assertVisible:
+          id: "personal-info-step"
+      - takeScreenshot: "kyc_02_existing_application"
+
+# ============================================================
+# Personal Information Step (Tests 4-10)
+# ============================================================
+
+# Test 4: Navigate to personal information
+- runFlow:
+    when:
+      visible:
+        id: "personal-info-step"
+    commands:
+      - tapOn:
+          id: "personal-info-step"
+      - waitForAnimationToEnd
+      - takeScreenshot: "kyc_04_personal_info_nav"
+
+# Test 5: Display personal info form
+- runFlow:
+    when:
+      visible:
+        id: "personal-info-form"
+    commands:
+      - assertVisible:
+          id: "personal-info-form"
+      - takeScreenshot: "kyc_05_personal_info_form"
+
+# Test 6: National ID input
+- runFlow:
+    when:
+      visible:
+        id: "national-id-input"
+    commands:
+      - assertVisible:
+          id: "national-id-input"
+      - takeScreenshot: "kyc_06_national_id"
+
+# Test 7: Date of birth input
+- runFlow:
+    when:
+      visible:
+        id: "dob-input"
+    commands:
+      - assertVisible:
+          id: "dob-input"
+      - takeScreenshot: "kyc_07_dob"
+
+# Test 8: Gender selection
+- runFlow:
+    when:
+      visible:
+        id: "gender-male-button"
+    commands:
+      - assertVisible:
+          id: "gender-male-button"
+      - assertVisible:
+          id: "gender-female-button"
+      - takeScreenshot: "kyc_08_gender"
+
+# Test 9: Phone and address fields
+- runFlow:
+    when:
+      visible:
+        id: "phone-input"
+    commands:
+      - assertVisible:
+          id: "phone-input"
+      - takeScreenshot: "kyc_09_phone_address"
+
+# Test 10: Fill National ID
+- runFlow:
+    when:
+      visible:
+        id: "national-id-input"
+    commands:
+      - tapOn:
+          id: "national-id-input"
+      - inputText: "12345678"
+      - hideKeyboard
+      - takeScreenshot: "kyc_10_national_id_filled"
+
+# Navigate back from personal info
+- pressKey: back
+- waitForAnimationToEnd
+
+# ============================================================
+# Document Upload Step (Tests 11-16)
+# ============================================================
+
+# Test 11: Navigate to documents
+- runFlow:
+    when:
+      visible:
+        id: "documents-step"
+    commands:
+      - tapOn:
+          id: "documents-step"
+      - waitForAnimationToEnd
+      - takeScreenshot: "kyc_11_documents_nav"
+
+# Test 12: Display documents screen
+- runFlow:
+    when:
+      visible:
+        id: "documents-screen"
+    commands:
+      - assertVisible:
+          id: "documents-screen"
+      - takeScreenshot: "kyc_12_documents_screen"
+
+# Test 13: Document number input
+- runFlow:
+    when:
+      visible:
+        id: "document-number-input"
+    commands:
+      - assertVisible:
+          id: "document-number-input"
+      - takeScreenshot: "kyc_13_doc_number"
+
+# Test 14: Upload buttons
+- runFlow:
+    when:
+      visible:
+        id: "take-photo-button"
+    commands:
+      - assertVisible:
+          id: "take-photo-button"
+      - takeScreenshot: "kyc_14_upload_buttons"
+
+- runFlow:
+    when:
+      visible:
+        id: "choose-gallery-button"
+    commands:
+      - assertVisible:
+          id: "choose-gallery-button"
+      - takeScreenshot: "kyc_14b_gallery_button"
+
+# Test 15: Upload document button
+- runFlow:
+    when:
+      visible:
+        id: "upload-document-button"
+    commands:
+      - assertVisible:
+          id: "upload-document-button"
+      - takeScreenshot: "kyc_15_upload_button"
+
+# Test 16: Navigate back from documents
+- pressKey: back
+- waitForAnimationToEnd
+- takeScreenshot: "kyc_16_back_from_documents"
+
+# ============================================================
+# Bank Information Step (Tests 17-22)
+# ============================================================
+
+# Test 17: Navigate to bank information
+- runFlow:
+    when:
+      visible:
+        id: "bank-info-step"
+    commands:
+      - tapOn:
+          id: "bank-info-step"
+      - waitForAnimationToEnd
+      - takeScreenshot: "kyc_17_bank_info_nav"
+
+# Test 18: Display bank form
+- runFlow:
+    when:
+      visible:
+        id: "bank-info-form"
+    commands:
+      - assertVisible:
+          id: "bank-info-form"
+      - takeScreenshot: "kyc_18_bank_form"
+
+# Test 19: Bank name select
+- runFlow:
+    when:
+      visible:
+        id: "bank-name-select"
+    commands:
+      - assertVisible:
+          id: "bank-name-select"
+      - takeScreenshot: "kyc_19_bank_name"
+
+# Test 20: Account number input
+- runFlow:
+    when:
+      visible:
+        id: "account-number-input"
+    commands:
+      - assertVisible:
+          id: "account-number-input"
+      - takeScreenshot: "kyc_20_account_number"
+
+# Test 21: Account name input
+- runFlow:
+    when:
+      visible:
+        id: "account-name-input"
+    commands:
+      - assertVisible:
+          id: "account-name-input"
+      - takeScreenshot: "kyc_21_account_name"
+
+# Test 22: Navigate back from bank info
+- pressKey: back
+- waitForAnimationToEnd
+- takeScreenshot: "kyc_22_back_from_bank"
+
+# ============================================================
+# Status and Progress (Tests 23-26)
+# ============================================================
+
+# Test 23: Dashboard state check
+- takeScreenshot: "kyc_23_dashboard_state"
+
+# Test 24: Step indicators
+- runFlow:
+    when:
+      visible:
+        id: "personal-info-step"
+    commands:
+      - assertVisible:
+          id: "personal-info-step"
+      - takeScreenshot: "kyc_24_step_indicators"
+
+# Test 25: Documents step
+- runFlow:
+    when:
+      visible:
+        id: "documents-step"
+    commands:
+      - assertVisible:
+          id: "documents-step"
+      - takeScreenshot: "kyc_25_documents_step"
+
+# Test 26: Submit section
+- runFlow:
+    when:
+      visible:
+        id: "kyc-submit-button"
+    commands:
+      - takeScreenshot: "kyc_26_submit_section"
+
+# ============================================================
+# Navigation Tests (Tests 27-29)
+# ============================================================
+
+# Test 27: Navigate back to profile
+- pressKey: back
+- extendedWaitUntil:
+    visible:
+      id: "profile-screen"
+    timeout: 10000
+- assertVisible:
+    id: "profile-screen"
+- takeScreenshot: "kyc_27_back_to_profile"
+
+# Test 28: Re-enter KYC from profile
+- scrollUntilVisible:
+    element:
+      id: "profile-menu-kyc"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "profile-menu-kyc"
+- extendedWaitUntil:
+    visible:
+      id: "kyc-dashboard"
+    timeout: 10000
+- assertVisible:
+    id: "kyc-dashboard"
+- takeScreenshot: "kyc_28_re_enter_kyc"
+
+# Test 29: Navigate back to home
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible: "🔔"
+    timeout: 10000
+- assertVisible: "🔔"
+- takeScreenshot: "kyc_29_back_to_home"

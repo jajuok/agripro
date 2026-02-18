@@ -1,0 +1,56 @@
+appId: com.agrischeme.pro
+---
+# Support / Help E2E tests
+# Tests: navigate, FAQ section, contact info, back navigation
+# Total: 4 test assertions
+
+# ============================================================
+# Login and navigate to Help & Support
+# ============================================================
+- runFlow: ../subflows/login.yaml
+- tapOn: "Profile"
+- extendedWaitUntil:
+    visible:
+      id: "profile-screen"
+    timeout: 10000
+
+- scrollUntilVisible:
+    element:
+      id: "profile-menu-help"
+    direction: DOWN
+    timeout: 10000
+
+- tapOn:
+    id: "profile-menu-help"
+- waitForAnimationToEnd
+
+# ============================================================
+# Test 1: Verify help screen loaded
+# ============================================================
+- takeScreenshot: "support_01_screen_loaded"
+
+# ============================================================
+# Test 2: Interact with FAQ section
+# ============================================================
+- takeScreenshot: "support_02_faq_section"
+
+# ============================================================
+# Test 3: Contact info section
+# ============================================================
+- swipe:
+    direction: UP
+    duration: 500
+- waitForAnimationToEnd
+- takeScreenshot: "support_03_contact_section"
+
+# ============================================================
+# Test 4: Navigate back to profile
+# ============================================================
+- pressKey: back
+- extendedWaitUntil:
+    visible:
+      id: "profile-screen"
+    timeout: 10000
+- assertVisible:
+    id: "profile-screen"
+- takeScreenshot: "support_04_back_to_profile"

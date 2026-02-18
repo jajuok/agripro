@@ -1,0 +1,32 @@
+appId: com.agrischeme.pro
+---
+# Reusable login subflow
+# Clears app state, launches, logs in with demo credentials
+# Phone field pre-fills "+254" so we must eraseText before input
+
+- launchApp:
+    clearState: true
+
+# Wait for the PWA to load inside the TWA
+- extendedWaitUntil:
+    visible: "AgriScheme Pro"
+    timeout: 20000
+
+# Enter phone number (clear pre-filled +254 first)
+- tapOn: "Phone Number (+254...)"
+- eraseText: 20
+- inputText: "+254799999999"
+- hideKeyboard
+
+# Enter PIN
+- tapOn: "4-Digit PIN"
+- inputText: "1234"
+- hideKeyboard
+
+# Submit login
+- tapOn: "Login"
+
+# Wait for home screen to load (use bell icon - proven to work in TWA WebView)
+- extendedWaitUntil:
+    visible: "🔔"
+    timeout: 20000

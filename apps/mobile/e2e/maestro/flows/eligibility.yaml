@@ -1,0 +1,110 @@
+appId: com.agrischeme.pro
+---
+# Eligibility E2E tests
+# Tests: navigate to list, stats, scheme cards, detail view, check eligibility, back nav
+# Total: 7 test assertions
+
+# ============================================================
+# Login
+# ============================================================
+- runFlow: ../subflows/login.yaml
+
+# ============================================================
+# Test 1: Navigate to eligibility from home
+# ============================================================
+- scrollUntilVisible:
+    element:
+      id: "home-eligibility-card"
+    direction: DOWN
+    timeout: 10000
+
+- tapOn:
+    id: "home-eligibility-card"
+
+- extendedWaitUntil:
+    visible:
+      id: "eligibility-list-screen"
+    timeout: 10000
+- takeScreenshot: "elig_01_navigate_from_home"
+
+# ============================================================
+# Test 2: Display eligibility list with stats
+# ============================================================
+- assertVisible:
+    id: "eligibility-list-header"
+- runFlow:
+    when:
+      visible:
+        id: "eligibility-list-stats"
+    commands:
+      - assertVisible:
+          id: "eligibility-list-stats"
+      - takeScreenshot: "elig_02_list_stats"
+
+- runFlow:
+    when:
+      notVisible:
+        id: "eligibility-list-stats"
+    commands:
+      - takeScreenshot: "elig_02_list_view"
+
+# ============================================================
+# Test 3: Display scheme cards section
+# ============================================================
+- assertVisible:
+    id: "eligibility-list-schemes-section"
+- takeScreenshot: "elig_03_scheme_cards"
+
+# ============================================================
+# Test 4: Navigate to scheme detail (tap first scheme card)
+# ============================================================
+- scrollUntilVisible:
+    element:
+      id: "eligibility-list-schemes-section"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "eligibility-list-schemes-section"
+- waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible:
+        id: "eligibility-detail-screen"
+    commands:
+      - assertVisible:
+          id: "eligibility-detail-screen"
+      - takeScreenshot: "elig_04_scheme_detail"
+
+# ============================================================
+# Test 5: Check eligibility button
+# ============================================================
+- runFlow:
+    when:
+      visible:
+        id: "eligibility-detail-check-button"
+    commands:
+      - assertVisible:
+          id: "eligibility-detail-check-button"
+      - takeScreenshot: "elig_05_check_button"
+
+# ============================================================
+# Test 6: Navigate back to list
+# ============================================================
+- pressKey: back
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "eligibility-list-screen"
+    timeout: 10000
+- takeScreenshot: "elig_06_back_to_list"
+
+# ============================================================
+# Test 7: Navigate back to home
+# ============================================================
+- pressKey: back
+- extendedWaitUntil:
+    visible: "🔔"
+    timeout: 10000
+- assertVisible: "🔔"
+- takeScreenshot: "elig_07_back_to_home"

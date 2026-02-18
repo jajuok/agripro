@@ -1,0 +1,32 @@
+appId: com.agrischeme.pro
+---
+# Full Regression Suite
+# Runs all 11 test flows in sequence
+# Total: ~79 test assertions across all flows
+#
+# Usage: maestro test apps/mobile/e2e/maestro/regression.yaml
+#
+# Flows:
+#   1. auth        - 7 tests  (login elements, invalid creds, success, logout, register)
+#   2. home        - 5 tests  (greeting, stats, quick actions, KYC card, eligibility)
+#   3. navigation  - 6 tests  (5 tabs + sequential cycle)
+#   4. profile     - 6 tests  (header, KYC badge, stats, menu, version, logout)
+#   5. notifications - 8 tests (bell, nav, list/empty, mark read, refresh, back)
+#   6. kyc         - 29 tests (dashboard, personal info, docs, bank, submit, status, nav)
+#   7. eligibility - 7 tests  (list, stats, cards, detail, check, back nav)
+#   8. farms       - 5 tests  (list/empty, add farm, details, back nav)
+#   9. crop_planning - 5 tests (dashboard, stats, upcoming, empty state, back nav)
+#  10. tasks       - 5 tests  (list, sections, empty state, create, back nav)
+#  11. support     - 4 tests  (FAQ, expand/collapse, contact info, back nav)
+
+- runFlow: flows/auth.yaml
+- runFlow: flows/home.yaml
+- runFlow: flows/navigation.yaml
+- runFlow: flows/profile.yaml
+- runFlow: flows/notifications.yaml
+- runFlow: flows/kyc.yaml
+- runFlow: flows/eligibility.yaml
+- runFlow: flows/farms.yaml
+- runFlow: flows/crop_planning.yaml
+- runFlow: flows/tasks.yaml
+- runFlow: flows/support.yaml

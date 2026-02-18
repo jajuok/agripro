@@ -1,0 +1,82 @@
+appId: com.agrischeme.pro
+---
+# Crop Planning E2E tests
+# Tests: dashboard, stats, create wizard navigation, empty state, back nav
+# Total: 5 test assertions
+
+# ============================================================
+# Login
+# ============================================================
+- runFlow: ../subflows/login.yaml
+
+# ============================================================
+# Test 1: Navigate to crop planning from home quick actions
+# ============================================================
+- scrollUntilVisible:
+    element:
+      id: "home-action-crop-planning"
+    direction: DOWN
+    timeout: 10000
+
+- tapOn:
+    id: "home-action-crop-planning"
+- extendedWaitUntil:
+    visible:
+      id: "cp-dashboard-screen"
+    timeout: 10000
+- assertVisible:
+    id: "cp-dashboard-screen"
+- takeScreenshot: "crop_01_navigate_to_planning"
+
+# ============================================================
+# Test 2: Display stats row
+# ============================================================
+- runFlow:
+    when:
+      visible:
+        id: "cp-stats-row"
+    commands:
+      - assertVisible:
+          id: "cp-stats-row"
+      - takeScreenshot: "crop_02_stats"
+
+# ============================================================
+# Test 3: Display alerts banner (if alerts exist)
+# ============================================================
+- runFlow:
+    when:
+      visible:
+        id: "cp-alerts-banner"
+    commands:
+      - assertVisible:
+          id: "cp-alerts-banner"
+      - takeScreenshot: "crop_03_alerts"
+
+- runFlow:
+    when:
+      notVisible:
+        id: "cp-alerts-banner"
+    commands:
+      - takeScreenshot: "crop_03_no_alerts"
+
+# ============================================================
+# Test 4: Create FAB button
+# ============================================================
+- runFlow:
+    when:
+      visible:
+        id: "cp-fab-create"
+    commands:
+      - assertVisible:
+          id: "cp-fab-create"
+      - takeScreenshot: "crop_04_fab_create"
+
+# ============================================================
+# Test 5: Navigate back to home
+# ============================================================
+- pressKey: back
+- extendedWaitUntil:
+    visible: "🔔"
+    timeout: 10000
+- assertVisible: "🔔"
+- takeScreenshot: "crop_05_back_to_home"

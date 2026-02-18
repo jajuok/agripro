@@ -1,0 +1,104 @@
+appId: com.agrischeme.pro
+---
+# Tab navigation E2E tests
+# Tests: navigate to each of 5 tabs + sequential cycle through all tabs
+# Total: 6 test assertions
+#
+# Tab labels are interactive elements in the TWA bottom nav bar
+
+# ============================================================
+# Login
+# ============================================================
+- runFlow: ../subflows/login.yaml
+
+# ============================================================
+# Test 1: Navigate to Home tab
+# ============================================================
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 10000
+- assertVisible:
+    id: "home-bell-button"
+- takeScreenshot: "nav_01_home_tab"
+
+# ============================================================
+# Test 2: Navigate to My Farms tab
+# ============================================================
+- tapOn: "My Farms"
+- extendedWaitUntil:
+    visible:
+      id: "farms-screen"
+    timeout: 10000
+- takeScreenshot: "nav_02_farms_tab"
+
+# ============================================================
+# Test 3: Navigate to Tasks tab
+# ============================================================
+- tapOn: "Tasks"
+- extendedWaitUntil:
+    visible:
+      id: "tasks-screen"
+    timeout: 10000
+- takeScreenshot: "nav_03_tasks_tab"
+
+# ============================================================
+# Test 4: Navigate to Market tab
+# ============================================================
+- tapOn: "Market"
+- extendedWaitUntil:
+    visible:
+      id: "market-screen"
+    timeout: 10000
+- takeScreenshot: "nav_04_market_tab"
+
+# ============================================================
+# Test 5: Navigate to Profile tab
+# ============================================================
+- tapOn: "Profile"
+- extendedWaitUntil:
+    visible:
+      id: "profile-screen"
+    timeout: 10000
+- takeScreenshot: "nav_05_profile_tab"
+
+# ============================================================
+# Test 6: Sequential navigation cycle
+# ============================================================
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 10000
+
+- tapOn: "My Farms"
+- extendedWaitUntil:
+    visible:
+      id: "farms-screen"
+    timeout: 10000
+
+- tapOn: "Tasks"
+- extendedWaitUntil:
+    visible:
+      id: "tasks-screen"
+    timeout: 10000
+
+- tapOn: "Market"
+- extendedWaitUntil:
+    visible:
+      id: "market-screen"
+    timeout: 10000
+
+- tapOn: "Profile"
+- extendedWaitUntil:
+    visible:
+      id: "profile-screen"
+    timeout: 10000
+
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 10000
+- takeScreenshot: "nav_06_sequential_cycle_complete"

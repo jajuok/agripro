@@ -1,0 +1,116 @@
+appId: com.agrischeme.pro
+---
+# Farms E2E tests
+# Tests: list/empty state, add farm navigation, farm details, FAB
+# Total: 5 test assertions
+
+# ============================================================
+# Login
+# ============================================================
+- runFlow: ../subflows/login.yaml
+
+# ============================================================
+# Test 1: Navigate to My Farms tab
+# ============================================================
+- tapOn: "My Farms"
+- extendedWaitUntil:
+    visible:
+      id: "farms-screen"
+    timeout: 10000
+- assertVisible:
+    id: "farms-screen"
+- takeScreenshot: "farms_01_navigate_to_farms"
+
+# ============================================================
+# Test 2: Display farm list or empty state
+# ============================================================
+- runFlow:
+    when:
+      visible:
+        id: "farms-empty-state"
+    commands:
+      - assertVisible:
+          id: "farms-empty-state"
+      - assertVisible:
+          id: "farms-empty-add-button"
+      - takeScreenshot: "farms_02_empty_state"
+
+- runFlow:
+    when:
+      visible:
+        id: "farms-list"
+    commands:
+      - assertVisible:
+          id: "farms-list"
+      - assertVisible:
+          id: "farms-header-count"
+      - takeScreenshot: "farms_02_farm_list"
+
+# ============================================================
+# Test 3: Navigate to add farm
+# ============================================================
+- runFlow:
+    when:
+      visible:
+        id: "farms-empty-add-button"
+    commands:
+      - tapOn:
+          id: "farms-empty-add-button"
+      - extendedWaitUntil:
+          visible:
+            id: "farms-add-screen"
+          timeout: 10000
+      - assertVisible:
+          id: "farms-add-screen"
+      - takeScreenshot: "farms_03_add_farm_screen"
+      - pressKey: back
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible:
+        id: "farms-add-fab"
+    commands:
+      - tapOn:
+          id: "farms-add-fab"
+      - extendedWaitUntil:
+          visible:
+            id: "farms-add-screen"
+          timeout: 10000
+      - assertVisible:
+          id: "farms-add-screen"
+      - takeScreenshot: "farms_03_add_farm_via_fab"
+      - pressKey: back
+      - waitForAnimationToEnd
+
+# ============================================================
+# Test 4: View farm details (if farms exist)
+# ============================================================
+- runFlow:
+    when:
+      visible:
+        id: "farms-list"
+    commands:
+      - tapOn:
+          id: "farms-list"
+      - waitForAnimationToEnd
+      - takeScreenshot: "farms_04_farm_detail"
+      - pressKey: back
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible:
+        id: "farms-empty-state"
+    commands:
+      - takeScreenshot: "farms_04_no_farms_to_view"
+
+# ============================================================
+# Test 5: Navigate back to home
+# ============================================================
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible: "🔔"
+    timeout: 10000
+- assertVisible: "🔔"
+- takeScreenshot: "farms_05_back_to_home"

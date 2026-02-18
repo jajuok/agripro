@@ -1,0 +1,83 @@
+appId: com.agrischeme.pro
+---
+# Profile screen E2E tests
+# Tests: header, KYC badge, stats, menu items, version, logout
+# Total: 6 test assertions
+
+# ============================================================
+# Login and navigate to Profile
+# ============================================================
+- runFlow: ../subflows/login.yaml
+- tapOn: "Profile"
+- extendedWaitUntil:
+    visible:
+      id: "profile-screen"
+    timeout: 10000
+
+# ============================================================
+# Test 1: Display profile header with user info
+# ============================================================
+- assertVisible:
+    id: "profile-avatar"
+- assertVisible:
+    id: "profile-name"
+- assertVisible:
+    id: "profile-email"
+- takeScreenshot: "profile_01_header"
+
+# ============================================================
+# Test 2: Display KYC badge
+# ============================================================
+- assertVisible:
+    id: "profile-verified-badge"
+- takeScreenshot: "profile_02_kyc_badge"
+
+# ============================================================
+# Test 3: Display profile stats
+# ============================================================
+- assertVisible:
+    id: "profile-stats"
+- assertVisible:
+    id: "profile-stat-farms"
+- assertVisible:
+    id: "profile-stat-hectares"
+- takeScreenshot: "profile_03_stats"
+
+# ============================================================
+# Test 4: Display profile menu items
+# ============================================================
+- assertVisible:
+    id: "profile-menu"
+- takeScreenshot: "profile_04_menu_items"
+
+# ============================================================
+# Test 5: Display app version
+# ============================================================
+- scrollUntilVisible:
+    element:
+      id: "profile-version"
+    direction: DOWN
+    timeout: 10000
+
+- assertVisible:
+    id: "profile-version"
+- takeScreenshot: "profile_05_version"
+
+# ============================================================
+# Test 6: Logout and verify redirect to login
+# ============================================================
+- scrollUntilVisible:
+    element:
+      id: "profile-logout-button"
+    direction: DOWN
+    timeout: 10000
+
+- tapOn:
+    id: "profile-logout-button"
+
+- extendedWaitUntil:
+    visible: "AgriScheme Pro"
+    timeout: 15000
+- assertVisible: "AgriScheme Pro"
+- assertVisible: "Login"
+- takeScreenshot: "profile_06_logout_redirect"
