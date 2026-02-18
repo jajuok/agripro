@@ -988,7 +988,7 @@ export const notificationApi = {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.pageSize) queryParams.append('page_size', params.pageSize.toString());
     if (params?.unreadOnly) queryParams.append('unread_only', 'true');
-    const response = await apiClient.get(`/notifications?${queryParams.toString()}`);
+    const response = await apiClient.get(`/notifications/?${queryParams.toString()}`);
     return response.data;
   },
 
@@ -1008,12 +1008,12 @@ export const notificationApi = {
   },
 
   getPreferences: async (userId: string) => {
-    const response = await apiClient.get(`/notifications/preferences?user_id=${userId}`);
+    const response = await apiClient.get(`/notifications/preferences/?user_id=${userId}`);
     return response.data;
   },
 
   updatePreferences: async (userId: string, data: Record<string, any>) => {
-    const response = await apiClient.put(`/notifications/preferences?user_id=${userId}`, data);
+    const response = await apiClient.put(`/notifications/preferences/?user_id=${userId}`, data);
     return response.data;
   },
 
