@@ -1,0 +1,96 @@
+appId: com.agrischeme.pro
+---
+# Reports E2E tests
+# Tests: navigate from home, farm summary, crop planning, task overview, KYC section, back nav
+# Total: 7 test assertions
+#
+# NOTE: Uses text selectors for TWA WebView compatibility
+
+# ============================================================
+# Login
+# ============================================================
+- runFlow: ../subflows/login.yaml
+
+# ============================================================
+# Test 1: Navigate to reports from home quick action
+# ============================================================
+- scrollUntilVisible:
+    element: "Reports"
+    direction: DOWN
+    timeout: 10000
+
+- tapOn: "Reports"
+
+- extendedWaitUntil:
+    visible: "Farm management overview"
+    timeout: 15000
+- takeScreenshot: "reports_01_navigate_from_home"
+
+# ============================================================
+# Test 2: Display farm summary section
+# ============================================================
+- assertVisible: "Farm Summary"
+- assertVisible: "Total Farms"
+- assertVisible: "Acreage (ha)"
+- assertVisible: "Active Crops"
+- takeScreenshot: "reports_02_farm_summary"
+
+# ============================================================
+# Test 3: Display crop planning section
+# ============================================================
+- scrollUntilVisible:
+    element: "Crop Planning"
+    direction: DOWN
+    timeout: 10000
+
+- assertVisible: "Crop Planning"
+- assertVisible: "Active Plans"
+- assertVisible: "Plan Completion"
+- takeScreenshot: "reports_03_crop_planning"
+
+# ============================================================
+# Test 4: Display task overview section
+# ============================================================
+- scrollUntilVisible:
+    element: "Task Overview"
+    direction: DOWN
+    timeout: 10000
+
+- assertVisible: "Task Overview"
+- assertVisible: "Total Tasks"
+- assertVisible: "Task Completion"
+- takeScreenshot: "reports_04_task_overview"
+
+# ============================================================
+# Test 5: Display KYC & compliance section
+# ============================================================
+- scrollUntilVisible:
+    element: "KYC & Compliance"
+    direction: DOWN
+    timeout: 10000
+
+- assertVisible: "KYC & Compliance"
+- takeScreenshot: "reports_05_kyc_compliance"
+
+# ============================================================
+# Test 6: Pull to refresh
+# ============================================================
+- scrollUntilVisible:
+    element: "Farm Summary"
+    direction: UP
+    timeout: 10000
+- swipe:
+    start: 50%, 30%
+    end: 50%, 70%
+    duration: 1000
+- takeScreenshot: "reports_06_after_refresh"
+
+# ============================================================
+# Test 7: Navigate back to home
+# ============================================================
+- tapOn: "← Back"
+- extendedWaitUntil:
+    visible: "🔔"
+    timeout: 10000
+- assertVisible: "🔔"
+- takeScreenshot: "reports_07_back_to_home"
