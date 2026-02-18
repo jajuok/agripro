@@ -39,7 +39,7 @@ RUN chmod +x ./docker-entrypoint.sh && \
 
 USER appuser
 
-EXPOSE 9011
+EXPOSE 8000
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9011"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

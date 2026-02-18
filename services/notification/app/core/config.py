@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     host: str = "0.0.0.0"
-    port: int = 9011
+    port: int = 8000
 
     database_url: str = (
         "postgresql+asyncpg://postgres:postgres@localhost:5432/agrischeme_notification"

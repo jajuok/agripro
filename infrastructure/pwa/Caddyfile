@@ -93,6 +93,11 @@
     }
   }
 
+  handle /api/v1/notifications {
+    reverse_proxy 213.32.19.116:80 {
+      header_up Host notification.213.32.19.116.sslip.io
+    }
+  }
   handle /api/v1/notifications/* {
     reverse_proxy 213.32.19.116:80 {
       header_up Host notification.213.32.19.116.sslip.io
