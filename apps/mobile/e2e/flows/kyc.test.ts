@@ -12,8 +12,8 @@ describe('KYC Workflow', () => {
     await device.launchApp({ newInstance: true, delete: true });
 
     // Login first
-    await waitForVisible('login-email-input', 15000);
-    await login(DEMO_CREDENTIALS.email, DEMO_CREDENTIALS.password);
+    await waitForVisible('login-screen', 15000);
+    await login(DEMO_CREDENTIALS.phone, DEMO_CREDENTIALS.pin);
 
     // Wait for home screen
     await waitForVisible('home-screen', 15000);

@@ -17,22 +17,39 @@ export const generateTestData = () => {
 };
 
 /**
- * Login with provided credentials
+ * Login with provided credentials (phone + PIN)
  */
-export const login = async (email: string, password: string) => {
+export const login = async (phone: string, pin: string) => {
   await waitFor(element(by.id('login-screen')))
     .toBeVisible()
     .withTimeout(15000);
 
-  await waitFor(element(by.id('login-email-input')))
-    .toBeVisible()
-    .withTimeout(10000);
+  // Phone input may be hidden if a cached phone is shown
+  try {
+    await waitFor(element(by.id('login-phone-input')))
+      .toBeVisible()
+      .withTimeout(3000);
 
-  await element(by.id('login-email-input')).tap();
-  await element(by.id('login-email-input')).typeText(email);
+    await element(by.id('login-phone-input')).tap();
+    await element(by.id('login-phone-input')).clearText();
+    await element(by.id('login-phone-input')).typeText(phone);
+  } catch {
+    // Cached phone shown — tap "Not you?" to show phone field
+    try {
+      await element(by.id('login-change-phone')).tap();
+      await waitFor(element(by.id('login-phone-input')))
+        .toBeVisible()
+        .withTimeout(5000);
+      await element(by.id('login-phone-input')).tap();
+      await element(by.id('login-phone-input')).clearText();
+      await element(by.id('login-phone-input')).typeText(phone);
+    } catch {
+      // Phone field may already be pre-filled, continue to PIN
+    }
+  }
 
-  await element(by.id('login-password-input')).tap();
-  await element(by.id('login-password-input')).typeText(password);
+  await element(by.id('login-pin-input')).tap();
+  await element(by.id('login-pin-input')).typeText(pin);
 
   await element(by.id('login-submit-button')).tap();
 
@@ -96,9 +113,9 @@ export const navigateToTab = async (tabId: string) => {
 };
 
 /**
- * Demo credentials for testing
+ * Demo credentials for testing (phone + PIN)
  */
 export const DEMO_CREDENTIALS = {
-  email: 'demo@agripro.com',
-  password: 'Demo1234X',
+  phone: '+254799999999',
+  pin: '1234',
 };

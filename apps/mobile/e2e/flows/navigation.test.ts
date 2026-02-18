@@ -5,7 +5,7 @@ import { waitForVisible, waitForText } from '../utils/waitHelpers';
 describe('Tab Navigation', () => {
   beforeAll(async () => {
     await device.launchApp({ newInstance: true, delete: true });
-    await login(DEMO_CREDENTIALS.email, DEMO_CREDENTIALS.password);
+    await login(DEMO_CREDENTIALS.phone, DEMO_CREDENTIALS.pin);
   });
 
   beforeEach(async () => {

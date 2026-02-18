@@ -128,20 +128,21 @@ export default function NotificationsScreen() {
         style={[styles.card, !item.is_read && styles.cardUnread]}
         onPress={() => handlePress(item)}
         activeOpacity={0.7}
+        testID={`notification-item-${item.id}`}
       >
         <View style={[styles.iconBadge, { backgroundColor: color }]}>
           <Text style={styles.iconText}>{icon}</Text>
         </View>
         <View style={styles.cardContent}>
-          <Text style={[styles.cardTitle, !item.is_read && styles.cardTitleUnread]}>
+          <Text style={[styles.cardTitle, !item.is_read && styles.cardTitleUnread]} testID={`notification-title-${item.id}`}>
             {item.title}
           </Text>
-          <Text style={styles.cardBody} numberOfLines={2}>
+          <Text style={styles.cardBody} numberOfLines={2} testID={`notification-body-${item.id}`}>
             {item.body}
           </Text>
           <Text style={styles.cardTime}>{timeAgo(item.created_at)}</Text>
         </View>
-        {!item.is_read && <View style={styles.unreadDot} />}
+        {!item.is_read && <View style={styles.unreadDot} testID={`notification-unread-${item.id}`} />}
       </TouchableOpacity>
     );
   };
@@ -155,13 +156,14 @@ export default function NotificationsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="notifications-screen">
       {items.length > 0 && (
-        <TouchableOpacity style={styles.markAllButton} onPress={handleMarkAllRead}>
+        <TouchableOpacity style={styles.markAllButton} onPress={handleMarkAllRead} testID="notifications-mark-all-read">
           <Text style={styles.markAllText}>Mark All Read</Text>
         </TouchableOpacity>
       )}
       <FlatList
+        testID="notifications-list"
         data={items}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
@@ -172,7 +174,7 @@ export default function NotificationsScreen() {
         onEndReachedThreshold={0.3}
         contentContainerStyle={items.length === 0 ? styles.emptyContainer : undefined}
         ListEmptyComponent={
-          <View style={styles.emptyContent}>
+          <View style={styles.emptyContent} testID="notifications-empty">
             <Text style={styles.emptyIcon}>🔔</Text>
             <Text style={styles.emptyTitle}>No Notifications</Text>
             <Text style={styles.emptySubtitle}>You're all caught up!</Text>

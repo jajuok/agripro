@@ -23,20 +23,21 @@ describe('Authentication Flows', () => {
 
       await expect(element(by.id('login-title'))).toBeVisible();
       await expect(element(by.id('login-subtitle'))).toBeVisible();
-      await expect(element(by.id('login-email-input'))).toBeVisible();
-      await expect(element(by.id('login-password-input'))).toBeVisible();
+      await expect(element(by.id('login-phone-input'))).toBeVisible();
+      await expect(element(by.id('login-pin-input'))).toBeVisible();
       await expect(element(by.id('login-submit-button'))).toBeVisible();
       await expect(element(by.id('login-register-link'))).toBeVisible();
     });
 
     it('should show error for invalid credentials', async () => {
-      await waitForVisible('login-email-input', 15000);
+      await waitForVisible('login-phone-input', 15000);
 
-      await element(by.id('login-email-input')).tap();
-      await element(by.id('login-email-input')).typeText('invalid@test.com');
+      await element(by.id('login-phone-input')).tap();
+      await element(by.id('login-phone-input')).clearText();
+      await element(by.id('login-phone-input')).typeText('+254700000000');
 
-      await element(by.id('login-password-input')).tap();
-      await element(by.id('login-password-input')).typeText('wrongpassword');
+      await element(by.id('login-pin-input')).tap();
+      await element(by.id('login-pin-input')).typeText('9999');
 
       await element(by.id('login-submit-button')).tap();
 
@@ -45,9 +46,9 @@ describe('Authentication Flows', () => {
     });
 
     it('should login successfully with valid credentials', async () => {
-      await waitForVisible('login-email-input', 15000);
+      await waitForVisible('login-screen', 15000);
 
-      await login(DEMO_CREDENTIALS.email, DEMO_CREDENTIALS.password);
+      await login(DEMO_CREDENTIALS.phone, DEMO_CREDENTIALS.pin);
 
       await expect(element(by.id('home-screen'))).toBeVisible();
       await expect(element(by.id('home-greeting'))).toBeVisible();
@@ -57,11 +58,10 @@ describe('Authentication Flows', () => {
       // Launch fresh to ensure clean state
       await device.launchApp({ newInstance: true, delete: true });
 
-      await login(DEMO_CREDENTIALS.email, DEMO_CREDENTIALS.password);
+      await login(DEMO_CREDENTIALS.phone, DEMO_CREDENTIALS.pin);
       await logout();
 
       await expect(element(by.id('login-screen'))).toBeVisible();
-      await expect(element(by.id('login-email-input'))).toBeVisible();
     });
   });
 
