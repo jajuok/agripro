@@ -184,6 +184,7 @@ class NotificationService:
                 setattr(pref, key, value)
 
         await self.db.flush()
+        await self.db.refresh(pref)
         return pref
 
     async def save_push_subscription(
@@ -197,6 +198,7 @@ class NotificationService:
         pref.push_subscription = subscription
         pref.push_enabled = True
         await self.db.flush()
+        await self.db.refresh(pref)
         return pref
 
     # --- Delivery ---
