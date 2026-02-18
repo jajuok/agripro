@@ -98,6 +98,7 @@ export default function RootLayout() {
             <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
             <Stack.Screen name="support" options={{ title: 'Help & Support' }} />
             <Stack.Screen name="legal" options={{ title: 'Terms & Privacy' }} />
+            <Stack.Screen name="reports" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </QueryClientProvider>
