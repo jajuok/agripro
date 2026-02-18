@@ -173,7 +173,7 @@ export default function NotificationsScreen() {
         contentContainerStyle={items.length === 0 ? styles.emptyContainer : undefined}
         ListEmptyComponent={
           <View style={styles.emptyContent}>
-            <Text style={styles.emptyIcon}>bell</Text>
+            <Text style={styles.emptyIcon}>🔔</Text>
             <Text style={styles.emptyTitle}>No Notifications</Text>
             <Text style={styles.emptySubtitle}>You're all caught up!</Text>
           </View>
