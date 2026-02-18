@@ -16,7 +16,7 @@ from app.services.notification_service import NotificationService
 router = APIRouter(prefix="/preferences")
 
 
-@router.get("/", response_model=PreferenceResponse)
+@router.get("", response_model=PreferenceResponse)
 async def get_preferences(
     user_id: UUID = Query(...),
     db: AsyncSession = Depends(get_db),
@@ -29,7 +29,7 @@ async def get_preferences(
     return PreferenceResponse.model_validate(pref)
 
 
-@router.put("/", response_model=PreferenceResponse)
+@router.put("", response_model=PreferenceResponse)
 async def update_preferences(
     payload: PreferenceUpdate,
     user_id: UUID = Query(...),

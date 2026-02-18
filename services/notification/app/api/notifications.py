@@ -18,7 +18,7 @@ from app.services.notification_service import NotificationService
 router = APIRouter()
 
 
-@router.get("/", response_model=NotificationListResponse)
+@router.get("", response_model=NotificationListResponse)
 async def list_notifications(
     user_id: UUID = Query(...),
     page: int = Query(1, ge=1),
@@ -49,7 +49,7 @@ async def get_unread_count(
     return UnreadCountResponse(unread_count=count)
 
 
-@router.post("/", response_model=NotificationResponse, status_code=201)
+@router.post("", response_model=NotificationResponse, status_code=201)
 async def create_notification(
     payload: NotificationCreate,
     db: AsyncSession = Depends(get_db),
