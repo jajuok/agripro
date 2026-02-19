@@ -53,7 +53,7 @@ appId: com.agrischeme.pro
 # Test 1: Navigate to eligibility from home
 # ============================================================
 - scrollUntilVisible:
-    element: "Scheme Eligibility"
+    element: "Scheme Eligibility Criteria"
     direction: DOWN
     timeout: 10000
 

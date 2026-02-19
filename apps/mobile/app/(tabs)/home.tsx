@@ -239,7 +239,7 @@ export default function HomeScreen() {
             )}
           </View>
 
-          <Text style={styles.sectionTitle} testID="home-section-eligibility">Scheme Eligibility</Text>
+          <Text style={styles.sectionTitle} testID="home-section-eligibility">Scheme Eligibility Criteria</Text>
           <TouchableOpacity
             style={styles.eligibilityCard}
             onPress={() => router.push('/eligibility')}
