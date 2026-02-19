@@ -10,7 +10,9 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
-import { api } from '@/services/api';
+import { eligibilityApi } from '@/services/api';
+
+const TENANT_ID = '00000000-0000-0000-0000-000000000001';
 
 type Scheme = {
   id: string;
@@ -42,6 +44,7 @@ export default function EligibilityScreen() {
   const [myAssessments, setMyAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -50,63 +53,38 @@ export default function EligibilityScreen() {
   const loadData = async () => {
     try {
       setLoading(true);
-      // In a real app, these would be actual API calls
-      // For now, use mock data
-      setSchemes([
-        {
-          id: '1',
-          name: 'Agricultural Input Subsidy',
-          code: 'AIS-2024',
-          description: 'Government subsidy program for certified seeds and fertilizers',
-          scheme_type: 'subsidy',
-          status: 'active',
-          benefit_type: 'voucher',
-          benefit_amount: 15000,
-          application_deadline: '2024-03-31',
-          max_beneficiaries: 10000,
-          current_beneficiaries: 7500,
-        },
-        {
-          id: '2',
-          name: 'Crop Insurance Program',
-          code: 'CIP-2024',
-          description: 'Weather-indexed crop insurance for smallholder farmers',
-          scheme_type: 'insurance',
-          status: 'active',
-          benefit_type: 'service',
-          benefit_amount: 50000,
-          application_deadline: '2024-02-28',
-          max_beneficiaries: 5000,
-          current_beneficiaries: 2100,
-        },
-        {
-          id: '3',
-          name: 'Farm Mechanization Loan',
-          code: 'FML-2024',
-          description: 'Low-interest loans for farm equipment purchase',
-          scheme_type: 'loan',
-          status: 'active',
-          benefit_type: 'cash',
-          benefit_amount: 500000,
-          application_deadline: '2024-06-30',
-          max_beneficiaries: 1000,
-          current_beneficiaries: 450,
-        },
+      setError(null);
+
+      const farmerId = user?.farmerId;
+
+      const results = await Promise.allSettled([
+        eligibilityApi.listSchemes(TENANT_ID, { status: 'active' }),
+        farmerId ? eligibilityApi.listFarmerAssessments(farmerId) : Promise.resolve({ items: [] }),
       ]);
 
-      setMyAssessments([
-        {
-          id: 'a1',
-          scheme_id: '1',
-          status: 'approved',
-          eligibility_score: 85,
-          risk_level: 'low',
-          final_decision: 'approved',
-          waitlist_position: 0,
-        },
-      ]);
-    } catch (error) {
-      console.error('Error loading eligibility data:', error);
+      const schemesResult = results[0];
+      const assessmentsResult = results[1];
+
+      if (schemesResult.status === 'fulfilled') {
+        setSchemes(schemesResult.value.items || []);
+      } else {
+        console.error('Error loading schemes:', schemesResult.reason);
+        setSchemes([]);
+      }
+
+      if (assessmentsResult.status === 'fulfilled') {
+        setMyAssessments(assessmentsResult.value.items || []);
+      } else {
+        console.error('Error loading assessments:', assessmentsResult.reason);
+        setMyAssessments([]);
+      }
+
+      if (schemesResult.status === 'rejected' && assessmentsResult.status === 'rejected') {
+        setError('Failed to load eligibility data. Pull down to retry.');
+      }
+    } catch (err) {
+      console.error('Error loading eligibility data:', err);
+      setError('Something went wrong. Pull down to retry.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -146,8 +124,10 @@ export default function EligibilityScreen() {
 
   const renderSchemeCard = (scheme: Scheme) => {
     const assessment = getAssessmentForScheme(scheme.id);
-    const spotsLeft = scheme.max_beneficiaries - scheme.current_beneficiaries;
-    const fillPercentage = (scheme.current_beneficiaries / scheme.max_beneficiaries) * 100;
+    const maxBen = scheme.max_beneficiaries || 0;
+    const curBen = scheme.current_beneficiaries || 0;
+    const spotsLeft = maxBen - curBen;
+    const fillPercentage = maxBen > 0 ? (curBen / maxBen) * 100 : 0;
 
     return (
       <TouchableOpacity
@@ -178,7 +158,7 @@ export default function EligibilityScreen() {
         <View style={styles.benefitRow} testID={`eligibility-list-scheme-${scheme.id}-benefit`}>
           <Text style={styles.benefitLabel}>Benefit:</Text>
           <Text style={styles.benefitValue} testID={`eligibility-list-scheme-${scheme.id}-benefit-amount`}>
-            KES {scheme.benefit_amount.toLocaleString()} ({scheme.benefit_type})
+            KES {(scheme.benefit_amount ?? 0).toLocaleString()} ({scheme.benefit_type || 'N/A'})
           </Text>
         </View>
 
@@ -203,7 +183,7 @@ export default function EligibilityScreen() {
         <View style={styles.deadlineRow} testID={`eligibility-list-scheme-${scheme.id}-deadline`}>
           <Text style={styles.deadlineIcon}>📅</Text>
           <Text style={styles.deadlineText} testID={`eligibility-list-scheme-${scheme.id}-deadline-text`}>
-            Apply by: {new Date(scheme.application_deadline).toLocaleDateString()}
+            Apply by: {scheme.application_deadline ? new Date(scheme.application_deadline).toLocaleDateString() : 'No deadline'}
           </Text>
         </View>
 
@@ -287,9 +267,21 @@ export default function EligibilityScreen() {
         </View>
       </View>
 
+      {/* Error State */}
+      {error && (
+        <View style={styles.emptyContainer} testID="eligibility-list-error">
+          <Text style={styles.emptyText} testID="eligibility-list-error-text">{error}</Text>
+        </View>
+      )}
+
       {/* Scheme Cards */}
       <View style={styles.schemesSection} testID="eligibility-list-schemes-section">
         <Text style={styles.sectionTitle} testID="eligibility-list-section-title">Available Programs</Text>
+        {schemes.length === 0 && !error && (
+          <View style={styles.emptyContainer} testID="eligibility-list-empty">
+            <Text style={styles.emptyText} testID="eligibility-list-empty-text">No schemes available at the moment.</Text>
+          </View>
+        )}
         {schemes.map(renderSchemeCard)}
       </View>
     </ScrollView>
@@ -512,5 +504,14 @@ const styles = StyleSheet.create({
   approvedText: {
     color: '#2E7D32',
     fontWeight: '600',
+  },
+  emptyContainer: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
   },
 });

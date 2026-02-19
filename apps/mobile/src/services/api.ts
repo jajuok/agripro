@@ -104,6 +104,7 @@ const SERVICE_PORTS: Record<string, number> = {
   '/tasks': 9009,
   '/inventory': 8000,
   '/notifications': 9011,
+  '/eligibility': 9001,
   '/traceability': 8000,
   '/compliance': 8000,
   '/integration': 8000,
@@ -1019,6 +1020,43 @@ export const notificationApi = {
 
   savePushSubscription: async (userId: string, subscription: { endpoint: string; keys: Record<string, string> }) => {
     const response = await apiClient.post(`/notifications/preferences/push-subscription?user_id=${userId}`, subscription);
+    return response.data;
+  },
+};
+
+// Eligibility API (uses farmer service)
+export const eligibilityApi = {
+  listSchemes: async (tenantId: string, params?: { status?: string; page?: number; pageSize?: number }) => {
+    const queryParams = new URLSearchParams({ tenant_id: tenantId });
+    if (params?.status) queryParams.append('scheme_status', params.status);
+    queryParams.append('page', (params?.page ?? 1).toString());
+    queryParams.append('page_size', (params?.pageSize ?? 50).toString());
+    const response = await apiClient.get(`/eligibility/schemes?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  getScheme: async (schemeId: string) => {
+    const response = await apiClient.get(`/eligibility/schemes/${schemeId}`);
+    return response.data;
+  },
+
+  assess: async (farmerId: string, schemeId: string, tenantId: string, farmId?: string) => {
+    const body: Record<string, string> = { farmer_id: farmerId, scheme_id: schemeId };
+    if (farmId) body.farm_id = farmId;
+    const response = await apiClient.post(`/eligibility/assessments?tenant_id=${tenantId}`, body);
+    return response.data;
+  },
+
+  getAssessment: async (assessmentId: string) => {
+    const response = await apiClient.get(`/eligibility/assessments/${assessmentId}`);
+    return response.data;
+  },
+
+  listFarmerAssessments: async (farmerId: string, params?: { page?: number; pageSize?: number }) => {
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', (params?.page ?? 1).toString());
+    queryParams.append('page_size', (params?.pageSize ?? 50).toString());
+    const response = await apiClient.get(`/eligibility/farmers/${farmerId}/assessments?${queryParams.toString()}`);
     return response.data;
   },
 };

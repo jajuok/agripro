@@ -10,6 +10,9 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
+import { eligibilityApi } from '@/services/api';
+
+const TENANT_ID = '00000000-0000-0000-0000-000000000001';
 
 type Scheme = {
   id: string;
@@ -67,24 +70,29 @@ export default function SchemeDetailScreen() {
 
   const loadSchemeData = async () => {
     try {
-      // Mock data - in real app, fetch from API
-      setScheme({
-        id: id || '1',
-        name: 'Agricultural Input Subsidy',
-        code: 'AIS-2024',
-        description:
-          'Government subsidy program for certified seeds and fertilizers. This program aims to increase agricultural productivity by providing farmers with access to quality inputs at subsidized rates.',
-        scheme_type: 'subsidy',
-        status: 'active',
-        benefit_type: 'voucher',
-        benefit_amount: 15000,
-        benefit_description:
-          'E-voucher redeemable at certified agro-dealers for seeds and fertilizers',
-        application_deadline: '2024-03-31',
-        max_beneficiaries: 10000,
-        current_beneficiaries: 7500,
-        auto_approve_enabled: true,
-      });
+      if (!id) return;
+
+      const farmerId = user?.farmerId;
+
+      const results = await Promise.allSettled([
+        eligibilityApi.getScheme(id),
+        farmerId ? eligibilityApi.listFarmerAssessments(farmerId) : Promise.resolve({ items: [] }),
+      ]);
+
+      const schemeResult = results[0];
+      const assessmentsResult = results[1];
+
+      if (schemeResult.status === 'fulfilled') {
+        setScheme(schemeResult.value);
+      } else {
+        console.error('Error loading scheme:', schemeResult.reason);
+      }
+
+      if (assessmentsResult.status === 'fulfilled') {
+        const assessments = assessmentsResult.value.items || [];
+        const existing = assessments.find((a: Assessment & { scheme_id: string }) => a.scheme_id === id);
+        if (existing) setAssessment(existing);
+      }
     } catch (error) {
       console.error('Error loading scheme:', error);
     } finally {
@@ -93,104 +101,17 @@ export default function SchemeDetailScreen() {
   };
 
   const checkEligibility = async () => {
+    if (!id || !user?.farmerId) {
+      Alert.alert('Error', 'Please complete your profile before checking eligibility.');
+      return;
+    }
     setAssessing(true);
     try {
-      // Simulate API call with delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Mock assessment result
-      const mockAssessment: Assessment = {
-        id: 'assess-1',
-        status: 'eligible',
-        eligibility_score: 78,
-        risk_score: 25,
-        risk_level: 'low',
-        credit_score: 720,
-        rules_passed: 7,
-        rules_failed: 1,
-        rule_results: [
-          {
-            rule_id: '1',
-            rule_name: 'KYC Verification',
-            passed: true,
-            actual_value: 'approved',
-            expected_value: 'approved',
-            message: 'KYC verification completed',
-            is_mandatory: true,
-          },
-          {
-            rule_id: '2',
-            rule_name: 'Minimum Land Size',
-            passed: true,
-            actual_value: '2.5',
-            expected_value: '1.0',
-            message: 'Farm size meets minimum requirement',
-            is_mandatory: true,
-          },
-          {
-            rule_id: '3',
-            rule_name: 'Farm Location',
-            passed: true,
-            actual_value: 'Kiambu',
-            expected_value: 'Eligible Counties',
-            message: 'Farm is in an eligible county',
-            is_mandatory: true,
-          },
-          {
-            rule_id: '4',
-            rule_name: 'Active Farm Registration',
-            passed: true,
-            actual_value: 'true',
-            expected_value: 'true',
-            message: 'Farm registration is complete',
-            is_mandatory: true,
-          },
-          {
-            rule_id: '5',
-            rule_name: 'Credit Score',
-            passed: true,
-            actual_value: '720',
-            expected_value: '600',
-            message: 'Credit score meets requirement',
-            is_mandatory: false,
-          },
-          {
-            rule_id: '6',
-            rule_name: 'No Active Defaults',
-            passed: true,
-            actual_value: '0',
-            expected_value: '0',
-            message: 'No active loan defaults',
-            is_mandatory: true,
-          },
-          {
-            rule_id: '7',
-            rule_name: 'Crop History',
-            passed: true,
-            actual_value: '3 seasons',
-            expected_value: '2 seasons',
-            message: 'Sufficient crop cultivation history',
-            is_mandatory: false,
-          },
-          {
-            rule_id: '8',
-            rule_name: 'Maximum Debt Ratio',
-            passed: false,
-            actual_value: '42%',
-            expected_value: '40%',
-            message: 'Debt-to-income ratio slightly exceeds limit',
-            is_mandatory: false,
-          },
-        ],
-        workflow_decision: 'manual_review',
-        final_decision: '',
-        decision_reason: '',
-        waitlist_position: 0,
-      };
-
-      setAssessment(mockAssessment);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to check eligibility. Please try again.');
+      const result = await eligibilityApi.assess(user.farmerId, id, TENANT_ID);
+      setAssessment(result);
+    } catch (error: any) {
+      const message = error.response?.data?.detail || 'Failed to check eligibility. Please try again.';
+      Alert.alert('Error', message);
     } finally {
       setAssessing(false);
     }
@@ -280,24 +201,26 @@ export default function SchemeDetailScreen() {
           <View style={styles.infoRow} testID="eligibility-detail-benefit-amount-row">
             <Text style={styles.infoLabel}>Benefit Amount</Text>
             <Text style={styles.infoValueHighlight} testID="eligibility-detail-benefit-amount">
-              KES {scheme.benefit_amount.toLocaleString()}
+              KES {(scheme.benefit_amount ?? 0).toLocaleString()}
             </Text>
           </View>
           <View style={styles.infoRow} testID="eligibility-detail-deadline-row">
             <Text style={styles.infoLabel}>Application Deadline</Text>
             <Text style={styles.infoValue} testID="eligibility-detail-deadline">
-              {new Date(scheme.application_deadline).toLocaleDateString()}
+              {scheme.application_deadline ? new Date(scheme.application_deadline).toLocaleDateString() : 'No deadline'}
             </Text>
           </View>
           <View style={styles.infoRow} testID="eligibility-detail-slots-row">
             <Text style={styles.infoLabel}>Remaining Slots</Text>
             <Text style={styles.infoValue} testID="eligibility-detail-slots">
-              {(scheme.max_beneficiaries - scheme.current_beneficiaries).toLocaleString()}
+              {scheme.max_beneficiaries ? ((scheme.max_beneficiaries - (scheme.current_beneficiaries || 0)).toLocaleString()) : 'Unlimited'}
             </Text>
           </View>
         </View>
 
-        <Text style={styles.benefitDescription} testID="eligibility-detail-benefit-description">{scheme.benefit_description}</Text>
+        {scheme.benefit_description ? (
+          <Text style={styles.benefitDescription} testID="eligibility-detail-benefit-description">{scheme.benefit_description}</Text>
+        ) : null}
       </View>
 
       {/* Check Eligibility Button */}
@@ -328,11 +251,11 @@ export default function SchemeDetailScreen() {
               <Text
                 style={[
                   styles.scoreValue,
-                  { color: getScoreColor(assessment.eligibility_score) },
+                  { color: getScoreColor(assessment.eligibility_score ?? 0) },
                 ]}
                 testID="eligibility-detail-score-value"
               >
-                {assessment.eligibility_score}%
+                {assessment.eligibility_score ?? 0}%
               </Text>
             </View>
             <View style={styles.scoreCard} testID="eligibility-detail-risk-card">
@@ -344,7 +267,7 @@ export default function SchemeDetailScreen() {
                 ]}
                 testID="eligibility-detail-risk-value"
               >
-                {assessment.risk_level.toUpperCase()}
+                {(assessment.risk_level || 'N/A').toUpperCase()}
               </Text>
             </View>
           </View>
@@ -379,7 +302,7 @@ export default function SchemeDetailScreen() {
           </View>
 
           {/* Rule Results */}
-          {assessment.rule_results.map((rule) => (
+          {(assessment.rule_results || []).map((rule) => (
             <View
               key={rule.rule_id}
               style={[
