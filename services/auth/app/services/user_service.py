@@ -2,10 +2,11 @@
 
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete as sa_delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.security import hash_password
 from app.models.user import User
 from app.schemas.user import UserListResponse, UserResponse, UserUpdate
 
@@ -94,6 +95,47 @@ class UserService:
             pages=(total + page_size - 1) // page_size,
         )
 
+    async def create_user(
+        self,
+        email: str,
+        password: str,
+        first_name: str,
+        last_name: str,
+        phone_number: str | None = None,
+        is_superuser: bool = False,
+    ) -> User:
+        """Create a new user (admin action)."""
+        existing = await self.get_user_by_email(email)
+        if existing:
+            raise ValueError("Email already registered")
+
+        if phone_number:
+            result = await self.db.execute(
+                select(User).where(User.phone_number == phone_number)
+            )
+            if result.scalar_one_or_none():
+                raise ValueError("Phone number already registered")
+
+        user = User(
+            email=email,
+            hashed_password=hash_password(password),
+            first_name=first_name,
+            last_name=last_name,
+            phone_number=phone_number,
+            is_superuser=is_superuser,
+        )
+        self.db.add(user)
+        await self.db.flush()
+        return user
+
+    async def activate_user(self, user_id: UUID) -> User:
+        """Activate user account."""
+        user = await self.get_user(user_id)
+        if not user:
+            raise ValueError("User not found")
+        user.is_active = True
+        return user
+
     async def deactivate_user(self, user_id: UUID) -> User:
         """Deactivate user account."""
         user = await self.get_user(user_id)
@@ -101,3 +143,11 @@ class UserService:
             raise ValueError("User not found")
         user.is_active = False
         return user
+
+    async def delete_user(self, user_id: UUID) -> None:
+        """Permanently delete a user."""
+        user = await self.get_user(user_id)
+        if not user:
+            raise ValueError("User not found")
+        await self.db.execute(sa_delete(User).where(User.id == user_id))
+        await self.db.flush()

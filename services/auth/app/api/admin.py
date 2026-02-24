@@ -9,16 +9,21 @@ from app.api.deps import get_current_active_superuser
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.admin import (
+    AdminUserCreate,
     PermissionCreate,
     PermissionResponse,
     RoleCreate,
     RolePermissionAssign,
     RoleResponse,
     RoleWithPermissions,
+    UserListResponse,
+    UserResponse,
     UserRoleAssign,
+    UserUpdate,
 )
 from app.services.audit_service import AuditAction, AuditService, ResourceType
 from app.services.rbac_service import RBACService
+from app.services.user_service import UserService
 
 
 def get_client_ip(request: Request) -> str:
@@ -30,6 +35,255 @@ def get_client_ip(request: Request) -> str:
 
 
 router = APIRouter()
+
+
+# User Management Endpoints
+@router.get("/users", response_model=UserListResponse)
+async def list_users(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    search: str | None = Query(None),
+    is_active: bool | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+) -> UserListResponse:
+    """List all users with pagination and optional filters."""
+    from sqlalchemy import select as sa_select
+    from sqlalchemy.orm import selectinload as si_load
+
+    from app.models.user import User as UserModel
+
+    query = sa_select(UserModel).options(si_load(UserModel.roles))
+
+    if search:
+        search_filter = f"%{search}%"
+        query = query.where(
+            UserModel.first_name.ilike(search_filter)
+            | UserModel.last_name.ilike(search_filter)
+            | UserModel.email.ilike(search_filter)
+        )
+
+    if is_active is not None:
+        query = query.where(UserModel.is_active == is_active)
+
+    from sqlalchemy import func
+
+    count_q = sa_select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_q)).scalar() or 0
+
+    query = query.order_by(UserModel.created_at.desc())
+    query = query.offset((page - 1) * size).limit(size)
+    rows = (await db.execute(query)).scalars().all()
+
+    items = [
+        UserResponse(
+            id=u.id,
+            email=u.email or "",
+            first_name=u.first_name,
+            last_name=u.last_name,
+            phone_number=u.phone_number,
+            is_active=u.is_active,
+            is_superuser=u.is_superuser,
+            totp_enabled=u.totp_enabled,
+            created_at=u.created_at,
+            last_login=u.last_login,
+        )
+        for u in rows
+    ]
+
+    return UserListResponse(
+        items=items,
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size if total else 1,
+    )
+
+
+@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_user(
+    data: AdminUserCreate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+) -> UserResponse:
+    """Create a new user account."""
+    user_svc = UserService(db)
+    audit = AuditService(db)
+
+    try:
+        user = await user_svc.create_user(
+            email=data.email,
+            password=data.password,
+            first_name=data.first_name,
+            last_name=data.last_name,
+            phone_number=data.phone_number,
+            is_superuser=data.is_superuser,
+        )
+        await db.commit()
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    await audit.log(
+        action=AuditAction.USER_CREATE,
+        resource_type=ResourceType.USER,
+        resource_id=str(user.id),
+        user_id=current_user.id,
+        details={"email": user.email},
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+    )
+    await db.commit()
+
+    return UserResponse(
+        id=user.id,
+        email=user.email or "",
+        first_name=user.first_name,
+        last_name=user.last_name,
+        phone_number=user.phone_number,
+        is_active=user.is_active,
+        is_superuser=user.is_superuser,
+        totp_enabled=user.totp_enabled,
+        created_at=user.created_at,
+        last_login=user.last_login,
+    )
+
+
+@router.patch("/users/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: UUID,
+    data: UserUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+) -> UserResponse:
+    """Update a user account."""
+    user_svc = UserService(db)
+    audit = AuditService(db)
+
+    try:
+        from app.schemas.user import UserUpdate as BaseUserUpdate
+
+        base_update = BaseUserUpdate(**data.model_dump(exclude_unset=True))
+        user = await user_svc.update_user(user_id, base_update)
+
+        # Handle is_superuser separately (not in base UserUpdate)
+        if data.is_superuser is not None:
+            user.is_superuser = data.is_superuser
+
+        await db.commit()
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    await audit.log(
+        action=AuditAction.USER_UPDATE,
+        resource_type=ResourceType.USER,
+        resource_id=str(user_id),
+        user_id=current_user.id,
+        details=data.model_dump(exclude_unset=True),
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+    )
+    await db.commit()
+
+    return UserResponse(
+        id=user.id,
+        email=user.email or "",
+        first_name=user.first_name,
+        last_name=user.last_name,
+        phone_number=user.phone_number,
+        is_active=user.is_active,
+        is_superuser=user.is_superuser,
+        totp_enabled=user.totp_enabled,
+        created_at=user.created_at,
+        last_login=user.last_login,
+    )
+
+
+@router.post("/users/{user_id}/toggle-active", response_model=UserResponse)
+async def toggle_user_active(
+    user_id: UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+) -> UserResponse:
+    """Toggle user active status."""
+    user_svc = UserService(db)
+    audit = AuditService(db)
+
+    try:
+        existing = await user_svc.get_user(user_id)
+        if not existing:
+            raise ValueError("User not found")
+
+        if existing.is_active:
+            user = await user_svc.deactivate_user(user_id)
+            action = AuditAction.USER_DEACTIVATE
+        else:
+            user = await user_svc.activate_user(user_id)
+            action = AuditAction.USER_ACTIVATE
+
+        await db.commit()
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    await audit.log(
+        action=action,
+        resource_type=ResourceType.USER,
+        resource_id=str(user_id),
+        user_id=current_user.id,
+        details={"is_active": user.is_active},
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+    )
+    await db.commit()
+
+    return UserResponse(
+        id=user.id,
+        email=user.email or "",
+        first_name=user.first_name,
+        last_name=user.last_name,
+        phone_number=user.phone_number,
+        is_active=user.is_active,
+        is_superuser=user.is_superuser,
+        totp_enabled=user.totp_enabled,
+        created_at=user.created_at,
+        last_login=user.last_login,
+    )
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(
+    user_id: UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+) -> None:
+    """Permanently delete a user account."""
+    user_svc = UserService(db)
+    audit = AuditService(db)
+
+    try:
+        user = await user_svc.get_user(user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        email = user.email
+        await user_svc.delete_user(user_id)
+        await db.commit()
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    await audit.log(
+        action=AuditAction.USER_DELETE,
+        resource_type=ResourceType.USER,
+        resource_id=str(user_id),
+        user_id=current_user.id,
+        details={"email": email},
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+    )
+    await db.commit()
 
 
 # Role Management Endpoints

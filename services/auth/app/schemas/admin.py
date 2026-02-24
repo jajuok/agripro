@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 # Role schemas
@@ -72,6 +72,17 @@ class UserRoleAssign(BaseModel):
 
 
 # User management schemas
+class AdminUserCreate(BaseModel):
+    """Admin create user request."""
+
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    first_name: str = Field(..., min_length=1, max_length=100)
+    last_name: str = Field(..., min_length=1, max_length=100)
+    phone_number: str | None = None
+    is_superuser: bool = False
+
+
 class UserResponse(BaseModel):
     """User response for admin."""
 
